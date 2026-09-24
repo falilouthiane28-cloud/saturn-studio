@@ -1,0 +1,44 @@
+# ===================================================================
+# Saturn Studio — .gitignore racine du dépôt (C:\Users\fallo\dev)
+# Le dépôt contient l'app (naiom-platform/), les modules d'agents
+# (.claude/agents/) et les dossiers de livrables.
+# ===================================================================
+
+# --- Dépendances & build ---
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+out/
+**/out/
+build/
+**/build/
+*.tsbuildinfo
+.vercel/
+.turbo/
+
+# --- Secrets & environnement (ignore les vraies clés, garde les *.example) ---
+.env
+.env.local
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+!**/.env.local.example
+
+# --- Tokens OAuth & données personnelles récupérées en live ---
+# (refresh token Google, emails Gmail, fichiers Drive, analytics YouTube)
+**/src/data/google-tokens.json
+**/src/data/live-*.json
+
+# --- Config locale machine ---
+**/.claude/settings.local.json
+**/launch.json
+
+# --- OS / éditeurs / logs ---
+.DS_Store
+Thumbs.db
+*.pem
+*-debug.log*
+.idea/
+.vscode/

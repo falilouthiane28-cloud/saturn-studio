@@ -1,0 +1,38 @@
+{
+  "ecommerce": {
+    "name": "Emma",
+    "source": "mascoote emma 3d.jpeg",
+    "focalX": 50,
+    "focalY": 31
+  },
+  "createur-contenu": {
+    "name": "Lea",
+    "source": "mascotte lea 3d.jpeg",
+    "focalX": 50,
+    "focalY": 30
+  },
+  "veille": {
+    "name": "Nina",
+    "source": "mascotte 3d nina.jpeg",
+    "focalX": 50,
+    "focalY": 28
+  },
+  "prospection": {
+    "name": "Awa",
+    "source": "mascotte sacha 3 d.jpeg",
+    "focalX": 50,
+    "focalY": 33
+  },
+  "fireflies": {
+    "name": "Ousmane",
+    "source": "mascotte jule 3d.jpeg",
+    "focalX": 50,
+    "focalY": 28
+  },
+  "proposition": {
+    "name": "Cheikh",
+    "source": "mascotte victor 3d.jpeg",
+    "focalX": 50,
+    "focalY": 28
+  }
+}
