@@ -1,0 +1,28 @@
+# Ne JAMAIS envoyer dans le contexte de build (poids + secrets)
+**/node_modules
+**/.next
+**/out
+**/build
+.git
+**/.git
+
+# Secrets & données personnelles (injectés au runtime via env_file / volumes)
+**/.env
+**/.env.local
+**/.env.*.local
+**/src/data/google-tokens.json
+**/src/data/live-*.json
+
+# Config locale / logs / OS
+**/.claude/settings.local.json
+**/launch.json
+*.log
+.DS_Store
+Thumbs.db
+
+# Docs de dev (inutiles dans l'image)
+DEPLOY.md
+deploy/
+naiom-platform/projet.md
+naiom-platform/memory.md
+naiom-platform/progress.md

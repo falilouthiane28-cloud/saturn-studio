@@ -35,6 +35,10 @@ build/
 **/.claude/settings.local.json
 **/launch.json
 
+# --- Outils tiers déposés à la racine (VPSKIT, etc.) — pas du code projet ---
+/setup.sh
+/vpskit.sh
+
 # --- OS / éditeurs / logs ---
 .DS_Store
 Thumbs.db

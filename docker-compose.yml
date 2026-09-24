@@ -1,0 +1,45 @@
+# ===================================================================
+# Saturn Studio — orchestration Docker
+# Usage (sur le VPS, à la racine du repo cloné) :
+#   docker compose up -d --build
+# Les secrets viennent de naiom-platform/.env.local (jamais dans l'image).
+# ===================================================================
+services:
+  saturn:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: saturn-studio
+    container_name: saturn-studio
+    restart: unless-stopped
+    # Exposé uniquement en local : nginx/Caddy fait la façade HTTPS.
+    ports:
+      - "127.0.0.1:3000:3000"
+    # Secrets injectés au runtime (clé Anthropic, Google, TikTok…).
+    env_file:
+      - ./naiom-platform/.env.local
+    volumes:
+      # Tokens Google + données live perso (survivent aux redeploys).
+      - saturn_data:/srv/saturn/naiom-platform/src/data
+      # Livrables produits par les agents (chemins = REPO_ROOT/<dossier>).
+      - saturn_content:/srv/saturn/content
+      - saturn_meetings:/srv/saturn/meetings
+      - saturn_propositions:/srv/saturn/propositions
+      - saturn_analytics:/srv/saturn/analytics
+      - saturn_clients:/srv/saturn/clients
+      - saturn_briefs:/srv/saturn/briefs
+      - saturn_decks:/srv/saturn/decks
+      - saturn_creatives:/srv/saturn/creatives
+      - saturn_prompts_images:/srv/saturn/prompts-images
+
+volumes:
+  saturn_data:
+  saturn_content:
+  saturn_meetings:
+  saturn_propositions:
+  saturn_analytics:
+  saturn_clients:
+  saturn_briefs:
+  saturn_decks:
+  saturn_creatives:
+  saturn_prompts_images:
