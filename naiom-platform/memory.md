@@ -17,16 +17,25 @@ Règles et contexte persistants à respecter avant toute intervention.
 
 ## Design / visuels
 - Mascottes 3D plein corps (décor ciel dégradé), pas les anciennes photos portrait ni les Funko de `public/avatars/`.
-- **Recadrer à la source, pas en CSS** (ratios très différents : Emma 0.56, Fallou 0.75, autres 1.00). Avatar = tête+épaules dérivé de la boîte englobante réelle ; bannière hero = fond flouté + figurine entière posée dessus (jamais découper une figurine plein corps). Vérifier sur planche-contact avant de livrer.
+- **Recadrer à la source, pas en CSS** (ratios très différents : Emma 0.56, Fallou 0.75, autres 1.00). Avatar = tête+épaules dérivé de la boîte englobante réelle ; bannière/figure = **dégradé tiré des bords du décor** + figurine entière posée **en fondu** (jamais l'image entière agrandie en fond : fantôme géant du personnage ; jamais découper une figurine). Vérifier sur planche-contact avant de livrer.
 - Typo : Instrument Serif (display) + Inter/Archivo (UI).
 
 ## Pièges techniques (rappel)
 - Turbopack : 500 fantômes → purge `.next` + `node_modules/.cache`, un seul serveur, onglet neuf.
 - `next/font/google` peut casser après purge partielle → purge complète.
-- `ANTHROPIC_API_KEY` = placeholder ; chat/orchestration KO tant que non remplacée.
+- `.env.local` : une seule ligne par clé (une clé masquée « •••• » collée en double casse le chat).
 - Ne pas importer `@/lib/agents` côté client (utilise `node:fs`) → passer par `agentsUI.ts`.
-- lucide-react v1.8 : pas d'icônes de marque ; vérifier `name in Lucide`.
+- Icônes : registre statique `iconRegistry.ts` ; lucide v1.8 sans icônes de marque.
 - `images.localPatterns` (next.config.ts) : liste blanche pour `next/image`.
+
+- Thème **clair par défaut**. Le CSS de `theme.css` est hors couche : il l'emporte sur les utilitaires Tailwind (`md:hidden`…) → piloter l'affichage par media query.
+- Derrière Caddy, `req.url` = `localhost:3000` → redirections **relatives** dans les routes.
+
+## Sécurité (règles dures)
+- Tout ce qui agit à l'extérieur (email, publication) passe par un outil `kind: "write"` → approbation de l'utilisateur. Jamais d'envoi automatique.
+- Ne jamais exposer le port 3000 publiquement ni remettre un basic_auth Caddy (popup sur l'accueil à cause du prefetch).
+- Aucune route sous `/api` exemptée d'authentification (livrables PDF privés).
+- Vérifier l'absence de secrets dans chaque commit ; le repo GitHub reste **privé**.
 
 ## Chef d'équipe
 Fallou (`fireflies`), déclaré dans `agentsUI.ts`.

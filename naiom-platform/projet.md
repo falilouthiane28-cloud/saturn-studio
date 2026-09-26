@@ -6,6 +6,7 @@ Le dossier disque garde le nom historique `naiom-platform` **volontairement** (p
 ## Stack
 - **Next.js 16.2.4** (Turbopack) · **React 19** · **TypeScript** · **Tailwind v4**
 - Polices : Instrument Serif (noms d'agents / titres display), Inter + Archivo (UI) via `next/font/google`.
+- **Thème clair par défaut** (sombre uniquement sur choix explicite, bouton soleil/lune).
 - Accent unique : **violet** (`--color-primary` : `#6D28D9` clair / `#A78BFA` sombre), défini dans `theme.css`. Jamais de hex en dur.
 
 ## Emplacement (IMPORTANT)
@@ -41,12 +42,24 @@ rm -rf .next node_modules/.cache && npm run dev
 ```
 
 ## Pièges connus
-- **lucide-react v1.8** n'a plus d'icônes de marque (`Instagram`, `Linkedin`, `Youtube`, `Chrome`) → `Icon` retombe sur un cercle générique sans erreur. Vérifier `name in Lucide`. Reste à corriger : `src/app/install/page.tsx` (`Apify`, `Fireflies`).
+- **Icônes** : `Icon` lit un registre statique `src/components/iconRegistry.ts` (pas toute la lib Lucide). Nouvelle icône → l'ajouter au registre, sinon cercle de repli + avertissement en dev. lucide-react v1.8 n'a plus d'icônes de marque (`Instagram`, `Youtube`…).
 - **`images.localPatterns`** dans `next.config.ts` est une liste blanche : tout nouveau dossier sous `public/` doit y être ajouté sinon `next/image` répond 400.
 - **Turbopack en dev** : 500/ReferenceError fantômes après beaucoup d'éditions ou après un `rm -rf .next` partiel → purger `.next` + `node_modules/.cache`, un seul serveur, onglet navigateur neuf.
-- **`ANTHROPIC_API_KEY` dans `.env.local` = placeholder 17 caractères** (une vraie clé ≈ 100). L'UI tourne, mais chat + orchestration renvoient une erreur tant qu'elle n'est pas remplacée par `sk-ant-...`.
+- **`.env.local` : une seule ligne par clé.** Une 2e ligne `ANTHROPIC_API_KEY` (ex. collage d'une commande contenant une clé masquée « •••• ») écrase la vraie → erreur « Cannot convert argument to a ByteString ».
+- **Serveur de dev lancé depuis Claude Code** : retirer `ANTHROPIC_BASE_URL` de l'environnement (`env -u ANTHROPIC_BASE_URL npm run dev`).
 - **Ne jamais importer `@/lib/agents` depuis un composant client** (charge `node:fs`). Passer par `agentsUI.ts`.
 - Un `transform` CSS sur un conteneur de page casse la nav `position: fixed`.
 
 ## Assets mascottes
 Images sources : `C:\Users\fallo\Documents\AGENTS AI CLAUDE\img\mascotte *.jpeg` — lues par `scripts/build_avatars.py` (`SRC` codé en dur). **Ne pas supprimer ce dossier `img/`.** Recadrage à la source, jamais en CSS (ratios hétérogènes).
+
+## Architecture ajoutée (sept. 2026)
+- **Accès** : `src/proxy.ts` (Next 16 : ex-middleware) + page `/login` + session en cookie signé HMAC 30 j (`src/lib/auth/session.ts`). Mot de passe = `SATURN_ACCESS_PASSWORD` ; absent (dev local) → accès ouvert. Accueil `/` public, tout le reste (y compris `/api/*`) protégé. Déconnexion : `LogoutButton` (POST).
+- **Connecteurs des agents** : `src/lib/tools/` — `registry.ts` (outils + `AGENT_TOOLS` par agent), `meta.ts` (libellés, importable côté client), `agentTools.ts` (conversion AI SDK, journal `analytics/tools/tool-calls.jsonl`). Branchés dans `api/chat/route.ts`. Outils `kind: "write"` → `needsApproval` : carte « Approuver / Refuser » dans le chat (`components/chat/ToolActivity.tsx`). Aucun repli sur des données de démo.
+- **Navigation** : `SiteFooter` unique (landing `full` / app `compact`), `MobileTabBar` (≤ 768 px) montée hors des en-têtes (un `backdrop-filter` piège le `position: fixed`), sélecteur des 6 agents sur la fiche agent.
+
+## Production
+- VPS Spaceship `209.74.71.111`, SSH port **22022**. App dans `/srv/saturn` (clone du repo GitHub privé `falilouthiane28-cloud/saturn-studio`), conteneur Docker lié à `127.0.0.1:3000`.
+- **https://209-74-71-111.sslip.io** via Caddy (Let's Encrypt automatique). Pare-feu ufw : 22022, 80, 443.
+- Déployer : `cd /srv/saturn && git pull && docker compose up -d --build`.
+- Secrets uniquement dans `/srv/saturn/naiom-platform/.env.local` sur le serveur (jamais dans le repo).
