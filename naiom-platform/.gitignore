@@ -44,3 +44,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Médias générés à la volée (servis par /media, persistés en volume Docker)
+/public/generated-carousels/
+/public/generated-images/
+/public/generated-shorts/
+/public/generated-thumbnails/
+/public/content-out/
