@@ -53,7 +53,7 @@ export function ToolActivity({
               <div className="tool-approval-head">
                 <Icon name="ShieldAlert" size={16} aria-hidden />
                 <span>
-                  <b>{agentName}</b> demande votre accord : {meta.label.toLowerCase()} ({platform})
+                  <b>{agentName}</b> demande votre accord : {meta.label.charAt(0).toLowerCase() + meta.label.slice(1)} ({platform})
                 </span>
               </div>
               <dl className="tool-approval-body">
@@ -101,4 +101,5 @@ const FIELD_LABEL: Record<string, string> = {
   to: "Destinataire",
   subject: "Objet",
   body: "Message",
+  text: "Texte du post",
 };

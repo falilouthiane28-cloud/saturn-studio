@@ -35,7 +35,7 @@ yarn-error.log*
 .env*.local
 
 # Tokens OAuth + données personnelles récupérées en live (JAMAIS versionner)
-/src/data/google-tokens.json
+/src/data/*-tokens.json
 /src/data/live-*.json
 
 # vercel

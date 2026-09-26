@@ -2,6 +2,7 @@ import { Icon } from "@/components/Icon";
 import { getInbox, getMeetings, getYouTubeSnapshot, getDriveSnapshot } from "@/lib/dataSources";
 import { SyncButton } from "@/components/SyncButton";
 import { getGoogleStatus, isGoogleConfigured } from "@/lib/integrations/google";
+import { getLinkedInStatus, isLinkedInConfigured } from "@/lib/integrations/linkedin";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { AppNav } from "@/components/landing/AppNav";
@@ -32,6 +33,7 @@ interface Integration {
   itemsCount?: number;
   syncEndpoint?: string;
   connectUrl?: string;
+  connectLabel?: string;
   email?: string;
   setupSteps: string[];
   notes?: string;
@@ -52,12 +54,13 @@ function mask(value: string | undefined): string | undefined {
 }
 
 async function getIntegrations(): Promise<Integration[]> {
-  const [meetings, inbox, googleStatus, yt, drive] = await Promise.all([
+  const [meetings, inbox, googleStatus, yt, drive, liStatus] = await Promise.all([
     getMeetings(),
     getInbox(),
     getGoogleStatus(),
     getYouTubeSnapshot(),
     getDriveSnapshot(),
+    getLinkedInStatus(),
   ]);
 
   return [
@@ -194,19 +197,23 @@ async function getIntegrations(): Promise<Integration[]> {
     {
       id: "linkedin",
       title: "LinkedIn",
-      agent: "Léa (posts) · Awa (prospection)",
+      agent: "Léa (posts) · Emma (produits)",
       icon: "Briefcase",
-      envVar: "LINKEDIN_ACCESS_TOKEN",
-      configured: Boolean(process.env.LINKEDIN_ACCESS_TOKEN),
-      masked: mask(process.env.LINKEDIN_ACCESS_TOKEN),
+      envVar: "LINKEDIN_CLIENT_ID + LINKEDIN_CLIENT_SECRET",
+      configured: isLinkedInConfigured() && liStatus.connected,
+      email: liStatus.name,
+      connectUrl: isLinkedInConfigured() ? "/api/integrations/linkedin/start" : undefined,
+      connectLabel: "Connecter LinkedIn",
       setupSteps: [
-        "Créez une app sur linkedin.com/developers",
-        "Demandez les produits « Share on LinkedIn » et « Sign In with LinkedIn »",
-        "Générez un access token OAuth 2.0 pour le compte qui publie",
-        "Collez-le dans .env.local à LINKEDIN_ACCESS_TOKEN=",
+        "Créez une app sur linkedin.com/developers (reliée à une Page LinkedIn)",
+        "Onglet Products : ajoutez « Sign In with LinkedIn using OpenID Connect » et « Share on LinkedIn »",
+        "Onglet Auth : ajoutez l'URL de redirection https://<votre domaine>/api/integrations/linkedin/callback",
+        "Copiez Client ID et Client Secret dans .env.local (LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET, LINKEDIN_REDIRECT_URI)",
+        "Cliquez « Connecter LinkedIn »",
       ],
-      notes:
-        "Permet à Léa de publier les posts qu'elle rédige et à Awa d'enrichir les profils prospects.",
+      notes: liStatus.expired
+        ? "La connexion a expiré (60 jours) : cliquez « Reconnecter »."
+        : "Léa et Emma rédigent le post ; il n'est publié qu'après votre clic « Approuver » dans le chat. La connexion dure 60 jours.",
     },
     {
       id: "tiktok",
@@ -231,7 +238,7 @@ async function getIntegrations(): Promise<Integration[]> {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ google?: string; google_error?: string }>;
+  searchParams: Promise<{ google?: string; google_error?: string; linkedin?: string; linkedin_error?: string }>;
 }) {
   const integrations = await getIntegrations();
   const sp = await searchParams;
@@ -261,6 +268,21 @@ export default async function SettingsPage({
 
       <main className="relative px-6 sm:px-10 pb-20">
         <div className="mx-auto max-w-[920px] space-y-5">
+          {sp.linkedin === "connected" && (
+            <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
+              <Icon name="CheckCircle" size={18} className="text-emerald-700 mt-0.5 shrink-0" />
+              <p className="font-semibold text-emerald-900">LinkedIn connecté : Léa et Emma peuvent proposer des publications.</p>
+            </div>
+          )}
+          {sp.linkedin_error && (
+            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+              <Icon name="AlertCircle" size={18} className="text-red-700 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-red-900">Erreur de connexion LinkedIn</p>
+                <p className="text-sm text-red-800 break-all">{sp.linkedin_error}</p>
+              </div>
+            </div>
+          )}
           {sp.google === "connected" && (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
               <Icon name="CheckCircle" size={18} className="text-emerald-700 mt-0.5 shrink-0" />
@@ -426,7 +448,7 @@ function IntegrationCard({ integration: i }: { integration: Integration }) {
                 )}
               >
                 <Icon name="Link" size={12} />
-                {i.configured ? "Reconnecter" : "Connecter Google"}
+                {i.configured ? "Reconnecter" : i.connectLabel ?? "Connecter Google"}
               </Link>
             )}
             {i.syncEndpoint && (

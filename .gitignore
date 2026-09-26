@@ -28,7 +28,7 @@ build/
 
 # --- Tokens OAuth & données personnelles récupérées en live ---
 # (refresh token Google, emails Gmail, fichiers Drive, analytics YouTube)
-**/src/data/google-tokens.json
+**/src/data/*-tokens.json
 **/src/data/live-*.json
 
 # --- Config locale machine ---

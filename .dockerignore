@@ -10,7 +10,7 @@
 **/.env
 **/.env.local
 **/.env.*.local
-**/src/data/google-tokens.json
+**/src/data/*-tokens.json
 **/src/data/live-*.json
 
 # Config locale / logs / OS

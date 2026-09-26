@@ -16,6 +16,7 @@ import { fetchGmailInbox } from "@/lib/integrations/gmail";
 import { sendEmail } from "@/lib/integrations/gmailSend";
 import { fetchRecentDriveFiles, renderDriveForPrompt } from "@/lib/integrations/drive";
 import { fetchFirefliesMeetings, isFirefliesConfigured } from "@/lib/integrations/fireflies";
+import { publishLinkedInPost } from "@/lib/integrations/linkedin";
 import { TOOL_META, type Platform, type ToolKind } from "@/lib/tools/meta";
 
 function meta(name: string) {
@@ -194,6 +195,16 @@ export const TOOLS: ToolDef[] = [
       }));
     },
   },
+  {
+    ...meta("linkedin_publier"),
+    description:
+      "Publie un post texte public sur le profil LinkedIn connecté. L'utilisateur doit approuver dans le chat : passe le texte FINAL, prêt à publier (3 000 caractères max, sauts de ligne et hashtags inclus).",
+    parameters: obj({ text: str("Texte intégral du post") }, ["text"]),
+    run: async (a) => {
+      const r = await publishLinkedInPost(String(a.text));
+      return { publié: true, url: r.url };
+    },
+  },
 ];
 
 export const TOOL_BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
@@ -203,7 +214,7 @@ export const AGENT_TOOLS: Record<string, string[]> = {
   fireflies: ["fireflies_calls", "gmail_boite", "drive_fichiers"],
   prospection: ["gmail_boite", "gmail_envoyer", "instagram_reels_createurs", "drive_fichiers"],
   proposition: ["fireflies_calls", "gmail_boite", "gmail_envoyer", "drive_fichiers"],
-  "createur-contenu": ["youtube_ma_chaine", "youtube_recherche", "instagram_reels_hashtag", "tiktok_tendances", "drive_fichiers"],
+  "createur-contenu": ["linkedin_publier", "youtube_ma_chaine", "youtube_recherche", "instagram_reels_hashtag", "tiktok_tendances", "drive_fichiers"],
   veille: ["instagram_reels_hashtag", "instagram_reels_createurs", "tiktok_tendances", "youtube_recherche"],
-  ecommerce: ["instagram_reels_hashtag", "tiktok_tendances", "youtube_recherche"],
+  ecommerce: ["linkedin_publier", "instagram_reels_hashtag", "tiktok_tendances", "youtube_recherche"],
 };
