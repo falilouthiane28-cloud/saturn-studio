@@ -8,6 +8,8 @@
  *    leurs graphiques sont dessinés à l'encre sombre et doivent rester lisibles ;
  *  - titres en Anton capitales, **mot** → accent violet, ==mot== → pastille ;
  *  - repères de recadrage, grille, pied de page en police mono.
+ *  Ni grain ni masques : dans un PDF ils forcent la rastérisation (fichier
+ *  ×20, texte non sélectionnable). Le grain reste réservé aux carrousels PNG.
  */
 const DARK_KINDS = new Set(["title", "content", "stat", "quote", "thanks", "toc"]);
 const ACCENT = "#8B3DFF";
@@ -28,7 +30,6 @@ export function applyPosterTheme(sectionHtml: string, kind: string): string {
     ${dark ? '<div class="pz-glow"></div>' : ""}
     <div class="pz-grid"></div>
     ${ghost ? `<div class="pz-ghost">${ghost}</div>` : ""}
-    <div class="pz-grain"></div>
     <span class="pz-crop c1"></span><span class="pz-crop c2"></span><span class="pz-crop c3"></span><span class="pz-crop c4"></span>
   </div>`;
   return sectionHtml
@@ -65,11 +66,9 @@ body.theme-poster { background: #0B0A0F; }
 .pz-deco { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
 .pz-glow { position: absolute; inset: 0;
   background: radial-gradient(55% 60% at 70% 30%, ${ACCENT}55, transparent 70%), radial-gradient(40% 45% at 10% 100%, ${ACCENT}33, transparent 70%); }
-.pz-grid { position: absolute; inset: 0; opacity: .35;
+.pz-grid { position: absolute; inset: 0; opacity: .18;
   background-image: linear-gradient(rgba(127,127,127,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(127,127,127,.18) 1px, transparent 1px);
-  background-size: 96px 96px; -webkit-mask-image: radial-gradient(70% 70% at 50% 45%, #000, transparent); }
-.pz-grain { position: absolute; inset: 0; opacity: .14; mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  background-size: 96px 96px; }
 .pz-ghost { position: absolute; right: -20px; bottom: -40px; font-family: Anton; font-size: 380px; line-height: .8; white-space: nowrap;
   color: transparent; -webkit-text-stroke: 2px rgba(127,127,127,.18); }
 .pz-crop { position: absolute; width: 44px; height: 44px; border: 0 solid rgba(127,127,127,.55); }
