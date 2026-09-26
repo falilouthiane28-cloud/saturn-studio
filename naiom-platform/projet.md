@@ -55,11 +55,15 @@ Images sources : `C:\Users\fallo\Documents\AGENTS AI CLAUDE\img\mascotte *.jpeg`
 
 ## Architecture ajoutée (sept. 2026)
 - **Accès** : `src/proxy.ts` (Next 16 : ex-middleware) + page `/login` + session en cookie signé HMAC 30 j (`src/lib/auth/session.ts`). Mot de passe = `SATURN_ACCESS_PASSWORD` ; absent (dev local) → accès ouvert. Accueil `/` public, tout le reste (y compris `/api/*`) protégé. Déconnexion : `LogoutButton` (POST).
+- **Carrousels & decks** : carrousels via `src/lib/carousels/` (`posterTemplate.ts` = style Poster par défaut, `template.ts` = éditorial) ; decks PDF via `src/lib/presentations/` (`posterTheme.ts` posé par-dessus `template.ts`, `theme: "classic"` pour l'ancien). Rendu HTML → PNG/PDF par Puppeteer. Visuels héros via Gemini (`lib/integrations/nanoBanana.ts`, `GEMINI_API_KEY`, modèle surchargeable `GEMINI_IMAGE_MODEL`).
+- **Médias générés** (`public/generated-*`, `public/content-out`) : servis par `src/app/media/[dir]/[...file]` (Next ne sert pas en prod les fichiers ajoutés après le build) ; volumes Docker dédiés.
+- **Publication** : LinkedIn (`lib/integrations/linkedin.ts`) et Instagram (`lib/integrations/instagramPublish.ts`), OAuth avec state anti-CSRF, jetons dans `src/data/*-tokens.json` (hors git et hors image).
 - **Connecteurs des agents** : `src/lib/tools/` — `registry.ts` (outils + `AGENT_TOOLS` par agent), `meta.ts` (libellés, importable côté client), `agentTools.ts` (conversion AI SDK, journal `analytics/tools/tool-calls.jsonl`). Branchés dans `api/chat/route.ts`. Outils `kind: "write"` → `needsApproval` : carte « Approuver / Refuser » dans le chat (`components/chat/ToolActivity.tsx`). Aucun repli sur des données de démo.
 - **Navigation** : `SiteFooter` unique (landing `full` / app `compact`), `MobileTabBar` (≤ 768 px) montée hors des en-têtes (un `backdrop-filter` piège le `position: fixed`), sélecteur des 6 agents sur la fiche agent.
 
 ## Production
 - VPS Spaceship `209.74.71.111`, SSH port **22022**. App dans `/srv/saturn` (clone du repo GitHub privé `falilouthiane28-cloud/saturn-studio`), conteneur Docker lié à `127.0.0.1:3000`.
 - **https://209-74-71-111.sslip.io** via Caddy (Let's Encrypt automatique). Pare-feu ufw : 22022, 80, 443.
-- Déployer : `cd /srv/saturn && git pull && docker compose up -d --build`.
+- Déployer : `cd /srv/saturn && git pull && docker compose up -d --build` (≈ 30 s de compilation grâce au swap de 2 Go ; `docker image prune -f` de temps en temps, disque ≈ 70 %).
+- Image Docker : Chromium système + polices (dont emoji) pour Puppeteer.
 - Secrets uniquement dans `/srv/saturn/naiom-platform/.env.local` sur le serveur (jamais dans le repo).
