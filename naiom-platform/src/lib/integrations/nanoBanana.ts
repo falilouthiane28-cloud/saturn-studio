@@ -10,7 +10,8 @@ import path from "node:path";
  * Model ID : gemini-2.5-flash-image
  */
 
-const MODEL_ID = "gemini-2.5-flash-image";
+// gemini-2.5-flash-image est retiré pour les nouveaux comptes : modèle actuel par défaut, surchargeable.
+const MODEL_ID = process.env.GEMINI_IMAGE_MODEL ?? "gemini-3.1-flash-image";
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent`;
 
 export const PUBLIC_IMAGES_DIR = path.join(process.cwd(), "public", "generated-images");
@@ -84,9 +85,10 @@ export async function generateImage(
     },
   };
 
-  const res = await fetch(`${ENDPOINT}?key=${apiKey}`, {
+  // Clé en en-tête (jamais dans l'URL : elle finirait dans les journaux).
+  const res = await fetch(ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify(body),
   });
 
