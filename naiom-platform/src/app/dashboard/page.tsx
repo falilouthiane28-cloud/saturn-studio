@@ -19,13 +19,13 @@ import {
 import { listAgents, TEAM_LEADER_SLUG } from "@/lib/agents";
 import { OrchestrationBoard } from "@/components/orchestration/OrchestrationBoard";
 import { AgentCard } from "@/components/agents/AgentCard";
-import { SaturnLogo } from "@/components/brand/SaturnLogo";
 import { ThreeBackdrop } from "@/components/motion/ThreeBackdrop";
 import { listAllDeliverables } from "@/lib/deliverables";
 import { getGoogleStatus } from "@/lib/integrations/google";
 import type { YTSnapshot } from "@/lib/integrations/youtube";
 import type { DriveSnapshot } from "@/lib/integrations/drive";
 
+import { SiteFooter } from "@/components/brand/SiteFooter";
 export const dynamic = "force-dynamic";
 
 /**
@@ -213,20 +213,7 @@ export default async function DashboardPage() {
       </section>
 
       {/* ============ FOOTER mini ============ */}
-      <footer
-        className="relative px-6 sm:px-10 py-10 border-t"
-        style={{ borderColor: "var(--line-1)" }}
-      >
-        <div
-          className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-4 text-[12px]"
-          style={{ color: "var(--text-3)" }}
-        >
-          <span style={{ color: "var(--text-1)" }}>
-            <SaturnLogo variant="full" size={17} />
-          </span>
-          <span>Propriétaire : Fallou Thiane · © 2026 Saturn Studio</span>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

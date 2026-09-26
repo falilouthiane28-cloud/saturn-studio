@@ -38,7 +38,7 @@ export function isTeamLeader(slug: string): boolean {
 
    Le cadrage est fait À LA SOURCE, pas en CSS. C'est ce qui élimine
    le bug des visages rognés : les images d'origine ont des ratios
-   très différents (Emma 0.56 · Ousmane 0.75 · les autres 1.00), et
+   très différents (Emma 0.56 · Fallou 0.75 · les autres 1.00), et
    aucune règle CSS unique ne peut les cadrer toutes correctement.
 
    Il n'y a plus de repli « figurine Funko » : chaque agent réel a

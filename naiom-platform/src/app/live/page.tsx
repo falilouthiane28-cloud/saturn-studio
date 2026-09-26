@@ -247,9 +247,9 @@ export default function LivePage() {
                       { t: "Langue de travail : français par défaut", c: "dim" },
                       { t: "" },
                       { t: "## Mes employés IA", c: "head" },
-                      { t: "- Ousmane  → analyse de calls, plan d'action" },
+                      { t: "- Fallou   → analyse de calls, plan d'action" },
                       { t: "- Awa      → prospection, prise de contact" },
-                      { t: "- Cheikh   → propositions commerciales" },
+                      { t: "- Basse    → propositions commerciales" },
                       { t: "- Léa      → posts, scripts, emails" },
                       { t: "- … 6 employés IA au total", c: "dim" },
                       { t: "" },
@@ -824,7 +824,7 @@ export default function LivePage() {
               <line x1="750" y1="235" x2="805" y2="235" stroke="#0F0F0F" strokeWidth="4" className="lv-flow" markerEnd="url(#ar8)" />
               {/* chat */}
               <g className="lv-seq" style={{ ["--d" as string]: "2.8s" }}>
-                <ChatWin x={822} y={112} s={0.68} agent="Ousmane" slug="fireflies">
+                <ChatWin x={822} y={112} s={0.68} agent="Fallou" slug="fireflies">
                   <ChatBubbleMe y={66} w={250}>Écris-moi un post</ChatBubbleMe>
                   <ChatBubbleBot y={124} w={230}>✅ Le voilà !</ChatBubbleBot>
                 </ChatWin>
@@ -869,11 +869,11 @@ export default function LivePage() {
                 </g>
                 <g className="lv-night" style={{ ["--d" as string]: "3.6s" }}>
                   <AgentPic slug="fireflies" x={140} y={310} size={48} />
-                  <text x="205" y="346">→ calls analysés <tspan fill="#7BE3A9">✓</tspan> <tspan fill="#B7AEE8" fontSize="19">Ousmane</tspan></text>
+                  <text x="205" y="346">→ calls analysés <tspan fill="#7BE3A9">✓</tspan> <tspan fill="#B7AEE8" fontSize="19">Fallou</tspan></text>
                 </g>
                 <g className="lv-night" style={{ ["--d" as string]: "4.8s" }}>
                   <AgentPic slug="proposition" x={140} y={372} size={48} />
-                  <text x="205" y="408">→ proposition envoyée <tspan className="lv-blink" fill="#E8A33D">▌</tspan> <tspan fill="#B7AEE8" fontSize="19">Cheikh</tspan></text>
+                  <text x="205" y="408">→ proposition envoyée <tspan className="lv-blink" fill="#E8A33D">▌</tspan> <tspan fill="#B7AEE8" fontSize="19">Basse</tspan></text>
                 </g>
               </g>
               <text x="960" y="140" fontSize="72" className="lv-float">🌙</text>

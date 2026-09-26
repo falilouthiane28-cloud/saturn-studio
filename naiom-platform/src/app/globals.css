@@ -801,7 +801,17 @@ html:has(.bronx-page) { scroll-behavior: smooth; }
   white-space: nowrap;
   transition: background 0.2s ease, color 0.2s ease;
 }
-.bronx-nav-item:hover { color: #0F0F0F; background: #F3F3F3; }
+.bronx-nav-item:hover { color: var(--text-1); background: var(--surface-3); }
+.bronx-nav-item:active { transform: scale(0.97); }
+.bronx-nav-item:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+/* Pilule qui défile (petits écrans) : fondu sur les bords = indice de contenu caché. */
+@media (max-width: 720px) {
+  .bronx-nav {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+  }
+  .bronx-nav-item { padding: 11px 16px; }
+}
 .bronx-nav-item.active {
   background: var(--color-primary);
   color: var(--color-on-primary);
@@ -886,7 +896,7 @@ html:has(.bronx-page) { scroll-behavior: smooth; }
   overflow: hidden;
   font-size: 15px;
   font-weight: 500;
-  color: #5A5A5A;
+  color: var(--text-2);
 }
 .bronx-rotator span {
   position: absolute;
@@ -900,10 +910,16 @@ html:has(.bronx-page) { scroll-behavior: smooth; }
 .bronx-rotator span:nth-child(2) { animation-delay: 2s; }
 .bronx-rotator span:nth-child(3) { animation-delay: 4s; }
 .bronx-rotator span:nth-child(4) { animation-delay: 6s; }
+/* Créneau de 2 s par mot (25 % de 8 s) : entre par le bas, tient, sort par le haut
+   pendant que le suivant entre — la ligne n'est jamais vide. */
 @keyframes bronx-rotate-word {
-  0%, 20%     { opacity: 0; transform: translateY(110%); }
+  0%          { opacity: 0; transform: translateY(110%); }
   4%, 22%     { opacity: 1; transform: translateY(0); }
   26%, 100%   { opacity: 0; transform: translateY(-110%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bronx-rotator span { animation: none; }
+  .bronx-rotator span:first-child { opacity: 1; }
 }
 
 /* Carte avatar centrale violette (rounded square, comme la photo Larry) */

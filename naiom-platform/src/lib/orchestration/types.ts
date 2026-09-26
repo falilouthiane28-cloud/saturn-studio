@@ -7,8 +7,8 @@ export type TaskStatus = "en-attente" | "en-cours" | "terminé" | "échec";
  * Une tâche confiée à un agent par le chef d'équipe.
  *
  * `dependsOn` porte le passage de relais : une tâche qui dépend d'une autre
- * reçoit le livrable de celle-ci en entrée. C'est ce qui permet à Cheikh de
- * partir de l'analyse d'Ousmane plutôt que de zéro, exactement comme son
+ * reçoit le livrable de celle-ci en entrée. C'est ce qui permet à Basse de
+ * partir de l'analyse de Fallou plutôt que de zéro, exactement comme son
  * prompt métier le décrit déjà.
  */
 export interface OrchestrationTask {

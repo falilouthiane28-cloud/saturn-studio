@@ -1,5 +1,5 @@
 /**
- * Rendu PDF PRO d'une proposition commerciale Saturn Studio (Cheikh).
+ * Rendu PDF PRO d'une proposition commerciale Saturn Studio (Basse).
  * A4. Couverture pleine + contenu en FLUX CONTINU (pas de sauts de page rigides →
  * aucune demi-page blanche), schémas de process, blocs before→after, tableau
  * d'investissement, planning. L'email n'est PAS dans le PDF.

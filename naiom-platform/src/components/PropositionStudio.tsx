@@ -62,8 +62,8 @@ export function PropositionStudio({ calls: allCalls }: { calls: PropCall[] }) {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-black tracking-tight text-[var(--color-ink)]">Studio Proposition — Cheikh</h2>
-        <p className="text-[13px] text-[var(--color-muted)]">Branché à <b>Fireflies</b> : choisis un call, Cheikh analyse les process et rédige une proposition chiffrée. PDF à gauche, email à droite.</p>
+        <h2 className="text-xl font-black tracking-tight text-[var(--color-ink)]">Studio Proposition — Basse</h2>
+        <p className="text-[13px] text-[var(--color-muted)]">Branché à <b>Fireflies</b> : choisis un call, Basse analyse les process et rédige une proposition chiffrée. PDF à gauche, email à droite.</p>
       </div>
 
       {/* 1 · call */}
@@ -93,7 +93,7 @@ export function PropositionStudio({ calls: allCalls }: { calls: PropCall[] }) {
         <button onClick={generate} disabled={!selected || gen}
           className="flex items-center gap-2 rounded-xl bg-[var(--color-ink)] px-4 py-2.5 text-[13px] font-bold text-white transition hover:opacity-90 disabled:opacity-40">
           <Icon name={gen ? "Loader" : "FileSignature"} size={14} className={gen ? "animate-spin" : ""} />
-          {gen ? "Cheikh analyse et rédige…" : call ? `Générer la proposition pour ${prospectOf(call)}` : "Générer la proposition"}
+          {gen ? "Basse analyse et rédige…" : call ? `Générer la proposition pour ${prospectOf(call)}` : "Générer la proposition"}
         </button>
       </div>
 

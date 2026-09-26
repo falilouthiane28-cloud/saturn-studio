@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { AppNav } from "@/components/landing/AppNav";
 
+import { SiteFooter } from "@/components/brand/SiteFooter";
 interface Integration {
   id:
     | "anthropic"
@@ -63,7 +64,7 @@ async function getIntegrations(): Promise<Integration[]> {
     {
       id: "anthropic",
       title: "Anthropic (Claude)",
-      agent: "Emma · Léa · Nina · Awa · Ousmane · Cheikh",
+      agent: "Emma · Léa · Nina · Awa · Fallou · Basse",
       icon: "Cpu",
       envVar: "ANTHROPIC_API_KEY",
       configured: Boolean(process.env.ANTHROPIC_API_KEY),
@@ -79,7 +80,7 @@ async function getIntegrations(): Promise<Integration[]> {
     {
       id: "fireflies",
       title: "Fireflies (calls)",
-      agent: "Ousmane (analyste de calls) · Cheikh (propositions)",
+      agent: "Fallou (analyste de calls) · Basse (propositions)",
       icon: "Mic",
       envVar: "FIREFLIES_API_KEY",
       configured: Boolean(process.env.FIREFLIES_API_KEY),
@@ -138,7 +139,7 @@ async function getIntegrations(): Promise<Integration[]> {
     {
       id: "gmail",
       title: "Gmail (inbox)",
-      agent: "Awa (prospection) · Cheikh (envoi propositions)",
+      agent: "Awa (prospection) · Basse (envoi propositions)",
       icon: "Mail",
       envVar: "via Google OAuth",
       configured: googleStatus.connected,
@@ -302,15 +303,7 @@ export default async function SettingsPage({
       </main>
 
       {/* ============ FOOTER ============ */}
-      <footer className="relative px-6 sm:px-10 py-10 border-t border-[var(--color-line)]">
-        <div className="mx-auto max-w-[1400px] flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--color-ink-soft)]">
-          <span className="althea-logo" style={{ fontSize: 22 }}>saturn</span>
-          <span>SATURN STUDIO · © 2026</span>
-          <Link href="/" className="hover:text-[var(--color-ink)] transition">
-            Retour à l&apos;accueil
-          </Link>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

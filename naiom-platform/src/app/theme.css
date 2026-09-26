@@ -89,8 +89,8 @@
 
 /* ============================================================
    THÈME SOMBRE
-   Appliqué soit explicitement (data-theme="dark"), soit par
-   préférence système tant que l'utilisateur n'a pas forcé "light".
+   Uniquement sur choix explicite (data-theme="dark") : le thème clair
+   est le thème par défaut, quelle que soit la préférence système.
    ============================================================ */
 
 :root[data-theme="dark"],
@@ -161,69 +161,20 @@
   --color-emerald: var(--ok);
 }
 
-/* Même palette quand le système est en sombre et que rien n'est forcé. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-
-    --surface-0: #0b0b0f;
-    --surface-1: #14141a;
-    --surface-2: #1a1a22;
-    --surface-3: #22222c;
-
-    --text-1: #f2f2f5;
-    --text-2: #b4b4c0;
-    --text-3: #83838f;
-
-    --line-1: #26262f;
-    --line-2: #33333f;
-
-    --ink-solid: #f2f2f5;
-    --on-ink-solid: #0b0b0f;
-
-    --color-primary: #a78bfa;
-    --color-primary-hover: #c4b5fd;
-    --color-primary-soft: #241a3d;
-    --color-primary-strong: #c4b5fd;
-    --color-on-primary: #1b0b36;
-
-    --ok: #34d399;
-    --ok-soft: rgba(52, 211, 153, 0.14);
-    --warn: #fbbf24;
-    --warn-soft: rgba(251, 191, 36, 0.14);
-    --err: #f87171;
-    --err-soft: rgba(248, 113, 113, 0.14);
-
-    --sh-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --sh-2: 0 4px 16px -8px rgba(0, 0, 0, 0.6);
-    --sh-3: 0 18px 48px -24px rgba(0, 0, 0, 0.8);
-
-    --color-bg: var(--surface-0);
-    --color-bg-soft: var(--surface-1);
-    --color-bg-card: var(--surface-2);
-    --color-bg-warm: var(--surface-1);
-    --color-surface: var(--surface-2);
-    --color-ink: var(--text-1);
-    --color-ink-soft: var(--text-2);
-    --color-ink-dim: var(--text-3);
-    --color-muted: var(--text-3);
-    --color-line: var(--line-1);
-    --color-accent: var(--color-primary);
-    --color-accent-hover: var(--color-primary-hover);
-    --color-cream: var(--surface-1);
-    --color-cream-light: var(--surface-1);
-    --color-cream-dark: var(--surface-2);
-    --color-marine-50: rgba(255, 255, 255, 0.04);
-    --color-marine-100: rgba(255, 255, 255, 0.08);
-    --color-marine-200: var(--line-2);
-    --color-marine-400: var(--text-3);
-    --color-marine-600: var(--text-2);
-    --color-marine-700: var(--text-1);
-    --color-marine-800: var(--text-1);
-    --color-marine-900: var(--text-1);
-    --color-on-light: var(--text-1);
-    --color-emerald: var(--ok);
-  }
+/* Transition de thème : posée par ThemeToggle le temps du basculement
+   seulement (jamais en permanence, sinon chaque survol hériterait d'un
+   fondu de couleur). Fondu court de toutes les couleurs, pas de mouvement. */
+:root.theme-switching,
+:root.theme-switching *,
+:root.theme-switching *::before,
+:root.theme-switching *::after {
+  transition: background-color 280ms var(--ease), border-color 280ms var(--ease),
+    color 280ms var(--ease), fill 280ms var(--ease), stroke 280ms var(--ease),
+    box-shadow 280ms var(--ease) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root.theme-switching,
+  :root.theme-switching * { transition: none !important; }
 }
 
 /* Évite le flash de thème au chargement (le script inline pose data-theme). */
@@ -728,4 +679,122 @@ button:focus-visible,
 @media (prefers-reduced-motion: reduce) {
   .ds-card-agent { transition: border-color var(--t-base) var(--ease), box-shadow var(--t-base) var(--ease); }
   .ds-card-agent:hover { transform: none; }
+}
+
+/* ============================================================
+   PIED DE PAGE UNIQUE (SiteFooter)
+   ============================================================ */
+.ds-footer { position: relative; border-top: 1px solid var(--line-1); background: var(--surface-0); overflow: hidden; }
+.ds-footer__wrap { margin-inline: auto; max-width: 1200px; padding-inline: clamp(20px, 4vw, 40px); }
+.ds-footer__link {
+  display: inline-flex; align-items: center; min-height: 32px;
+  font-size: 14.5px; color: var(--text-2);
+  border-radius: 6px; transition: color var(--t-fast) var(--ease);
+}
+.ds-footer__link:hover { color: var(--color-primary); }
+.ds-footer a:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.ds-footer__role { color: var(--text-3); }
+/* Nom + rôle : un bloc de texte qui se replie naturellement, pas deux cases flex. */
+.ds-footer__link--text { display: block; min-height: 0; padding-block: 6px; line-height: 1.4; }
+
+/* --- Compact : une ligne, qui passe sur trois sous 720px --- */
+.ds-footer--compact { padding-block: 28px; }
+.ds-footer__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 28px; }
+.ds-footer__brand { color: var(--text-1); display: inline-flex; min-height: 44px; align-items: center; }
+.ds-footer__inline { display: flex; flex-wrap: wrap; gap: 4px 22px; }
+.ds-footer__legal { font-size: 12.5px; color: var(--text-3); }
+
+/* --- Complet --- */
+.ds-footer--full { padding-top: clamp(64px, 9vw, 112px); border-top: 0; }
+.ds-footer__cta {
+  display: grid; gap: 40px; align-items: center;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  padding: clamp(28px, 5vw, 56px);
+  background: var(--surface-1); border: 1px solid var(--line-1);
+  border-radius: 32px; box-shadow: var(--sh-2);
+}
+.ds-footer__eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3);
+}
+.ds-footer__live { width: 8px; height: 8px; border-radius: 999px; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); }
+.ds-footer__title {
+  margin-top: 14px; font-family: var(--font-display), var(--font-sans);
+  font-weight: 800; font-size: clamp(30px, 4.2vw, 52px); line-height: 1.04; letter-spacing: -0.025em; color: var(--text-1);
+  text-wrap: balance;
+}
+.ds-footer__title em { font-family: var(--font-serif), serif; font-style: italic; font-weight: 400; letter-spacing: -0.01em; color: var(--color-primary); }
+.ds-footer__lede { margin-top: 16px; max-width: 46ch; font-size: 16px; line-height: 1.6; color: var(--text-2); }
+.ds-footer__actions { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 12px; }
+.ds-footer__btn {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 22px;
+  border-radius: 999px; font-size: 15px; font-weight: 700;
+  transition: transform 100ms ease-out, background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.ds-footer__btn:active { transform: scale(0.97); }
+.ds-footer__btn--primary { background: var(--color-primary); color: var(--color-on-primary); }
+.ds-footer__btn--primary:hover { background: var(--color-primary-hover); }
+.ds-footer__btn--ghost { border: 1px solid var(--line-2); color: var(--text-1); background: var(--surface-2); }
+.ds-footer__btn--ghost:hover { border-color: var(--color-primary); }
+
+.ds-footer__crew { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 12px; justify-items: center; }
+.ds-footer__crew-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px; border-radius: 16px; }
+.ds-footer__crew-item .ds-avatar { transition: transform 220ms var(--ease); }
+.ds-footer__crew-item:hover .ds-avatar { transform: translateY(-3px); }
+.ds-footer__crew-name { font-size: 13px; font-weight: 600; color: var(--text-2); }
+
+.ds-footer__grid {
+  display: grid; gap: 36px; margin-top: clamp(48px, 6vw, 72px);
+  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+}
+.ds-footer__about { display: flex; flex-direction: column; gap: 14px; color: var(--text-1); }
+.ds-footer__about p { max-width: 32ch; font-size: 14.5px; line-height: 1.6; color: var(--text-2); }
+.ds-footer__col { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.ds-footer__col h3 { margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
+
+.ds-footer__bottom {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;
+  margin-top: 48px; padding-block: 22px; border-top: 1px solid var(--line-1);
+  font-size: 12.5px; color: var(--text-3);
+}
+.ds-footer__top { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--text-2); }
+.ds-footer__top:hover { color: var(--color-primary); }
+
+.ds-footer__word {
+  font-family: var(--font-display), var(--font-sans); font-weight: 900;
+  font-size: clamp(88px, 22vw, 340px); line-height: 0.8; letter-spacing: -0.05em;
+  text-align: center; color: var(--text-1); opacity: 0.06;
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+  margin-top: 8px; user-select: none; pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .ds-footer__cta { grid-template-columns: 1fr; }
+  .ds-footer__crew { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+  .ds-footer__crew .ds-avatar { width: 44px !important; height: 44px !important; }
+  .ds-footer__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ds-footer__about { grid-column: 1 / -1; }
+}
+@media (max-width: 520px) {
+  .ds-footer__crew { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 8px; }
+  .ds-footer__crew .ds-avatar { width: 52px !important; height: 52px !important; }
+  .ds-footer__grid { grid-template-columns: 1fr; }
+  .ds-footer__btn { flex: 1 1 100%; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-footer__btn, .ds-footer__crew-item .ds-avatar { transition: none; }
+  .ds-footer__crew-item:hover .ds-avatar, .ds-footer__btn:active { transform: none; }
+}
+
+/* En-tête collant de la fiche agent : même matériau que la barre du Studio,
+   sinon le contenu défile sous un en-tête transparent et s'y superpose. */
+.agent-bar {
+  background: color-mix(in srgb, var(--surface-0) 78%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+  border-bottom: 1px solid var(--line-1);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .agent-bar { background: var(--surface-0); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }

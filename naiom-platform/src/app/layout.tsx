@@ -46,10 +46,8 @@ export const metadata: Metadata = {
 const THEME_INIT = `
 (function () {
   try {
-    var stored = localStorage.getItem("saturn-theme");
-    var dark = stored
-      ? stored === "dark"
-      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    // Clair par défaut : le sombre n'est appliqué que sur choix explicite.
+    var dark = localStorage.getItem("saturn-theme") === "dark";
     document.documentElement.dataset.theme = dark ? "dark" : "light";
   } catch (e) {
     document.documentElement.dataset.theme = "light";

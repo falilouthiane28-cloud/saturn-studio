@@ -21,7 +21,7 @@ interface AgentTabsProps {
   videoPanel?: React.ReactNode; // EcommerceStudio — uniquement pour l'agente e-commerce (Emma)
   pipelinePanel?: React.ReactNode;
   veillePanel?: React.ReactNode; // VeilleStudio — uniquement pour l'agente veille (Nina) // ProspectionStudio — uniquement pour l'agent prospection (Awa)
-  proposalPanel?: React.ReactNode; // PropositionStudio — uniquement pour Cheikh (proposition)
+  proposalPanel?: React.ReactNode; // PropositionStudio — uniquement pour Basse (proposition)
   comptaPanel?: React.ReactNode; // ComptaStudio — uniquement pour Chloé (comptabilite)
   creativePanel?: React.ReactNode; // CreativeStudio — uniquement pour Mia (designer / Creative Strategist)
   contentPanel?: React.ReactNode; // ContentStudio — uniquement pour Léa (createur-contenu)

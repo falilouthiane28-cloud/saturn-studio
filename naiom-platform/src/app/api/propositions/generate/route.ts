@@ -9,7 +9,7 @@ const INTERNAL = /fallou|saturn/i;
 
 /**
  * POST /api/propositions/generate { callId }
- * Cheikh reprend le call (Fireflies) → proposition STRUCTURÉE → PDF pro (schémas + prix).
+ * Basse reprend le call (Fireflies) → proposition STRUCTURÉE → PDF pro (schémas + prix).
  * Renvoie le PDF (downloadUrl) + l'email d'accompagnement SÉPARÉ.
  */
 export async function POST(req: Request) {

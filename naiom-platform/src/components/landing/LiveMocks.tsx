@@ -142,7 +142,7 @@ type ChatProps = {
   y: number;
   s?: number;
   agent?: string;
-  /** Slug de l'avatar affiché dans le header (défaut : Ousmane, le chef d'équipe). */
+  /** Slug de l'avatar affiché dans le header (défaut : Fallou, le chef d'équipe). */
   slug?: string;
   caption?: string;
   /** Bulles du chat (coordonnées 0→460 / 60→255). */
@@ -150,7 +150,7 @@ type ChatProps = {
 };
 
 /** Chat de la plateforme Saturn Studio — base 460 × 330. */
-export function ChatWin({ x, y, s = 1, agent = "Ousmane", slug = "fireflies", caption, children }: ChatProps) {
+export function ChatWin({ x, y, s = 1, agent = "Fallou", slug = "fireflies", caption, children }: ChatProps) {
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`}>
       <rect width="460" height="330" rx="20" fill="#FFFFFF" stroke="#0F0F0F" strokeWidth="3" />

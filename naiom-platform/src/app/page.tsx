@@ -7,7 +7,6 @@ import { countDeliverables } from "@/lib/deliverables";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { Icon } from "@/components/Icon";
 import { LandingNav } from "@/components/landing/LandingNav";
-import { SaturnLogo } from "@/components/brand/SaturnLogo";
 import { ScrollReveal } from "@/components/landing/ScrollReveal";
 import {
   ShapeSphere,
@@ -20,6 +19,7 @@ import {
 } from "@/components/landing/Shapes";
 import type { AgentMeta } from "@/lib/types";
 
+import { SiteFooter } from "@/components/brand/SiteFooter";
 /**
  * Saturn Studio · Homepage — Edition Bronx (juillet 2026).
  *
@@ -266,61 +266,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ================= FOOTER / CONTACT ================= */}
-      <footer id="contact" className="relative px-6 pt-24 pb-0">
-        <div className="mx-auto max-w-[1150px]">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10" data-reveal>
-            <div>
-              <div className="bronx-footer-h mb-5">Contact</div>
-              <div className="flex flex-col gap-3">
-                <a href="mailto:contact@saturnstudio.com" className="bronx-footer-link">Réserver un call</a>
-                <a href="mailto:contact@saturnstudio.com" className="bronx-footer-link">contact@saturnstudio.com</a>
-              </div>
-            </div>
-            <div>
-              <div className="bronx-footer-h mb-5">Liens utiles</div>
-              <div className="flex flex-col gap-3">
-                <Link href="/dashboard" className="bronx-footer-link">Studio</Link>
-                <Link href="/live" className="bronx-footer-link">Coulisses</Link>
-                <Link href="/calendrier" className="bronx-footer-link">Calendrier</Link>
-                <Link href="/settings" className="bronx-footer-link">Connexions</Link>
-              </div>
-            </div>
-            <div>
-              <div className="bronx-footer-h mb-5">Social</div>
-              <div className="flex flex-col gap-3">
-                <a href="#" className="bronx-footer-link">LinkedIn</a>
-                <a href="#" className="bronx-footer-link">YouTube</a>
-                <a href="#" className="bronx-footer-link">Instagram</a>
-              </div>
-            </div>
-            <div>
-              <div className="bronx-footer-h mb-5">Légal</div>
-              <div className="flex flex-col gap-3">
-                <a href="#" className="bronx-footer-link">Confidentialité</a>
-                <a href="#" className="bronx-footer-link">Mentions légales</a>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="mt-16 mb-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-[13px]"
-            style={{ color: "var(--text-3)" }}
-          >
-            <span style={{ color: "var(--text-1)" }}>
-              <SaturnLogo variant="full" size={18} />
-            </span>
-            <span>Propriétaire : Fallou Thiane · © 2026 Saturn Studio</span>
-          </div>
-        </div>
-
-        {/* Wordmark géant coupé en bas (signature du template) */}
-        <div className="overflow-hidden">
-          <div className="bronx-giant-word text-center" style={{ transform: "translateY(26%)", fontSize: "clamp(60px, 11vw, 190px)" }}>
-            ÉQUIPE&nbsp;IA
-          </div>
-        </div>
-      </footer>
+      {/* ================= FOOTER ================= */}
+      <SiteFooter
+        variant="full"
+        agents={team.map((a) => ({ slug: a.slug, name: a.name, role: a.role }))}
+      />
     </div>
   );
 }

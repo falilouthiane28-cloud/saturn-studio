@@ -26,11 +26,11 @@ os.makedirs(DST, exist_ok=True)
 # englobante reelle de la figurine (cf. head_box).
 AGENTS = [
     dict(slug="ecommerce",        name="Emma",    file="mascoote emma 3d.jpeg",   cx=0.50, cy=0.31, hy=0.24),
-    dict(slug="createur-contenu", name="Lea",     file="mascotte lea 3d.jpeg",    cx=0.50, cy=0.30),
+    dict(slug="createur-contenu", name="Léa",     file="mascotte lea 3d.jpeg",    cx=0.50, cy=0.30),
     dict(slug="veille",           name="Nina",    file="mascotte 3d nina.jpeg",   cx=0.50, cy=0.28),
     dict(slug="prospection",      name="Awa",     file="mascotte sacha 3 d.jpeg", cx=0.50, cy=0.33, hy=0.30),
-    dict(slug="fireflies",        name="Ousmane", file="mascotte jule 3d.jpeg",   cx=0.50, cy=0.28),
-    dict(slug="proposition",      name="Cheikh",  file="mascotte victor 3d.jpeg", cx=0.50, cy=0.28),
+    dict(slug="fireflies",        name="Fallou", file="mascotte jule 3d.jpeg",   cx=0.50, cy=0.28),
+    dict(slug="proposition",      name="Basse",  file="mascotte victor 3d.jpeg", cx=0.50, cy=0.28),
 ]
 
 
@@ -61,26 +61,51 @@ def compose_banner(im, cx, cy, out_w, ratio=16 / 10):
     """Banniere ratio fixe : decor floute en fond + figurine ENTIERE par-dessus.
 
     La figurine est ajustee en hauteur avec une marge, donc jamais coupee,
-    quel que soit le ratio de l'image source.
+    quel que soit le ratio de l'image source. Le fond est un degrade tire des
+    bords du decor, et la figurine y est posee en fondu : aucune couture.
     """
     out_h = int(out_w / ratio)
     W, H = im.size
 
-    # Fond : on etire le decor pour couvrir, puis on floute fort. Le flou evite
-    # que le decor etire ne se lise comme une image ratee.
-    scale = max(out_w / W, out_h / H) * 1.25
-    bg = im.resize((int(W * scale), int(H * scale)), Image.LANCZOS)
-    bx = (bg.width - out_w) // 2
-    by = max(0, int(bg.height * cy) - out_h // 2)
-    by = min(by, bg.height - out_h)
-    bg = bg.crop((bx, by, bx + out_w, by + out_h)).filter(ImageFilter.GaussianBlur(18))
+    # Fond : degrade vertical tire des bords du decor (6 % de chaque cote),
+    # jamais de l'image entiere agrandie — sinon un fantome geant du
+    # personnage apparait derriere lui. Chaque ligne du fond prend la couleur
+    # moyenne du ciel a la meme hauteur dans la source : le fondu de la
+    # figurine tombe donc sur la bonne teinte.
+    fig_h = int(out_h * 0.92)
+    sw = max(2, int(W * 0.06))
+    edges = Image.new("RGB", (sw * 2, H))
+    edges.paste(im.crop((0, 0, sw, H)), (0, 0))
+    edges.paste(im.crop((W - sw, 0, W, H)), (sw, 0))
+    column = edges.resize((1, fig_h), Image.BOX)
+    bg = Image.new("RGB", (out_w, out_h), column.getpixel((0, 0)))
+    bg.paste(column.resize((out_w, fig_h), Image.NEAREST), (0, out_h - fig_h))
+    bg = bg.filter(ImageFilter.GaussianBlur(max(8, out_h // 40)))
 
     # Figurine : ajustee en hauteur, 92 % du cadre, centree horizontalement.
-    fig_h = int(out_h * 0.92)
     fig_w = int(W * (fig_h / H))
     fig = im.resize((max(1, fig_w), fig_h), Image.LANCZOS)
-    bg.paste(fig, ((out_w - fig.width) // 2, out_h - fig_h))
+    # Pose en fondu : sans masque, les bords de l'image source se lisent comme
+    # un rectangle net au milieu du decor floute. Le fondu (bords gauche,
+    # droit et haut) fond la figurine dans son propre decor, qui est le meme.
+    bg.paste(fig, ((out_w - fig.width) // 2, out_h - fig_h), feather_mask(fig.size))
     return bg
+
+
+def feather_mask(size, side=0.16, top=0.10):
+    """Masque L : opaque au centre, fondu lisse (smoothstep) vers les bords."""
+    w, h = size
+    fx, fy = max(1, int(w * side)), max(1, int(h * top))
+
+    def ramp(d, span):
+        t = min(1.0, d / span)
+        return t * t * (3 - 2 * t)
+
+    col = [ramp(min(x, w - 1 - x), fx) for x in range(w)]
+    row = [ramp(y, fy) for y in range(h)]
+    m = Image.new("L", (w, h))
+    m.putdata([int(255 * c * r) for r in row for c in col])
+    return m
 
 
 def figure_box(im, thresh=26):
@@ -126,7 +151,7 @@ def head_box(im, fig_box, hy=0.26):
     occupant grosso modo le tiers superieur du corps. On cadre donc tete +
     epaules (55 % de la hauteur du corps, centre a 26 %) plutot que le visage
     seul : dans un cercle de 40 px ca reste lisible, et surtout ca fonctionne
-    pour Ousmane, dont le casque est un aplat noir sans traits — un cadrage
+    pour Fallou, dont le casque est un aplat noir sans traits — un cadrage
     serre sur son "visage" ne donnerait qu'un rond noir.
     """
     l, t, r, b = fig_box

@@ -110,7 +110,7 @@ async function hydrateSystemPrompt(agentSlug: string, systemPrompt: string): Pro
   if (agentSlug === "fireflies" || agentSlug === "orchestrateur") {
     hydrated = hydrated.replace("{{MEETINGS_SNAPSHOT}}", await renderMeetings());
   }
-  // Cheikh (proposition) : on lui donne les vrais calls Fireflies pour qu'il rédige
+  // Basse (proposition) : on lui donne les vrais calls Fireflies pour qu'il rédige
   // directement la proposition à partir du call demandé (pas de "je vérifie d'abord").
   if (agentSlug === "proposition") {
     const meetings = await renderMeetings();

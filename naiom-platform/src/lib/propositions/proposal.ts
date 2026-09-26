@@ -1,6 +1,6 @@
 /**
- * Génération STRUCTURÉE d'une proposition commerciale (Cheikh) à partir d'un call.
- * Cheikh renvoie un JSON complet → rendu ensuite en PDF pro (schémas + prix).
+ * Génération STRUCTURÉE d'une proposition commerciale (Basse) à partir d'un call.
+ * Basse renvoie un JSON complet → rendu ensuite en PDF pro (schémas + prix).
  * L'email d'envoi est renvoyé SÉPARÉMENT (jamais dans le PDF).
  */
 import { createAnthropic } from "@ai-sdk/anthropic";
@@ -43,7 +43,7 @@ export interface CallContext {
   summary: string; keyPoints?: string[]; actionItems?: string[]; transcript?: string;
 }
 
-const SYSTEM = `Tu es Cheikh, closer et ingénieur solutions chez Saturn Studio (agence d'ingénierie d'agents IA + automatisations n8n).
+const SYSTEM = `Tu es Basse, closer et ingénieur solutions chez Saturn Studio (agence d'ingénierie d'agents IA + automatisations n8n).
 À partir d'un call prospect analysé, tu produis une PROPOSITION COMMERCIALE structurée, concrète et chiffrée.
 
 Tu réponds UNIQUEMENT avec un objet JSON valide (aucun texte autour, pas de bloc markdown), conforme à ce schéma :

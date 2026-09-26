@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SaturnLogo } from "@/components/brand/SaturnLogo";
 import { listAgents, ownedSlug } from "@/lib/agents";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { Icon } from "@/components/Icon";
@@ -15,8 +16,8 @@ const RELEASE: Record<string, string> = {
   "createur-contenu": "13 septembre", // Léa
   ecommerce: "13 septembre",           // Emma
   prospection: "14 septembre",         // Awa
-  fireflies: "14 septembre",           // Ousmane
-  proposition: "14 septembre",         // Cheikh
+  fireflies: "14 septembre",           // Fallou
+  proposition: "14 septembre",         // Basse
   veille: "14 septembre",              // Nina
 };
 
@@ -30,7 +31,9 @@ export default async function DecouvrirPage() {
     <div className="relative min-h-screen w-full overflow-x-clip">
       <header className="sticky top-0 z-30">
         <div className="mx-auto max-w-[1400px] flex items-center justify-between gap-4 px-6 sm:px-10 py-6">
-          <Link href="/" className="althea-logo hover:opacity-70 transition">saturn</Link>
+          <Link href="/" aria-label="Saturn Studio, retour à l'accueil" className="inline-flex min-h-[44px] items-center transition hover:opacity-70" style={{ color: "var(--text-1)" }}>
+            <SaturnLogo variant="full" size={18} />
+          </Link>
           {mine && (
             <Link href={`/agents/${mine.slug}`} className="althea-pill-cta">
               <Icon name="ArrowLeft" size={12} />

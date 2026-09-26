@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { SaturnLogo } from "@/components/brand/SaturnLogo";
 
@@ -20,6 +20,18 @@ const SECTIONS = [
 
 export function LandingNav() {
   const [active, setActive] = useState<string>("accueil");
+  const navRef = useRef<HTMLElement>(null);
+
+  // Sur mobile la pilule défile : l'item actif est toujours ramené au centre,
+  // sinon « Contact » deviendrait actif hors de l'écran.
+  useEffect(() => {
+    const nav = navRef.current;
+    const item = nav?.querySelector<HTMLElement>(".bronx-nav-item.active");
+    if (!nav || !item || nav.scrollWidth <= nav.clientWidth) return;
+    const left = item.offsetLeft - (nav.clientWidth - item.offsetWidth) / 2;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    nav.scrollTo({ left, behavior: reduce ? "auto" : "smooth" });
+  }, [active]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -51,12 +63,13 @@ export function LandingNav() {
         <SaturnLogo variant="full" size={19} />
       </a>
 
-      <nav className="bronx-nav pointer-events-auto max-w-[94vw] overflow-x-auto no-scrollbar">
+      <nav ref={navRef} aria-label="Sections de la page" className="bronx-nav pointer-events-auto max-w-[94vw] overflow-x-auto no-scrollbar">
         {SECTIONS.map((s) => (
           <a
             key={s.id}
             href={`#${s.id}`}
             className={`bronx-nav-item ${active === s.id ? "active" : ""}`}
+            aria-current={active === s.id ? "location" : undefined}
           >
             {s.label}
           </a>

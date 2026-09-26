@@ -6,7 +6,7 @@
 - ✅ `TopBar.tsx` retiré du dashboard ; statut (« N agents en ligne », emails urgents) replié dans l'en-tête de contenu. Spacers `h-[76px]` supprimés (calendrier, settings) car la barre est maintenant en flux.
 - ✅ Vérifié en live : desktop + mobile (375px) + scroll + zéro erreur console. Le contenu passe proprement sous la barre, plus aucune collision.
 - ℹ️ La landing garde sa pilule flottante (`LandingNav`) : la Studio bar est donc distincte du site vitrine, comme demandé.
-- 🔎 Reste à traiter (à valider avec l'utilisateur) : contraste des avatars « sombres » (Ousmane/Cheikh, casque noir peu lisible en petit sur fond sombre) ; auto-scroll de l'onglet actif sur mobile ; micro-animations (Phase 5).
+- 🔎 Reste à traiter (à valider avec l'utilisateur) : contraste des avatars « sombres » (Fallou/Basse, casque noir peu lisible en petit sur fond sombre) ; auto-scroll de l'onglet actif sur mobile ; micro-animations (Phase 5).
 
 ## État actuel (22 sept. 2026)
 - ✅ **App propre et fonctionnelle** : `C:\Users\fallo\dev\naiom-platform`, servie sur **http://localhost:3000**.

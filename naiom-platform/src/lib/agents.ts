@@ -20,7 +20,7 @@ import type { AgentMeta, AgentSlug } from "./types";
 const AGENTS = [
   {
     slug: "fireflies",
-    name: "Ousmane",
+    name: "Fallou",
     role: "Analyste de calls",
     icon: "Mic",
     accent: "nude",
@@ -37,7 +37,7 @@ const AGENTS = [
   },
   {
     slug: "proposition",
-    name: "Cheikh",
+    name: "Basse",
     role: "Proposition commerciale",
     icon: "FileSignature",
     accent: "marine",

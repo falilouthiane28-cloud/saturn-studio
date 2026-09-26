@@ -21,18 +21,17 @@ export function ThemeToggle({ className }: { className?: string }) {
   // évite que le bouton affiche l'inverse du thème pendant l'hydratation.
   useEffect(() => {
     const current = document.documentElement.dataset.theme as Theme | undefined;
-    if (current) {
-      setTheme(current);
-      return;
-    }
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setTheme(prefersDark ? "dark" : "light");
+    setTheme(current ?? "light");
   }, []);
 
   function toggle() {
     const next: Theme = theme === "dark" ? "light" : "dark";
     setTheme(next);
-    document.documentElement.dataset.theme = next;
+    const root = document.documentElement;
+    // Fondu de couleurs le temps du basculement uniquement (cf. theme.css).
+    root.classList.add("theme-switching");
+    root.dataset.theme = next;
+    window.setTimeout(() => root.classList.remove("theme-switching"), 320);
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {

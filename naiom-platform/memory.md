@@ -17,7 +17,7 @@ Règles et contexte persistants à respecter avant toute intervention.
 
 ## Design / visuels
 - Mascottes 3D plein corps (décor ciel dégradé), pas les anciennes photos portrait ni les Funko de `public/avatars/`.
-- **Recadrer à la source, pas en CSS** (ratios très différents : Emma 0.56, Ousmane 0.75, autres 1.00). Avatar = tête+épaules dérivé de la boîte englobante réelle ; bannière hero = fond flouté + figurine entière posée dessus (jamais découper une figurine plein corps). Vérifier sur planche-contact avant de livrer.
+- **Recadrer à la source, pas en CSS** (ratios très différents : Emma 0.56, Fallou 0.75, autres 1.00). Avatar = tête+épaules dérivé de la boîte englobante réelle ; bannière hero = fond flouté + figurine entière posée dessus (jamais découper une figurine plein corps). Vérifier sur planche-contact avant de livrer.
 - Typo : Instrument Serif (display) + Inter/Archivo (UI).
 
 ## Pièges techniques (rappel)
@@ -29,4 +29,4 @@ Règles et contexte persistants à respecter avant toute intervention.
 - `images.localPatterns` (next.config.ts) : liste blanche pour `next/image`.
 
 ## Chef d'équipe
-Ousmane (`fireflies`), déclaré dans `agentsUI.ts`.
+Fallou (`fireflies`), déclaré dans `agentsUI.ts`.

@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { CalendarGrid } from "@/components/CalendarGrid";
 import { Icon } from "@/components/Icon";
 import { AppNav } from "@/components/landing/AppNav";
 import { readStore } from "@/lib/ecommerce/store";
 import type { CalendarSlot } from "@/lib/types";
 
+import { SiteFooter } from "@/components/brand/SiteFooter";
 export const metadata = {
   title: "Calendrier · saturn",
   description:
@@ -105,15 +105,7 @@ export default async function CalendrierPage() {
       </section>
 
       {/* ============ FOOTER ============ */}
-      <footer className="relative px-6 sm:px-10 py-10 border-t border-[var(--color-line)]">
-        <div className="mx-auto max-w-[1400px] flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--color-ink-soft)]">
-          <span className="althea-logo" style={{ fontSize: 22 }}>saturn</span>
-          <span>SATURN STUDIO · © 2026</span>
-          <Link href="/" className="hover:text-[var(--color-ink)] transition">
-            Retour à l&apos;accueil
-          </Link>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

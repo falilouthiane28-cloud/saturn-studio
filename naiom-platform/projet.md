@@ -19,16 +19,16 @@ Définis dans `src/lib/agents.ts` → `const AGENTS`. **Un agent n'existe que s'
 
 | slug | prénom | rôle |
 |------|--------|------|
-| `fireflies` | Ousmane (chef d'équipe) | Analyste de calls |
+| `fireflies` | Fallou (chef d'équipe) | Analyste de calls |
 | `prospection` | Awa | Agent prospection |
-| `proposition` | Cheikh | Proposition commerciale |
+| `proposition` | Basse | Proposition commerciale |
 | `createur-contenu` | Léa | Créateur de contenu |
 | `veille` | Nina | Veille tendances |
 | `ecommerce` | Emma | Agente e-commerce |
 
 `AGENT_SLUGS` et `AGENT_COUNT` en **dérivent** : ne jamais réécrire une liste de slugs ni un compte en dur. Le badge « X employés IA » suit `team.length` / `agents.length` partout (landing, `/#equipe`, dashboard).
 
-Chef d'équipe : **Ousmane** (`fireflies`), déclaré dans `agentsUI.ts` (module sans `fs`), pas dans `agents.ts` (qui importe `node:fs` et casserait le bundle client).
+Chef d'équipe : **Fallou** (`fireflies`), déclaré dans `agentsUI.ts` (module sans `fs`), pas dans `agents.ts` (qui importe `node:fs` et casserait le bundle client).
 
 ## Lancer l'app
 ```bash

@@ -30,7 +30,7 @@ const slug2 = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g
 /**
  * POST /api/agents/create { agentSlug, messages }
  * Après approbation du plan dans le chat → l'agent CRÉE son vrai livrable.
- *  - proposition (Cheikh) → PDF de proposition (depuis le dernier call prospect).
+ *  - proposition (Basse) → PDF de proposition (depuis le dernier call prospect).
  *  - autres agents document → livrable complet en markdown, sauvegardé + téléchargeable.
  */
 export async function POST(req: Request) {
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     const agent = await getAgentBySlug(agentSlug);
     if (!agent) return Response.json({ error: "Agent inconnu" }, { status: 404 });
 
-    // ---- Cheikh : vraie proposition PDF depuis le dernier call prospect ----
+    // ---- Basse : vraie proposition PDF depuis le dernier call prospect ----
     if (agentSlug === "proposition") {
       const { data: calls } = await getMeetings();
       if (!calls.length) return Response.json({ error: "Aucun call disponible — connecte Fireflies ou colle un call." }, { status: 400 });

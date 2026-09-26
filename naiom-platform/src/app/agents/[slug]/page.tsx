@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SaturnLogo } from "@/components/brand/SaturnLogo";
 import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import { getAgentBySlug, listAgents, ownedSlug } from "@/lib/agents";
@@ -24,6 +25,7 @@ import { getMeetings } from "@/lib/dataSources";
 import { Icon } from "@/components/Icon";
 import type { AgentSlug } from "@/lib/types";
 
+import { SiteFooter } from "@/components/brand/SiteFooter";
 const SUGGESTIONS: Partial<Record<AgentSlug, string[]>> = {
   fireflies: [
     "Résume mes calls de la semaine avec un plan d'action équipe",
@@ -87,7 +89,7 @@ export default async function AgentPage({
 
   const contextPanel = agent.slug === "fireflies" ? <MeetingsPreview /> : null;
 
-  // Studio Proposition (Cheikh) : branché aux calls Fireflies.
+  // Studio Proposition (Basse) : branché aux calls Fireflies.
   const proposalPanel =
     agent.slug === "proposition"
       ? (
@@ -110,10 +112,10 @@ export default async function AgentPage({
   return (
     <div className="relative min-h-screen w-full overflow-x-clip">
       {/* ============ HEADER ALTHEA (identique home / dashboard) ============ */}
-      <header className="sticky top-0 z-30">
+      <header className="agent-bar sticky top-0 z-30">
         <div className="mx-auto max-w-[1400px] flex items-center justify-between gap-4 px-6 sm:px-10 py-6">
-          <Link href="/" className="althea-logo hover:opacity-70 transition">
-            saturn
+<Link href="/" aria-label="Saturn Studio, retour à l'accueil" className="inline-flex min-h-[44px] items-center transition hover:opacity-70" style={{ color: "var(--text-1)" }}>
+            <SaturnLogo variant="full" size={18} />
           </Link>
 
           {/* Nav agents : ronds détourés avec head-crop, hover scale */}
@@ -294,15 +296,7 @@ export default async function AgentPage({
       </div>
 
       {/* ============ Footer Althea ============ */}
-      <footer className="relative px-6 sm:px-10 py-10 border-t border-[var(--color-line)]">
-        <div className="mx-auto max-w-[1400px] flex flex-wrap items-center justify-between gap-3 text-[12px] text-[var(--color-ink-soft)]">
-          <span className="althea-logo" style={{ fontSize: 22 }}>saturn</span>
-          <span>SATURN STUDIO · © 2026</span>
-          <Link href="/" className="hover:text-[var(--color-ink)] transition">
-            Retour à l&apos;accueil
-          </Link>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
