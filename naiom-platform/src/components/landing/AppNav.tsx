@@ -6,6 +6,7 @@ import { SaturnLogo } from "@/components/brand/SaturnLogo";
 import { Icon } from "@/components/Icon";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { MobileTabBar } from "@/components/nav/MobileTabBar";
+import { LogoutButton } from "@/components/nav/LogoutButton";
 
 /**
  * Barre de navigation du Studio (pages internes).
@@ -88,6 +89,7 @@ export function AppNav() {
           >
             <Icon name="Settings" size={16} />
           </Link>
+          <LogoutButton />
         </div>
       </div>
     </header>

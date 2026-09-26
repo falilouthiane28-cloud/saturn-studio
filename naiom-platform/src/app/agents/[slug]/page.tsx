@@ -27,6 +27,7 @@ import type { AgentSlug } from "@/lib/types";
 
 import { SiteFooter } from "@/components/brand/SiteFooter";
 import { MobileTabBar } from "@/components/nav/MobileTabBar";
+import { LogoutButton } from "@/components/nav/LogoutButton";
 import type { AgentMeta } from "@/lib/types";
 const SUGGESTIONS: Partial<Record<AgentSlug, string[]>> = {
   fireflies: [
@@ -135,6 +136,7 @@ export default async function AgentPage({
             <Link href="/settings" className="ds-icon-btn" aria-label="Connexions et réglages">
               <Icon name="Settings" size={16} />
             </Link>
+            <LogoutButton />
             <Link href="/dashboard" className="althea-pill-cta">
               <Icon name="ArrowLeft" size={12} />
               Studio

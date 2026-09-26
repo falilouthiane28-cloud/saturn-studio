@@ -108,10 +108,12 @@ import {
   House,
   BookOpen,
   Server,
+  LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const ICONS: Record<string, LucideIcon> = {
+  LogOut,
   Server,
   BookOpen,
   House,
