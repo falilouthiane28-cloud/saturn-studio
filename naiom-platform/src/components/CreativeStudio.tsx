@@ -251,7 +251,7 @@ function ResultatsTab({ creatives, onChange }: { creatives: Creative[]; onChange
                 </div>
               )}
               <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">{c.format}</span>
-              {c.schedule && <span className="absolute right-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">📅 {c.schedule.platform}</span>}
+              {c.schedule && <span className="absolute right-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white inline-flex items-center gap-1"><Icon name="Calendar" size={10} aria-hidden />{c.schedule.platform}</span>}
             </div>
             <div className="p-2.5">
               <p className="line-clamp-2 text-[11px] text-[var(--color-ink)]">{c.idea || c.prompt.slice(0, 80)}</p>

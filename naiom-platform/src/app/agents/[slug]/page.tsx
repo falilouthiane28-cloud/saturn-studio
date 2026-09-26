@@ -26,6 +26,8 @@ import { Icon } from "@/components/Icon";
 import type { AgentSlug } from "@/lib/types";
 
 import { SiteFooter } from "@/components/brand/SiteFooter";
+import { MobileTabBar } from "@/components/nav/MobileTabBar";
+import type { AgentMeta } from "@/lib/types";
 const SUGGESTIONS: Partial<Record<AgentSlug, string[]>> = {
   fireflies: [
     "Résume mes calls de la semaine avec un plan d'action équipe",
@@ -76,7 +78,6 @@ export default async function AgentPage({
   const isPlaceholder = agent.status === "coming-soon";
   // Barre de navigation : les cinq autres agents de l'équipe.
   const allAgents = await listAgents();
-  const otherAgents = allAgents.filter((a) => a.slug !== agent.slug);
 
   const [count, usage30d] = await Promise.all([
     agent.status === "active" ? countDeliverables(agent.slug) : Promise.resolve(0),
@@ -118,30 +119,13 @@ export default async function AgentPage({
             <SaturnLogo variant="full" size={18} />
           </Link>
 
-          {/* Nav agents : ronds détourés avec head-crop, hover scale */}
-          <nav className="hidden md:flex items-center gap-2" aria-label="Autres agents">
-            {otherAgents.map((a) => {
-              const locked = a.status === "locked";
-              return (
-              <Link
-                key={a.slug}
-                href={locked ? "/decouvrir" : `/agents/${a.slug}`}
-                className={`agent-nav-chip group relative flex items-center justify-center rounded-full h-11 w-11 shrink-0 overflow-hidden transition-transform duration-200 ease-out hover:scale-110 hover:z-50${locked ? " opacity-45 grayscale hover:opacity-70" : ""}`}
-                style={{ background: "rgba(255,255,255,0.6)" }}
-                aria-label={locked ? `${a.name} — verrouillé` : `${a.name} — ${a.role}`}
-              >
-                <AgentAvatar slug={a.slug} size={44} aura={false} />
-                {locked && <span className="absolute inset-0 flex items-center justify-center text-[13px]">🔒</span>}
-                <span className="absolute top-[calc(100%+10px)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-xl border border-white/60 althea-card px-3 py-1.5 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 pointer-events-none z-50">
-                  <span className="block text-[12px] font-black tracking-tight text-[var(--color-ink)]">
-                    {a.name}
-                  </span>
-                  <span className="block text-[10px] font-medium text-[var(--color-ink-soft)]">
-                    {locked ? "Verrouillé — débloquer" : a.role}
-                  </span>
-                </span>
-              </Link>
-            );})}
+          {/* Sélecteur d'agents : les 6, l'agent affiché est marqué (anneau
+              d'accent + aria-current). Desktop : dans la barre ; mobile : rangée
+              défilable sous la barre (cf. plus bas). */}
+          <nav className="hidden md:flex items-center gap-2" aria-label="Agents">
+            {allAgents.map((a) => (
+              <AgentSwitchChip key={a.slug} agent={a} current={a.slug === agent.slug} />
+            ))}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -153,11 +137,18 @@ export default async function AgentPage({
             </Link>
             <Link href="/dashboard" className="althea-pill-cta">
               <Icon name="ArrowLeft" size={12} />
-              Accueil
+              Studio
             </Link>
           </div>
         </div>
       </header>
+
+      <nav className="agent-switch-row md:hidden" aria-label="Agents">
+        {allAgents.map((a) => (
+          <AgentSwitchChip key={a.slug} agent={a} current={a.slug === agent.slug} withName />
+        ))}
+      </nav>
+      <MobileTabBar />
 
       {/* ============ Layout 2 colonnes : avatar gauche sticky, panneau droite ============ */}
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-8 pb-16">
@@ -351,4 +342,37 @@ function formatRelativeDate(isoOrDate: string | Date): string {
   if (diffDays < 7) return `il y a ${diffDays} j`;
   if (diffDays < 30) return `il y a ${Math.floor(diffDays / 7)} sem.`;
   return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+
+/** Pastille d'agent du sélecteur. `current` = agent affiché (non cliquable). */
+function AgentSwitchChip({ agent, current, withName }: { agent: AgentMeta; current: boolean; withName?: boolean }) {
+  const locked = agent.status === "locked";
+  const href = locked ? "/decouvrir" : `/agents/${agent.slug}`;
+  const label = locked ? `${agent.name}, verrouillé` : `${agent.name}, ${agent.role}`;
+  const body = (
+    <>
+      <span className="agent-chip-face" style={{ ["--chip-accent" as string]: agentAccent(agent.slug) }}>
+        <AgentAvatar slug={agent.slug} size={44} />
+        {locked && (
+          <span className="agent-chip-lock" aria-hidden>
+            <Icon name="Lock" size={14} />
+          </span>
+        )}
+      </span>
+      {withName ? (
+        <span className="agent-chip-name">{agent.name}</span>
+      ) : (
+        <span className="agent-chip-tip" aria-hidden>
+          <b>{agent.name}</b>
+          <span>{locked ? "Verrouillé — débloquer" : agent.role}</span>
+        </span>
+      )}
+    </>
+  );
+  const cls = `agent-chip${current ? " is-current" : ""}${locked ? " is-locked" : ""}`;
+  return current ? (
+    <span className={cls} aria-current="page" aria-label={`${agent.name} (agent affiché)`}>{body}</span>
+  ) : (
+    <Link href={href} className={cls} aria-label={label}>{body}</Link>
+  );
 }

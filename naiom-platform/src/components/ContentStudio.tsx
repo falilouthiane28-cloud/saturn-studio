@@ -402,7 +402,7 @@ function LibraryView({ posts, onChange }: { posts: ContentPost[]; onChange: () =
                   <div className="p-2.5">
                     <div className="flex items-center justify-between">
                       <span className="rounded-full bg-black/5 px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-muted)]">{post.format}</span>
-                      {post.status === "scheduled" ? <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold text-white">📅</span> : null}
+                      {post.status === "scheduled" ? <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold text-white" aria-label="Programmé"><Icon name="Calendar" size={10} aria-hidden /></span> : null}
                     </div>
                     <p className="mt-1 line-clamp-2 text-[11px] text-[var(--color-muted)]">{post.idea}</p>
                   </div>

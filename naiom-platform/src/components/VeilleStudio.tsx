@@ -638,7 +638,7 @@ export function VeilleStudio() {
                         ? "Génération…"
                         : current.shortStatus === "ok"
                           ? "Régénérer"
-                          : "🎬 Imager le script"}
+                          : "Imager le script"}
                     </button>
                   </div>
 

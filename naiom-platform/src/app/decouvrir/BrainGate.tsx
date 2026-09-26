@@ -26,7 +26,7 @@ export function BrainGate() {
         className="w-full max-w-md rounded-3xl bg-[var(--color-bg)] p-8 text-center shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-accent)]/12 text-3xl">🔒</div>
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)]"><Icon name="Lock" size={28} aria-hidden /></div>
         <h3 className="text-2xl font-black tracking-tight text-[var(--color-ink)]">Réservé aux membres brAIn</h3>
         <p className="mt-3 text-[15px] leading-relaxed text-[var(--color-ink-soft)]">
           Si tu veux <b className="text-[var(--color-ink)]">tous les autres agents</b>, ils sont réservés aux

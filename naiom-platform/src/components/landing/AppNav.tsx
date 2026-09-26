@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { SaturnLogo } from "@/components/brand/SaturnLogo";
 import { Icon } from "@/components/Icon";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { MobileTabBar } from "@/components/nav/MobileTabBar";
 
 /**
  * Barre de navigation du Studio (pages internes).
@@ -48,6 +49,7 @@ export function AppNav() {
   const effective = pathname.startsWith("/agents/") ? "/dashboard" : pathname;
 
   return (
+    <>
     <header className="studio-bar">
       <div className="studio-bar-inner">
         <Link
@@ -89,5 +91,8 @@ export function AppNav() {
         </div>
       </div>
     </header>
+    {/* Hors du <header> : son backdrop-filter piégerait le position:fixed. */}
+    <MobileTabBar />
+    </>
   );
 }

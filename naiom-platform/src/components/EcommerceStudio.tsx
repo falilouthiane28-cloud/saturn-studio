@@ -318,7 +318,7 @@ export function EcommerceStudio() {
   if (needsConfig) {
     return (
       <div className="althea-card p-10 text-center">
-        <div className="text-[44px] mb-3">🔌</div>
+        <div className="mb-3 flex justify-center text-[var(--text-3)]"><Icon name="Plug" size={40} strokeWidth={1.5} aria-hidden /></div>
         <h3 className="bronx-name mb-2">Connectez votre compte Arcads</h3>
         <p className="text-[14px] text-[#5A5A5A] max-w-[460px] mx-auto leading-relaxed">
           Pour générer des vidéos produit, connectez la plateforme à votre compte
@@ -340,7 +340,7 @@ export function EcommerceStudio() {
     <div className="space-y-8">
       {error && (
         <div className="rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/8 px-4 py-3 text-[13px] font-semibold text-[#C22F0D]">
-          ⚠ {error}
+          <Icon name="TriangleAlert" size={14} className="mr-1.5 inline -mt-0.5" aria-hidden />{error}
         </div>
       )}
 
@@ -636,7 +636,7 @@ export function EcommerceStudio() {
           disabled={generating}
           className="bronx-cta-solid whitespace-nowrap disabled:opacity-50"
         >
-          {generating ? "Envoi à Arcads…" : "🎬 Générer la vidéo"}
+          {generating ? "Envoi à Arcads…" : <><Icon name="Clapperboard" size={15} aria-hidden /> Générer la vidéo</>}
         </button>
       </section>
 
@@ -649,7 +649,7 @@ export function EcommerceStudio() {
         />
         {videos.length === 0 ? (
           <div className="althea-card p-8 text-center text-[13.5px] text-[#8A8A8A]">
-            Aucune vidéo pour l&apos;instant — générez la première ci-dessus 👆
+            Aucune vidéo pour l&apos;instant — générez la première ci-dessus.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -675,7 +675,7 @@ export function EcommerceStudio() {
                     </div>
                   ) : (
                     <div className="text-center text-white/80 px-4">
-                      <div className="text-[26px] mb-1">😵</div>
+                      <div className="mb-1 flex justify-center"><Icon name="AlertCircle" size={24} aria-hidden /></div>
                       <div className="text-[12px] font-semibold">Échec : {v.error ?? "erreur inconnue"}</div>
                     </div>
                   )}
@@ -706,7 +706,7 @@ export function EcommerceStudio() {
                   {v.scheduled ? (
                     <div className="flex items-center justify-between gap-2 rounded-xl bg-[#DFF6EA] px-3 py-2">
                       <span className="text-[11.5px] font-bold text-[#188A5C]">
-                        📅 Instagram · {v.scheduled.day} à {v.scheduled.time}
+                        <Icon name="Calendar" size={11} className="mr-1 inline -mt-0.5" aria-hidden />Instagram · {v.scheduled.day} à {v.scheduled.time}
                       </span>
                       <button
                         type="button"

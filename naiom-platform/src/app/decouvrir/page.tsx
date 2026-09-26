@@ -111,7 +111,7 @@ export default async function DecouvrirPage() {
                   </>
                 ) : (
                   <>
-                    <div className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 border border-black/5 text-[15px] shadow-sm">🔒</div>
+                    <div className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface-2)] border border-[var(--line-1)] text-[var(--text-1)] shadow-sm"><Icon name="Lock" size={15} aria-label="Verrouillé" /></div>
                     <BrainGate />
                   </>
                 )}

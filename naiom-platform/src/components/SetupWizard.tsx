@@ -51,7 +51,7 @@ export function SetupWizard({ slug }: { slug: string }) {
       <div className="my-8 w-full max-w-lg rounded-3xl bg-[var(--color-bg)] p-7 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {done ? (
           <div className="py-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-3xl">✅</div>
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--ok-soft)] text-[var(--ok)]"><Icon name="CheckCircle2" size={30} aria-hidden /></div>
             <h3 className="text-2xl font-black text-[var(--color-ink)]">C&apos;est enregistré !</h3>
             <p className="mt-2 text-[14px] text-[var(--color-ink-soft)]">Je recharge ton agent avec tes clés…</p>
             <div className="mt-4 flex justify-center"><Icon name="Loader" size={22} className="animate-spin text-[var(--color-accent)]" /></div>

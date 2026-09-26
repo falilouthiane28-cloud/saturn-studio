@@ -105,10 +105,16 @@ import {
   Wand2,
   Wrench,
   Zap,
+  House,
+  BookOpen,
+  Server,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const ICONS: Record<string, LucideIcon> = {
+  Server,
+  BookOpen,
+  House,
   AlertCircle,
   AlertTriangle,
   Archive,

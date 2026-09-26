@@ -135,7 +135,7 @@ export function PropositionStudio({ calls: allCalls }: { calls: PropCall[] }) {
 
       {full && res && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/70 p-4" onClick={() => setFull(false)}>
-          <div className="mb-2 flex justify-end"><button onClick={() => setFull(false)} className="rounded-lg bg-white px-3 py-1.5 text-[13px] font-bold">Fermer ✕</button></div>
+          <div className="mb-2 flex justify-end"><button onClick={() => setFull(false)} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[13px] font-bold text-[#0f0f0f]">Fermer <Icon name="X" size={14} aria-hidden /></button></div>
           <iframe src={res.downloadUrl} title="Proposition plein écran" className="w-full flex-1 rounded-lg bg-white" onClick={(e) => e.stopPropagation()} />
         </div>
       )}

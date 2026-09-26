@@ -303,14 +303,14 @@ function TeamFlipCard({ agent, index }: { agent: AgentMeta; index: number }) {
     >
       <div className="bronx-flip">
         <div className="bronx-flip-inner">
-          <div className="bronx-flip-face" style={{ background: bg, borderColor: bg }}>
-            <div className="bronx-agent-float">
-              <AgentAvatar slug={agent.slug} size={150} aura={false} />
+          {/* Recto sur fond pastel FIXE : son texte doit l'être aussi (encre
+              --on-pastel), sinon le thème sombre le passe en blanc sur pastel. */}
+          <div className="bronx-flip-face bronx-flip-front" style={{ background: bg, borderColor: bg }}>
+            <div className="bronx-agent-float bronx-front-avatar">
+              <AgentAvatar slug={agent.slug} size={150} aura={false} name={agent.name} />
             </div>
             <div className="bronx-name mt-4">{agent.name}</div>
-            <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#8A8A8A]">
-              {agent.role}
-            </div>
+            <div className="bronx-front-role mt-1">{agent.role}</div>
           </div>
           <div className="bronx-flip-face bronx-flip-back">
             {/* L'agent dit hello côté verso : petit avatar qui salue + bulle */}
@@ -320,7 +320,7 @@ function TeamFlipCard({ agent, index }: { agent: AgentMeta; index: number }) {
             <div className="bronx-name mt-2" style={{ fontSize: 17 }}>
               Hello, moi c&apos;est {agent.name}&nbsp;👋
             </div>
-            <p className="mt-2 text-center text-[12.5px] leading-[1.55] text-[#5A5A5A]">
+            <p className="mt-2 text-center text-[12.5px] leading-[1.55] text-[var(--text-2)]">
               {agent.tagline}
             </p>
             <span className="mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12.5px] font-bold"

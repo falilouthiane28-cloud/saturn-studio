@@ -165,7 +165,7 @@ function AgentLink({ agent, count, activeSlug }: { agent: AgentMeta; count: numb
           SOON
         </span>
       )}
-      {locked && <span className="shrink-0 text-[13px]">🔒</span>}
+      {locked && <span className="shrink-0 text-[var(--text-3)]"><Icon name="Lock" size={13} aria-label="Verrouillé" /></span>}
     </>
   );
 

@@ -210,7 +210,7 @@ export function ProspectionStudio() {
   if (needsConfig) {
     return (
       <div className="althea-card p-10 text-center">
-        <div className="text-[44px] mb-3">🕵️</div>
+        <div className="mb-3 flex justify-center text-[var(--text-3)]"><Icon name="Radar" size={40} strokeWidth={1.5} aria-hidden /></div>
         <h3 className="bronx-name mb-2">Branchez Apify pour la détection</h3>
         <p className="text-[14px] text-[#5A5A5A] max-w-[480px] mx-auto leading-relaxed">
           La détection scrape Google Maps via Apify. Créez un token sur <b>console.apify.com</b>
@@ -230,7 +230,7 @@ APIFY_TOKEN=apify_api_...
     <div className="space-y-6">
       {error && (
         <div className="rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/8 px-4 py-3 text-[13px] font-semibold text-[#C22F0D]">
-          ⚠ {error}
+          <Icon name="TriangleAlert" size={14} className="mr-1.5 inline -mt-0.5" aria-hidden />{error}
         </div>
       )}
 
@@ -269,7 +269,7 @@ APIFY_TOKEN=apify_api_...
           >
             {detecting ? (
               <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Détection…</>
-            ) : (<>🕵️ Détecter</>)}
+            ) : (<><Icon name="Radar" size={15} aria-hidden /> Détecter</>)}
           </button>
         </div>
         {detecting && (
@@ -331,7 +331,7 @@ APIFY_TOKEN=apify_api_...
       {/* ============ LE KANBAN ============ */}
       {leads.length === 0 ? (
         <div className="althea-card p-10 text-center text-[13.5px] text-[#8A8A8A]">
-          Aucun prospect pour l&apos;instant — lancez votre première détection 👆
+          Aucun prospect pour l&apos;instant — lancez votre première détection.
         </div>
       ) : (
         <div className={cn("grid gap-4", selected ? "lg:grid-cols-[1fr_380px]" : "")}>
@@ -495,7 +495,7 @@ function BulkBtn({ label, onClick }: { label: string; onClick: () => void }) {
       onClick={onClick}
       className="mb-1 w-full rounded-lg border border-dashed border-[#C9C6BE] bg-white/60 py-1.5 text-[11px] font-bold text-[#5A5A5A] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
     >
-      ⚡ {label}
+      <Icon name="Zap" size={11} className="mr-0.5 inline -mt-0.5" aria-hidden />{label}
     </button>
   );
 }
@@ -652,7 +652,7 @@ function LeadDetail({
                   onClick={() => onAct(lead, "contact", { to: sendTo.trim() })}
                   className="bronx-cta-solid w-full justify-center text-[13px] disabled:opacity-50"
                 >
-                  {busy === "contact" ? "Envoi…" : "📤 Envoyer via Gmail"}
+                  {busy === "contact" ? "Envoi…" : <><Icon name="Send" size={14} aria-hidden /> Envoyer via Gmail</>}
                 </button>
               </div>
             ) : (
@@ -662,7 +662,7 @@ function LeadDetail({
                 onClick={() => onAct(lead, lead.status === "detecte" ? "enrich" : "personalize")}
                 className="bronx-cta-solid w-full justify-center text-[13px] disabled:opacity-50"
               >
-                {busy ? "En cours…" : lead.status === "detecte" ? "🔎 Enrichir" : "✨ Personnaliser"}
+                {busy ? "En cours…" : lead.status === "detecte" ? <><Icon name="Search" size={14} aria-hidden /> Enrichir</> : <><Icon name="Sparkles" size={14} aria-hidden /> Personnaliser</>}
               </button>
             )}
           </div>

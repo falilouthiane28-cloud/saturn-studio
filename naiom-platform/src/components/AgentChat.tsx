@@ -361,7 +361,7 @@ export function AgentChat({ agentSlug, agentName, accent, suggestions = [], disa
               className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-[13px] font-black text-white transition hover:bg-emerald-700 disabled:opacity-50"
             >
               <Icon name={creating ? "Loader" : "CheckCircle"} size={15} className={creating ? "animate-spin" : ""} />
-              {creating ? "Création en cours…" : "✅ Approuver & créer le livrable"}
+              {creating ? "Création en cours…" : "Approuver & créer le livrable"}
             </button>
             {createErr && <div className="text-[12px] font-semibold text-red-600">{createErr}</div>}
           </div>
