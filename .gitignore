@@ -46,3 +46,6 @@ Thumbs.db
 *-debug.log*
 .idea/
 .vscode/
+
+# Journal des appels d'outils des agents (paramètres d'emails, etc.)
+analytics/tools/

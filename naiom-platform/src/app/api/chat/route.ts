@@ -4,9 +4,11 @@ import { getAgentBySlug } from "@/lib/agents";
 import { buildMockResponse } from "@/lib/mockStream";
 import { renderInbox, renderMeetings, renderCandidatesFull, renderYouTube, renderDrive } from "@/lib/dataSources";
 import { appendUsage } from "@/lib/analytics/usage";
+import { toolsForAgent, toolsInstruction } from "@/lib/tools/agentTools";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Les connecteurs Instagram/TikTok (Apify) peuvent prendre 1 à 2 minutes.
+export const maxDuration = 300;
 
 const ACTION_ORIENTED_INSTRUCTION = `
 
@@ -146,6 +148,7 @@ async function hydrateSystemPrompt(agentSlug: string, systemPrompt: string): Pro
   if (CREATE_CAPABLE.has(agentSlug)) {
     result += PLAN_INSTRUCTION;
   }
+  result += toolsInstruction(agentSlug);
   return result;
 }
 
@@ -163,7 +166,9 @@ function sanitizeOrphanToolParts(messages: UIMessage[]): UIMessage[] {
       // garde-fou : un message restauré (localStorage) peut ne pas avoir de `parts`
       parts: (Array.isArray(m?.parts) ? m.parts : []).filter((p) => {
         if (!isToolUIPart(p)) return true;
-        return p.state === "output-available" || p.state === "output-error";
+        // On garde aussi les actions approuvées/refusées : sans elles, la
+        // réponse d'approbation ne parviendrait jamais au modèle.
+        return ["output-available", "output-error", "output-denied", "approval-responded"].includes(p.state);
       }),
     }))
     .filter((m) => m.parts.length > 0);
@@ -223,6 +228,7 @@ export async function POST(req: Request) {
     tools: {
       web_search: anthropic.tools.webSearch_20260209({ maxUses: webBudget }),
       web_fetch: anthropic.tools.webFetch_20260209({ maxUses: webBudget }),
+      ...toolsForAgent(agentSlug),
     },
     stopWhen: stepCountIs(8),
     onFinish: async ({ usage, steps }) => {

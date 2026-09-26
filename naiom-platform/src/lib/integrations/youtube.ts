@@ -260,3 +260,61 @@ ${topList || "  (aucune donnée)"}
 
 ${recentVideos || "  (aucune vidéo récente)"}`;
 }
+
+/** Vidéo publique trouvée par une recherche (hors de la chaîne connectée). */
+export interface YTSearchResult {
+  id: string;
+  title: string;
+  channel: string;
+  publishedAt: string;
+  url: string;
+  views: number;
+  likes: number;
+  comments: number;
+}
+
+/**
+ * Recherche de vidéos publiques (quota : 100 unités par recherche + 1 pour les stats).
+ * Utilise le jeton OAuth du compte connecté (scope youtube.readonly).
+ */
+export async function searchPublicVideos(params: {
+  query: string;
+  maxResults?: number;
+  order?: "relevance" | "viewCount" | "date";
+  publishedWithinDays?: number;
+}): Promise<YTSearchResult[]> {
+  const max = Math.min(Math.max(params.maxResults ?? 8, 1), 15);
+  const q = new URLSearchParams({
+    part: "snippet",
+    type: "video",
+    q: params.query,
+    maxResults: String(max),
+    order: params.order ?? "relevance",
+  });
+  if (params.publishedWithinDays) {
+    q.set("publishedAfter", new Date(Date.now() - params.publishedWithinDays * 86_400_000).toISOString());
+  }
+  type SearchResp = { items?: { id: { videoId: string }; snippet: { title: string; channelTitle: string; publishedAt: string } }[] };
+  const found = await googleGet<SearchResp>(`https://www.googleapis.com/youtube/v3/search?${q}`);
+  const items = found.items ?? [];
+  if (!items.length) return [];
+
+  type StatsResp = { items?: { id: string; statistics: { viewCount?: string; likeCount?: string; commentCount?: string } }[] };
+  const stats = await googleGet<StatsResp>(
+    `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${items.map((i) => i.id.videoId).join(",")}`
+  );
+  const byId = new Map((stats.items ?? []).map((s) => [s.id, s.statistics]));
+  return items.map((i) => {
+    const s = byId.get(i.id.videoId) ?? {};
+    return {
+      id: i.id.videoId,
+      title: i.snippet.title,
+      channel: i.snippet.channelTitle,
+      publishedAt: i.snippet.publishedAt,
+      url: `https://www.youtube.com/watch?v=${i.id.videoId}`,
+      views: Number(s.viewCount ?? 0),
+      likes: Number(s.likeCount ?? 0),
+      comments: Number(s.commentCount ?? 0),
+    };
+  });
+}

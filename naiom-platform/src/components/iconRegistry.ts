@@ -109,10 +109,12 @@ import {
   BookOpen,
   Server,
   LogOut,
+  ShieldAlert,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const ICONS: Record<string, LucideIcon> = {
+  ShieldAlert,
   LogOut,
   Server,
   BookOpen,

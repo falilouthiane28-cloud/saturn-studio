@@ -1,7 +1,8 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
+import { ToolActivity, hasPendingApproval } from "@/components/chat/ToolActivity";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { useRouter } from "next/navigation";
@@ -29,12 +30,18 @@ export function AgentChat({ agentSlug, agentName, accent, suggestions = [], disa
   const storageKey = `saturn-chat:${agentSlug}`;
   const router = useRouter();
 
-  const { messages, sendMessage, status, stop, setMessages, error } = useChat({
+  const { messages, sendMessage, status, stop, setMessages, error, addToolApprovalResponse } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: { agentSlug },
     }),
+    // Dès que l'utilisateur a approuvé/refusé une action, la conversation repart seule.
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
   });
+  const respondToApproval = (id: string, approved: boolean) =>
+    addToolApprovalResponse({ id, approved, reason: approved ? undefined : "Refusé par l'utilisateur" });
+  const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+  const approvalPending = lastAssistant ? hasPendingApproval(lastAssistant.parts) : false;
 
   const [input, setInput] = useState("");
   const [hydrated, setHydrated] = useState(false);
@@ -331,13 +338,23 @@ export function AgentChat({ agentSlug, agentName, accent, suggestions = [], disa
           return messages.map((msg, idx) => {
             // Pendant le streaming, on cache la dernière réponse assistant en cours :
             // le ProgressStepper s'affichera à sa place.
+            const activity = (
+              <ToolActivity parts={msg.parts} agentName={agentName} onRespond={respondToApproval} />
+            );
             if (msg.role === "assistant" && idx === lastAssistantIdx && isStreaming) {
-              return null;
+              // Le texte en cours est remplacé par le ProgressStepper, mais l'activité
+              // des connecteurs (appels longs Instagram/TikTok) reste visible.
+              return <div key={msg.id}>{activity}</div>;
             }
             if (msg.role === "user") {
               return <MessageBubble key={msg.id} role={msg.role} parts={msg.parts} accent={accent} />;
             }
-            return <AssistantDeliverableCard key={msg.id} parts={msg.parts} accent={accent} />;
+            return (
+              <div key={msg.id} className="space-y-3">
+                {activity}
+                <AssistantDeliverableCard parts={msg.parts} accent={accent} />
+              </div>
+            );
           });
         })()}
 
@@ -352,7 +369,7 @@ export function AgentChat({ agentSlug, agentName, accent, suggestions = [], disa
         )}
 
         {/* FLUX PLAN → APPROUVER & CRÉER : après le plan de l'agent, on crée le vrai livrable. */}
-        {CREATE_CAPABLE.includes(agentSlug) && status === "ready" && lastAssistantText.length > 40 && !created && (
+        {CREATE_CAPABLE.includes(agentSlug) && status === "ready" && !approvalPending && lastAssistantText.length > 40 && !created && (
           <div className="flex flex-col items-start gap-2 rounded-2xl border border-emerald-300 bg-emerald-50/60 p-4">
             <div className="text-[13px] font-semibold text-emerald-900">Plan prêt. Valide-le pour que {agentName} crée le livrable.</div>
             <button
