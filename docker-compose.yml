@@ -31,6 +31,12 @@ services:
       - saturn_decks:/srv/saturn/decks
       - saturn_creatives:/srv/saturn/creatives
       - saturn_prompts_images:/srv/saturn/prompts-images
+      # Médias générés à la volée (servis par /media) : conservés entre les déploiements.
+      - saturn_gen_carousels:/srv/saturn/naiom-platform/public/generated-carousels
+      - saturn_gen_images:/srv/saturn/naiom-platform/public/generated-images
+      - saturn_gen_shorts:/srv/saturn/naiom-platform/public/generated-shorts
+      - saturn_gen_thumbnails:/srv/saturn/naiom-platform/public/generated-thumbnails
+      - saturn_content_out:/srv/saturn/naiom-platform/public/content-out
 
 volumes:
   saturn_data:
@@ -43,3 +49,8 @@ volumes:
   saturn_decks:
   saturn_creatives:
   saturn_prompts_images:
+  saturn_gen_carousels:
+  saturn_gen_images:
+  saturn_gen_shorts:
+  saturn_gen_thumbnails:
+  saturn_content_out:

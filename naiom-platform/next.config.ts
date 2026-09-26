@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  // Médias générés après le build : servis par src/app/media (sinon 404 en prod).
+  async rewrites() {
+    return [
+      {
+        source: "/:dir(generated-carousels|generated-images|generated-shorts|generated-thumbnails|content-out)/:file*",
+        destination: "/media/:dir/:file*",
+      },
+    ];
+  },
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
