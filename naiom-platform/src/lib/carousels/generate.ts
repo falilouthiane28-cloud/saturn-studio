@@ -4,6 +4,10 @@ import puppeteer, { type Browser } from "puppeteer";
 import { parseDeckMarkdown } from "../presentations/parseMarkdown";
 import type { Presentation } from "../presentations/template";
 import { renderCarouselSlideHTML, type CarouselRatio } from "./template";
+import { heroPrompt, parsePosterMarkdown, renderPosterSlideHTML } from "./posterTemplate";
+import { generateImage, isNanoBananaConfigured } from "../integrations/nanoBanana";
+
+export type CarouselStyle = "editorial" | "poster";
 
 export const PUBLIC_CAROUSELS_DIR = path.join(process.cwd(), "public", "generated-carousels");
 export const PUBLIC_CAROUSELS_URL = "/generated-carousels";
@@ -27,6 +31,9 @@ export interface GenerateCarouselResult {
   total: number;
   title: string;
   ratio: CarouselRatio;
+  style: CarouselStyle;
+  /** Remarques non bloquantes (ex. visuels Gemini indisponibles → motif graphique). */
+  notes: string[];
 }
 
 /**
@@ -50,9 +57,10 @@ function extractDeckMarkdown(raw: string): string {
 
 export async function generateCarousel(
   markdown: string,
-  opts: { ratio?: CarouselRatio; slug?: string } = {}
+  opts: { ratio?: CarouselRatio; slug?: string; style?: CarouselStyle } = {}
 ): Promise<GenerateCarouselResult> {
   const ratio: CarouselRatio = opts.ratio ?? "1:1";
+  if (opts.style === "poster") return generatePoster(markdown, ratio, opts.slug);
   const deckMarkdown = extractDeckMarkdown(markdown);
   const deck: Presentation = parseDeckMarkdown(deckMarkdown, "Carrousel");
   if (deck.slides.length === 0) {
@@ -109,7 +117,7 @@ export async function generateCarousel(
       });
     }
 
-    return { slides: generated, total, title: deck.title, ratio };
+    return { slides: generated, total, title: deck.title, ratio, style: "editorial", notes: [] };
   } finally {
     await browser.close();
   }
@@ -124,4 +132,54 @@ function slugifyTitle(title: string): string {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "carousel"
   );
+}
+
+/** Style « Poster » (signature de Léa) : texte HTML + visuel héros Gemini optionnel. */
+async function generatePoster(markdown: string, ratio: CarouselRatio, slug?: string): Promise<GenerateCarouselResult> {
+  const deck = parsePosterMarkdown(markdown);
+  if (!deck.slides.length) throw new Error("Aucune slide : chaque slide commence par « ## Titre ».");
+  const dim = DIMENSIONS[ratio];
+  const notes: string[] = [];
+  let gemini = isNanoBananaConfigured();
+  if (!gemini) notes.push("Visuels Gemini inactifs (GEMINI_API_KEY absente) : motif graphique utilisé.");
+
+  await fs.mkdir(PUBLIC_CAROUSELS_DIR, { recursive: true });
+  const batchId = `${new Date().toISOString().slice(0, 10)}-${(slug ?? slugifyTitle(deck.title)).slice(0, 40)}-${Date.now()}`;
+  const browser: Browser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: dim.width, height: dim.height, deviceScaleFactor: 1 });
+    const generated: GeneratedSlide[] = [];
+    for (let i = 0; i < deck.slides.length; i++) {
+      const slide = deck.slides[i];
+      let heroDataUri: string | undefined;
+      if (gemini && slide.visual) {
+        try {
+          const img = await generateImage(heroPrompt(slide.visual, i % 2 === 0), { slug: "lea-poster" });
+          heroDataUri = `data:image/png;base64,${(await fs.readFile(img.absPath)).toString("base64")}`;
+        } catch (e) {
+          // Quota, facturation… : on n'insiste pas pour les slides suivantes.
+          gemini = false;
+          notes.push(`Visuels Gemini indisponibles (${e instanceof Error ? e.message.slice(0, 140) : "erreur"}) : motif graphique utilisé.`);
+        }
+      }
+      const html = renderPosterSlideHTML(slide, { ratio, index: i, total: deck.slides.length, brand: "Saturn Studio", heroDataUri });
+      await page.setContent(html, { waitUntil: "load", timeout: 30000 });
+      await Promise.race([
+        page.evaluate(() => (document as Document & { fonts: FontFaceSet }).fonts.ready.then(() => true)),
+        new Promise((r) => setTimeout(r, 6000)),
+      ]).catch(() => undefined);
+      const png = (await page.screenshot({ type: "png", clip: { x: 0, y: 0, width: dim.width, height: dim.height } })) as Buffer;
+      const filename = `${batchId}-${String(i + 1).padStart(2, "0")}.png`;
+      const absPath = path.join(PUBLIC_CAROUSELS_DIR, filename);
+      await fs.writeFile(absPath, png);
+      generated.push({ index: i, filename, publicUrl: `${PUBLIC_CAROUSELS_URL}/${filename}`, absPath, bytes: png.length });
+    }
+    return { slides: generated, total: generated.length, title: deck.title, ratio, style: "poster", notes };
+  } finally {
+    await browser.close();
+  }
 }

@@ -40,7 +40,10 @@ export function CarouselSlidesPanel({
 }) {
   const router = useRouter();
   const detection = useMemo(() => detectCarousel(markdown), [markdown]);
-  const [ratio, setRatio] = useState<Ratio>("1:1");
+  const [ratio, setRatio] = useState<Ratio>("4:5");
+  // « Poster » = signature visuelle de Léa ; « Éditorial » = ancien style magazine.
+  const [style, setStyle] = useState<"poster" | "editorial">("poster");
+  const [notes, setNotes] = useState<string[]>([]);
   const [state, setState] = useState<GenState>({ status: "idle" });
   const [currentIdx, setCurrentIdx] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -91,10 +94,11 @@ export function CarouselSlidesPanel({
       const res = await fetch("/api/carousels/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ markdown, ratio }),
+        body: JSON.stringify({ markdown, ratio, style }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setNotes(Array.isArray(data.notes) ? data.notes : []);
       setState({ status: "done", slides: data.slides, ratio });
     } catch (e) {
       setState({ status: "error", error: e instanceof Error ? e.message : "Erreur" });
@@ -181,6 +185,31 @@ export function CarouselSlidesPanel({
       </header>
 
       <div className="px-4 py-3 space-y-3">
+        {/* Sélecteur de style */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#1e3a2c]">Style</span>
+          <div className="flex items-center gap-1 rounded-lg border border-[#0a1410]/15 bg-white/70 p-0.5" role="group" aria-label="Style du carrousel">
+            {([["poster", "Poster"], ["editorial", "Éditorial"]] as const).map(([v, label]) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={style === v}
+                onClick={() => setStyle(v)}
+                disabled={state.status === "loading"}
+                className={cn(
+                  "rounded px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                  style === v ? "bg-[#0a1410] text-white" : "text-[#1e3a2c] hover:bg-[#0a1410]/10"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[11px] text-[#1e3a2c]">
+            {style === "poster" ? "Titres massifs, visuel héros Gemini, noir/blanc + violet" : "Magazine crème, serif"}
+          </span>
+        </div>
+
         {/* Sélecteur de format + bouton générer */}
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[#1e3a2c]">
@@ -259,6 +288,12 @@ export function CarouselSlidesPanel({
           )}
         </div>
 
+        {state.status === "done" && notes.length > 0 && (
+          <p role="status" className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
+            <Icon name="Info" size={14} className="mt-0.5 shrink-0" aria-hidden />
+            {notes[0]}
+          </p>
+        )}
         {state.status === "error" && (
           <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
             <Icon name="AlertCircle" size={12} className="inline mr-1" />
