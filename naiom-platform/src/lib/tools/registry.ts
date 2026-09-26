@@ -17,6 +17,7 @@ import { sendEmail } from "@/lib/integrations/gmailSend";
 import { fetchRecentDriveFiles, renderDriveForPrompt } from "@/lib/integrations/drive";
 import { fetchFirefliesMeetings, isFirefliesConfigured } from "@/lib/integrations/fireflies";
 import { publishLinkedInPost } from "@/lib/integrations/linkedin";
+import { publishInstagram } from "@/lib/integrations/instagramPublish";
 import { TOOL_META, type Platform, type ToolKind } from "@/lib/tools/meta";
 
 function meta(name: string) {
@@ -205,6 +206,27 @@ export const TOOLS: ToolDef[] = [
       return { publié: true, url: r.url };
     },
   },
+  {
+    ...meta("instagram_publier"),
+    description:
+      "Publie une image ou un Reel sur le compte Instagram professionnel connecté. L'utilisateur doit approuver dans le chat. Le média doit être une URL https publique (ou un chemin /… d'une image générée par la plateforme). Légende finale, hashtags inclus, 2 200 caractères max.",
+    parameters: obj(
+      {
+        media_url: str("URL https publique de l'image (JPEG) ou de la vidéo (MP4) à publier"),
+        media_type: { type: "string", enum: ["IMAGE", "REELS"], description: "IMAGE pour une photo, REELS pour une vidéo" },
+        caption: str("Légende complète du post"),
+      },
+      ["media_url", "media_type", "caption"]
+    ),
+    run: async (a) => {
+      const r = await publishInstagram({
+        mediaUrl: String(a.media_url),
+        mediaType: a.media_type === "REELS" ? "REELS" : "IMAGE",
+        caption: String(a.caption),
+      });
+      return { publié: true, url: r.permalink ?? "https://www.instagram.com/" };
+    },
+  },
 ];
 
 export const TOOL_BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
@@ -214,7 +236,7 @@ export const AGENT_TOOLS: Record<string, string[]> = {
   fireflies: ["fireflies_calls", "gmail_boite", "drive_fichiers"],
   prospection: ["gmail_boite", "gmail_envoyer", "instagram_reels_createurs", "drive_fichiers"],
   proposition: ["fireflies_calls", "gmail_boite", "gmail_envoyer", "drive_fichiers"],
-  "createur-contenu": ["linkedin_publier", "youtube_ma_chaine", "youtube_recherche", "instagram_reels_hashtag", "tiktok_tendances", "drive_fichiers"],
+  "createur-contenu": ["linkedin_publier", "instagram_publier", "youtube_ma_chaine", "youtube_recherche", "instagram_reels_hashtag", "tiktok_tendances", "drive_fichiers"],
   veille: ["instagram_reels_hashtag", "instagram_reels_createurs", "tiktok_tendances", "youtube_recherche"],
-  ecommerce: ["linkedin_publier", "instagram_reels_hashtag", "tiktok_tendances", "youtube_recherche"],
+  ecommerce: ["linkedin_publier", "instagram_publier", "instagram_reels_hashtag", "tiktok_tendances", "youtube_recherche"],
 };

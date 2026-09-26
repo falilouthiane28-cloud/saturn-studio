@@ -102,4 +102,7 @@ const FIELD_LABEL: Record<string, string> = {
   subject: "Objet",
   body: "Message",
   text: "Texte du post",
+  caption: "Légende",
+  media_url: "Média",
+  media_type: "Format",
 };

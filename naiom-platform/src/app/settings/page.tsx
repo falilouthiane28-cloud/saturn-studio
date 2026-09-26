@@ -3,6 +3,7 @@ import { getInbox, getMeetings, getYouTubeSnapshot, getDriveSnapshot } from "@/l
 import { SyncButton } from "@/components/SyncButton";
 import { getGoogleStatus, isGoogleConfigured } from "@/lib/integrations/google";
 import { getLinkedInStatus, isLinkedInConfigured } from "@/lib/integrations/linkedin";
+import { getInstagramStatus, isInstagramConfigured } from "@/lib/integrations/instagramPublish";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { AppNav } from "@/components/landing/AppNav";
@@ -54,13 +55,14 @@ function mask(value: string | undefined): string | undefined {
 }
 
 async function getIntegrations(): Promise<Integration[]> {
-  const [meetings, inbox, googleStatus, yt, drive, liStatus] = await Promise.all([
+  const [meetings, inbox, googleStatus, yt, drive, liStatus, igStatus] = await Promise.all([
     getMeetings(),
     getInbox(),
     getGoogleStatus(),
     getYouTubeSnapshot(),
     getDriveSnapshot(),
     getLinkedInStatus(),
+    getInstagramStatus(),
   ]);
 
   return [
@@ -179,20 +181,25 @@ async function getIntegrations(): Promise<Integration[]> {
     },
     {
       id: "instagram",
-      title: "Instagram / Meta",
-      agent: "Nina (veille Reels) · Emma (publication produit)",
+      title: "Instagram",
+      agent: "Léa (posts) · Emma (produits) · Nina (veille, via Apify)",
       icon: "Camera",
-      envVar: "META_ACCESS_TOKEN",
-      configured: Boolean(process.env.META_ACCESS_TOKEN),
-      masked: mask(process.env.META_ACCESS_TOKEN),
+      envVar: "INSTAGRAM_APP_ID + INSTAGRAM_APP_SECRET",
+      configured: isInstagramConfigured() && igStatus.connected,
+      email: igStatus.username ? `@${igStatus.username}` : undefined,
+      connectUrl: isInstagramConfigured() ? "/api/integrations/instagram/start" : undefined,
+      connectLabel: "Connecter Instagram",
       setupSteps: [
-        "Créez une app sur developers.facebook.com → produit « Instagram Graph API »",
-        "Reliez le compte Instagram professionnel à une page Facebook",
-        "Générez un token longue durée (60 jours) et notez sa date d'expiration",
-        "Collez-le dans .env.local à META_ACCESS_TOKEN=",
+        "Passez le compte Instagram en compte professionnel (Créateur ou Entreprise) dans l'app Instagram",
+        "Sur developers.facebook.com : créez une app, ajoutez le produit « Instagram » → « API setup with Instagram login »",
+        "Ajoutez l'URL de redirection https://<votre domaine>/api/integrations/instagram/callback",
+        "Ajoutez votre compte Instagram comme testeur (rôle « Instagram Tester ») et acceptez l'invitation dans l'app Instagram",
+        "Copiez Instagram App ID et App Secret dans .env.local (INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, INSTAGRAM_REDIRECT_URI)",
+        "Cliquez « Connecter Instagram »",
       ],
-      notes:
-        "Sert à Nina pour lire les Reels les plus vus d'un hashtag, et à Emma pour programmer les vidéos produit. Le token Meta expire tous les 60 jours : prévoyez son renouvellement.",
+      notes: igStatus.expired
+        ? "La connexion a expiré : cliquez « Reconnecter »."
+        : "Publication d'images et de Reels après votre clic « Approuver » dans le chat. La connexion se prolonge automatiquement. La veille de Nina passe par Apify et ne dépend pas de cette connexion.",
     },
     {
       id: "linkedin",
@@ -238,7 +245,7 @@ async function getIntegrations(): Promise<Integration[]> {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ google?: string; google_error?: string; linkedin?: string; linkedin_error?: string }>;
+  searchParams: Promise<{ google?: string; google_error?: string; linkedin?: string; linkedin_error?: string; instagram?: string; instagram_error?: string }>;
 }) {
   const integrations = await getIntegrations();
   const sp = await searchParams;
@@ -268,6 +275,21 @@ export default async function SettingsPage({
 
       <main className="relative px-6 sm:px-10 pb-20">
         <div className="mx-auto max-w-[920px] space-y-5">
+          {sp.instagram === "connected" && (
+            <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
+              <Icon name="CheckCircle" size={18} className="text-emerald-700 mt-0.5 shrink-0" />
+              <p className="font-semibold text-emerald-900">Instagram connecté : Léa et Emma peuvent proposer des publications.</p>
+            </div>
+          )}
+          {sp.instagram_error && (
+            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+              <Icon name="AlertCircle" size={18} className="text-red-700 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-red-900">Erreur de connexion Instagram</p>
+                <p className="text-sm text-red-800 break-all">{sp.instagram_error}</p>
+              </div>
+            </div>
+          )}
           {sp.linkedin === "connected" && (
             <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
               <Icon name="CheckCircle" size={18} className="text-emerald-700 mt-0.5 shrink-0" />

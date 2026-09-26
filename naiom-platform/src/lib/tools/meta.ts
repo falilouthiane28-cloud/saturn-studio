@@ -15,6 +15,7 @@ export const TOOL_META: Record<string, { platform: Platform; kind: ToolKind; lab
   gmail_envoyer: { platform: "gmail", kind: "write", label: "Envoyer un email" },
   drive_fichiers: { platform: "drive", kind: "read", label: "Fichiers Google Drive récents" },
   fireflies_calls: { platform: "fireflies", kind: "read", label: "Calls Fireflies" },
+  instagram_publier: { platform: "instagram", kind: "write", label: "Publier sur Instagram" },
   linkedin_publier: { platform: "linkedin", kind: "write", label: "Publier sur LinkedIn" },
 };
 
