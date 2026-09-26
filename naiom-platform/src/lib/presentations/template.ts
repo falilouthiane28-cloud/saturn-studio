@@ -1,3 +1,4 @@
+import { applyPosterTheme, POSTER_DECK_FONTS, POSTER_DECK_STYLES } from "./posterTheme";
 /**
  * Générateur HTML de présentations — reproduit fidèlement le template Saturn Studio
  * (fond crème, typo Inter Black extra-bold, gradients flous orange/rose/violet,
@@ -1341,17 +1342,27 @@ body {
 .thanks-resources div { line-height: 1.8; }
 `;
 
-export function renderPresentationHTML(p: Presentation): string {
+/** « poster » = langage visuel de Léa (par défaut) ; « classic » = ancien style dégradés. */
+export type DeckTheme = "poster" | "classic";
+
+export function renderPresentationHTML(p: Presentation, opts: { theme?: DeckTheme } = {}): string {
   const total = p.slides.length;
-  const slidesHtml = p.slides.map((s, i) => renderSlide(s, i, total, p)).join("\n");
+  const poster = (opts.theme ?? "poster") === "poster";
+  const slidesHtml = p.slides
+    .map((s, i) => {
+      const html = renderSlide(s, i, total, p);
+      return poster ? applyPosterTheme(html, s.kind) : html;
+    })
+    .join("\n");
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <title>${escapeHtml(p.title)}</title>
-  <style>${STYLES}</style>
+  ${poster ? POSTER_DECK_FONTS : ""}
+  <style>${STYLES}${poster ? POSTER_DECK_STYLES : ""}</style>
 </head>
-<body>
+<body${poster ? ' class="theme-poster"' : ""}>
 ${slidesHtml}
 </body>
 </html>`;

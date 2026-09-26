@@ -13,7 +13,7 @@ export const maxDuration = 90;
  */
 export async function POST(req: Request) {
   try {
-    const { markdown, title, agentSlug } = await req.json();
+    const { markdown, title, agentSlug, theme } = await req.json();
     if (!markdown || typeof markdown !== "string") {
       return Response.json({ error: "markdown (string) requis" }, { status: 400 });
     }
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const presentation = parseDeckMarkdown(markdown, title || "Présentation");
     const { filename, path: absPath, bytes, folderSlug } = await generatePresentationPDF(
       presentation,
-      { agentSlug: agentSlug || undefined }
+      { agentSlug: agentSlug || undefined, theme: theme === "classic" ? "classic" : "poster" }
     );
 
     // URL de téléchargement : utilise l'endpoint générique /api/reports/file/[agent]/[filename]

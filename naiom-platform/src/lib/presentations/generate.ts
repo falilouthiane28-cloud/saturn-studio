@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import puppeteer from "puppeteer";
-import { renderPresentationHTML, type Presentation } from "./template";
+import { renderPresentationHTML, type DeckTheme, type Presentation } from "./template";
 import { DELIVERABLE_FOLDERS } from "@/lib/paths";
 
 export const DECKS_DIR = path.resolve(process.cwd(), "..", "decks");
@@ -17,9 +17,9 @@ export const DECKS_DIR = path.resolve(process.cwd(), "..", "decks");
  */
 export async function generatePresentationPDF(
   presentation: Presentation,
-  opts: { filename?: string; agentSlug?: string } = {}
+  opts: { filename?: string; agentSlug?: string; theme?: DeckTheme } = {}
 ): Promise<{ path: string; filename: string; bytes: number; folderSlug: string }> {
-  const html = renderPresentationHTML(presentation);
+  const html = renderPresentationHTML(presentation, { theme: opts.theme });
 
   const browser = await puppeteer.launch({
     headless: true,
