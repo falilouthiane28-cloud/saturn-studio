@@ -17,11 +17,14 @@ function clientIp(req: NextRequest): string {
   return req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
 }
 
-function back(req: NextRequest, next: string, error: string) {
-  const url = new URL("/login", req.url);
-  url.searchParams.set("next", next);
-  url.searchParams.set("error", error);
-  return NextResponse.redirect(url, 303);
+/* Redirections RELATIVES : derrière Caddy, req.url vaut http://localhost:3000
+   et une URL absolue enverrait le navigateur sur localhost. */
+function seeOther(location: string) {
+  return new NextResponse(null, { status: 303, headers: { Location: location } });
+}
+
+function back(next: string, error: string) {
+  return seeOther(`/login?${new URLSearchParams({ next, error })}`);
 }
 
 export async function POST(req: NextRequest) {
@@ -31,17 +34,17 @@ export async function POST(req: NextRequest) {
   const now = Date.now();
 
   const rec = fails.get(ip);
-  if (rec && now - rec.since < WINDOW_MS && rec.n >= MAX_FAILS) return back(req, next, "locked");
+  if (rec && now - rec.since < WINDOW_MS && rec.n >= MAX_FAILS) return back(next, "locked");
 
   if (!checkPassword(String(form.get("password") ?? ""))) {
     const fresh = !rec || now - rec.since >= WINDOW_MS;
     fails.set(ip, { n: fresh ? 1 : rec.n + 1, since: fresh ? now : rec.since });
     await new Promise((r) => setTimeout(r, 600));
-    return back(req, next, "invalid");
+    return back(next, "invalid");
   }
 
   fails.delete(ip);
-  const res = NextResponse.redirect(new URL(next, req.url), 303);
+  const res = seeOther(next);
   res.cookies.set(SESSION_COOKIE, createSessionToken(), {
     httpOnly: true,
     sameSite: "lax",
