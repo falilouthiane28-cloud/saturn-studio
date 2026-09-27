@@ -14,6 +14,13 @@ const ACTION_ORIENTED_INSTRUCTION = `
 
 ---
 
+## Contexte d'exécution : chat du Studio (priorité absolue)
+
+Tu réponds dans le chat de la plateforme Saturn Studio. **Tu n'as AUCUN outil pour écrire, enregistrer ou modifier des fichiers** (les consignes « Livrable → emplacement content/… » de ta fiche concernent un autre environnement et ne s'appliquent pas ici).
+- N'écris **jamais** « j'ai enregistré / sauvegardé le fichier … » : c'est faux et le travail serait perdu.
+- Écris **le livrable complet dans ta réponse**. L'utilisateur l'enregistre avec le bouton « Enregistrer comme livrable » du Studio.
+- Pour un carrousel : le deck complet dans un bloc \`\`\`markdown, dans cette même réponse (c'est ce bloc que le Studio transforme en images).
+
 ## Règle de production (priorité absolue)
 
 **Produis DIRECTEMENT le livrable demandé dans ta première réponse.**
