@@ -69,8 +69,49 @@ interface Ctx { i: number; total: number; W: number; H: number; single: boolean 
 const role = (c: Ctx) => (c.single || c.i === 0 ? "cover" : c.i === c.total - 1 ? "end" : "content");
 
 const FONTS = `<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,800;1,900&family=Instrument+Serif:ital@0;1&family=Archivo:wght@500;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">`;
+/**
+ * Ajustement anti-chevauchement, exécuté dans la page une fois les polices chargées.
+ * Les textes réels sont de longueur imprévisible : on mesure puis, dans l'ordre,
+ *  1. on réduit les titres qui débordent en largeur ;
+ *  2. pour chaque mascotte [data-m] (ancrée par le bas) : on la cale au-dessus de
+ *     [data-above], on la descend jusqu'à data-minbottom, puis on la rétrécit ;
+ *  3. en dernier recours on réduit le texte, jusqu'à ce que plus rien ne se touche.
+ * Zones de texte = [data-txt] ; parties mesurées d'une mascotte = [data-core].
+ */
+const FIT_SCRIPT = `<script>
+window.__fit = function () {
+  var S = document.querySelector('.s'), H = S.offsetHeight, GAP = 22;
+  var txt = [].slice.call(document.querySelectorAll('[data-txt]'));
+  var ms = [].slice.call(document.querySelectorAll('[data-m]'));
+  function hit(a, b) { return a.left < b.right + GAP && a.right + GAP > b.left && a.top < b.bottom + GAP && a.bottom + GAP > b.top; }
+  function parts(m) { return (m.tagName === 'IMG' || m.hasAttribute('data-self')) ? [m] : [].slice.call(m.querySelectorAll('[data-core]')); }
+  function overlaps(m) { return parts(m).some(function (p) { var r = p.getBoundingClientRect(); return txt.some(function (t) { return hit(r, t.getBoundingClientRect()); }); }); }
+  function shrink(els, f) { els.forEach(function (e) { e.style.fontSize = (parseFloat(getComputedStyle(e).fontSize) * f) + 'px'; }); }
+  function textEls() { var out = []; txt.forEach(function (t) { out = out.concat([].slice.call(t.querySelectorAll('h1,h2,p,.it,.sub,.script,.kick'))); }); return out; }
+  txt.forEach(function (t) { [].slice.call(t.querySelectorAll('h1,h2')).forEach(function (h) {
+    var k = 0; while (h.scrollWidth > h.clientWidth + 2 && k++ < 30) shrink([h].concat([].slice.call(h.querySelectorAll('.it'))), 0.95);
+  }); });
+  var k, i;
+  for (i = 0; i < txt.length; i++) for (var j = i + 1; j < txt.length; j++) {
+    k = 0; while (hit(txt[i].getBoundingClientRect(), txt[j].getBoundingClientRect()) && k++ < 14) shrink(textEls(), 0.95);
+  }
+  ms.forEach(function (m) {
+    m.style.transformOrigin = 'bottom center';
+    if (m.dataset.above) { var a = document.querySelector(m.dataset.above); if (a) { m.style.top = 'auto'; m.style.bottom = (H - a.getBoundingClientRect().top + 18) + 'px'; } }
+    if (m.dataset.minbottom !== undefined) {
+      var min = +m.dataset.minbottom; k = 0;
+      while (overlaps(m) && k++ < 200) { var b = parseFloat(getComputedStyle(m).bottom); if (b <= min) break; m.style.bottom = Math.max(min, b - 8) + 'px'; }
+    }
+    var s = 1;
+    while (!m.hasAttribute('data-noscale') && overlaps(m) && s > 0.5) { s -= 0.04; m.style.scale = String(s); }
+    k = 0; while (overlaps(m) && k++ < 14) shrink(textEls(), 0.95);
+  });
+  return true;
+};
+</script>`;
+
 const doc = (css: string, body: string, c: Ctx) =>
-  `<!doctype html><html><head><meta charset="utf-8">${FONTS}<style>*{box-sizing:border-box;margin:0;padding:0}html,body{width:${c.W}px;height:${c.H}px;overflow:hidden}.s{position:relative;width:${c.W}px;height:${c.H}px;overflow:hidden}${css}</style></head><body><div class="s">${body}</div></body></html>`;
+  `<!doctype html><html><head><meta charset="utf-8">${FONTS}<style>*{box-sizing:border-box;margin:0;padding:0}html,body{width:${c.W}px;height:${c.H}px;overflow:hidden}.s{position:relative;width:${c.W}px;height:${c.H}px;overflow:hidden}${css}</style>${FIT_SCRIPT}</head><body><div class="s">${body}</div></body></html>`;
 
 /* ======================= 1. VANGUARD — minimaliste ======================= */
 function vanguard(s: Slide, c: Ctx): string {
@@ -80,8 +121,13 @@ function vanguard(s: Slide, c: Ctx): string {
   const body = esc(s.body ?? "");
   const horizon = Math.round(c.H * (r === "content" ? 0.8 : r === "end" ? 0.74 : 0.7));
   const meta = `<div class="meta"><img src="${logo}" class="lg"><span>${c.single ? "SATURN STUDIO" : `${pad(c.i + 1)} / ${pad(c.total)}`}</span><span>@saturn.agency</span></div>`;
-  // Ligne d'horizon traversée par l'anneau du logo : le seul motif graphique.
-  const orbit = `<svg class="orb" style="top:${horizon - 70}px" width="${c.W}" height="140" viewBox="0 0 ${c.W} 140"><line x1="0" y1="70" x2="${c.W}" y2="70" stroke="#0A0A0A" stroke-width="2"/><ellipse cx="${c.W * 0.5}" cy="70" rx="${c.W * 0.34}" ry="46" fill="none" stroke="${VIOLET}" stroke-width="2.5" transform="rotate(-6 ${c.W * 0.5} 70)"/></svg>`;
+  // Ligne d'horizon traversée par l'anneau du logo, avec Orbi posé dessus : un seul groupe,
+  // ancré par le bas, que l'ajustement peut faire descendre si le texte est long.
+  const horizonGroup = (pose: Pose, mh: number, x: number, minBottom: number) =>
+    `<div data-m data-noscale data-minbottom="${minBottom}" style="position:absolute;left:0;width:${c.W}px;height:${mh + 134}px;bottom:${c.H - horizon - 70}px">
+      <img data-core class="orbi" src="${orbi(pose)}" style="height:${mh}px;left:${x}px;bottom:64px">
+      <svg data-core class="orb" style="bottom:0" width="${c.W}" height="140" viewBox="0 0 ${c.W} 140"><line x1="0" y1="70" x2="${c.W}" y2="70" stroke="#0A0A0A" stroke-width="2"/><ellipse cx="${c.W * 0.5}" cy="70" rx="${c.W * 0.34}" ry="46" fill="none" stroke="${VIOLET}" stroke-width="2.5" transform="rotate(-6 ${c.W * 0.5} 70)"/></svg>
+    </div>`;
   const css = `.s{background:#F4F3EF;color:#0A0A0A;font-family:Inter,sans-serif}
   .meta{position:absolute;top:56px;left:64px;right:64px;display:flex;justify-content:space-between;align-items:center;font:600 20px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase}
   .lg{height:34px;width:auto}
@@ -94,27 +140,24 @@ function vanguard(s: Slide, c: Ctx): string {
   let inner = "";
   if (r === "cover") {
     const size = fit(title, c.W - 128, 4, 0.5, 230);
-    inner = `<div style="position:absolute;left:64px;right:64px;top:${Math.round(c.H * 0.2)}px">
-      <div class="kick">${body ? body.slice(0, 80) : "Saturn Studio"}</div>
+    inner = `<div data-txt style="position:absolute;left:64px;right:64px;top:${Math.round(c.H * 0.17)}px">
+      <div class="kick">${body || "Saturn Studio"}</div>
       <h1 class="t" style="font-size:${size}px;margin-top:28px">${title}</h1></div>
-      ${orbit}
-      <img class="orbi" src="${orbi("wave")}" style="height:${Math.round(c.H * 0.16)}px;left:${Math.round(c.W * 0.78)}px;top:${horizon - Math.round(c.H * 0.16) + 6}px">
-      <div class="kick" style="position:absolute;left:64px;bottom:64px;color:#0A0A0A">Swipe →</div>`;
+      ${horizonGroup("wave", Math.round(c.H * 0.16), Math.round(c.W * 0.78), 120)}
+      <div data-txt class="kick" style="position:absolute;left:64px;bottom:64px;color:#0A0A0A">Swipe →</div>`;
   } else if (r === "content") {
     const size = fit(title, c.W - 128, 3, 0.5, 150);
     inner = `<div class="num">${pad(c.i + 1)}</div>
-      <div style="position:absolute;left:64px;right:64px;top:${Math.round(c.H * 0.34)}px">
+      <div data-txt style="position:absolute;left:64px;right:64px;top:${Math.round(c.H * 0.3)}px">
       <h2 class="t" style="font-size:${size}px">${title}</h2>
-      <p class="p" style="margin-top:36px">${body}</p></div>
-      ${orbit}
-      <img class="orbi" src="${orbi(c.i % 2 ? "think" : "point")}" style="height:${Math.round(c.H * 0.1)}px;left:${c.i % 2 ? 80 : c.W - 200}px;top:${horizon - Math.round(c.H * 0.1) + 6}px">`;
+      ${body ? `<p class="p" style="margin-top:36px">${body}</p>` : ""}</div>
+      ${horizonGroup(c.i % 2 ? "think" : "point", Math.round(c.H * 0.1), c.i % 2 ? 80 : c.W - 200, 10)}`;
   } else {
-    inner = `<div style="position:absolute;left:80px;right:80px;top:${Math.round(c.H * 0.2)}px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:36px">
+    inner = `<div data-txt style="position:absolute;left:80px;right:80px;top:${Math.round(c.H * 0.17)}px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:36px">
       <h2 class="t" style="font-size:${fit(title, c.W - 160, 3, 0.5, 190)}px">${title}</h2>
       ${body ? `<p class="p">${body}</p>` : ""}</div>
-      <img src="${logo}" style="position:absolute;height:72px;width:auto;left:50%;transform:translateX(-50%);bottom:72px">
-      ${orbit}
-      <img class="orbi" src="${orbi("celebrate")}" style="height:${Math.round(c.H * 0.14)}px;left:${Math.round(c.W / 2 - c.H * 0.07)}px;top:${horizon - Math.round(c.H * 0.14) + 6}px">`;
+      <img data-txt src="${logo}" style="position:absolute;height:72px;width:auto;left:50%;transform:translateX(-50%);bottom:64px">
+      ${horizonGroup("celebrate", Math.round(c.H * 0.14), Math.round(c.W / 2 - c.H * 0.06), 160)}`;
   }
   return doc(css, meta + inner, c);
 }
@@ -150,23 +193,24 @@ function orbitStory(s: Slide, c: Ctx): string {
   const chapter = c.single ? "Saturn Studio" : r === "cover" ? "Un récit d'Orbi" : r === "end" ? "Fin du chapitre" : `Chapitre ${pad(c.i)}`;
   const top = `<div class="top"><img src="${logo}" class="lg"><span>${chapter}</span></div>`;
   const dots = c.single ? "" : `<div class="dots">${Array.from({ length: c.total }, (_, k) => `<i class="${k === c.i ? "on" : ""}"></i>`).join("")}</div>`;
-  const size = fit(`${head} ${tail}`, r === "end" ? c.W - 160 : c.W * 0.55, 4, 0.62, r === "cover" ? 120 : 96);
+  // Archivo 900 en capitales est large (~0,7 em par caractère).
+  const size = fit(`${head} ${tail}`, r === "end" ? c.W - 160 : c.W * 0.6, 4, 0.7, r === "cover" ? 120 : 96);
   const mh = Math.round(c.H * (r === "content" ? 0.42 : 0.5));
   let inner: string;
   if (r === "end") {
     // Révélation du logo au-dessus d'Orbi, qui brandit l'anneau ; la pose est posée
     // sur le bord bas de la slide (l'image source est coupée en bas).
-    inner = `<div style="position:absolute;left:0;right:0;top:${Math.round(c.H * 0.12)}px;text-align:center;padding:0 80px">
+    inner = `<div data-txt style="position:absolute;left:80px;right:80px;top:${Math.round(c.H * 0.1)}px;text-align:center">
       <img src="${logo}" style="height:72px;width:auto;margin:0 auto 34px;display:block;filter:drop-shadow(0 0 24px rgba(167,139,250,.6))">
       <h2 class="h" style="font-size:${size}px">${esc(head)} <span class="it" style="font-size:${Math.round(size * 1.25)}px">${esc(tail)}</span></h2>
       ${body ? `<p class="p" style="margin-top:28px">${body}</p>` : ""}</div>
-      <img class="orbi" src="${orbi(pose)}" style="height:${mh}px;left:50%;transform:translateX(-50%);bottom:0">`;
+      <img data-m class="orbi" src="${orbi(pose)}" style="height:${mh}px;left:${Math.round(c.W / 2 - mh * 0.3)}px;bottom:0">`;
   } else {
-    const textBox = left ? `right:64px;left:${Math.round(c.W * 0.42)}px` : `left:64px;right:${Math.round(c.W * 0.42)}px`;
-    inner = `<div style="position:absolute;${textBox};top:${Math.round(c.H * (r === "cover" ? 0.2 : 0.24))}px">
+    const textBox = left ? `right:64px;left:${Math.round(c.W * 0.36)}px` : `left:64px;right:${Math.round(c.W * 0.36)}px`;
+    inner = `<div data-txt style="position:absolute;${textBox};top:${Math.round(c.H * (r === "cover" ? 0.18 : 0.2))}px">
       <h2 class="h" style="font-size:${size}px">${esc(head)} <span class="it" style="font-size:${Math.round(size * 1.3)}px">${esc(tail)}</span></h2>
       ${body ? `<p class="p" style="margin-top:32px">${body}</p>` : ""}</div>
-      <img class="orbi" src="${orbi(pose)}" style="height:${mh}px;${left ? "left:40px" : "right:40px"};bottom:${Math.round(c.H * 0.1)}px">`;
+      <img data-m class="orbi" src="${orbi(pose)}" style="height:${mh}px;${left ? "left:40px" : "right:40px"};bottom:${Math.round(c.H * 0.08)}px">`;
   }
   return doc(css, orbitSvg + top + inner + dots, c);
 }
@@ -202,27 +246,29 @@ function signal(s: Slide, c: Ctx): string {
   const hud = `<div class="hud"><img src="${logo}" class="lg"><span>${tagText}</span><span class="rec"><b></b>${c.single ? "LIVE" : `${pad(c.i + 1)}/${pad(c.total)}`}</span></div>`;
   const titleHtml = (px: number) => `<h2 class="h" style="font-size:${px}px"><span class="ghost">${esc(head)} <span class="g">${esc(tail)}</span></span>${esc(head)} <span class="g">${esc(tail)}</span></h2>`;
   // Traînées de vitesse derrière Orbi : copies floutées décalées.
-  const mascot = (x: string, y: string, h: number, p: Pose) => {
+  const mascot = (x: string, h: number, p: Pose) => {
     const src = orbi(p);
-    return `<img class="trail" src="${src}" style="height:${h}px;${x};${y};transform:translate(60px,40px)">
-      <img class="trail" src="${src}" style="height:${h}px;${x};${y};transform:translate(120px,80px);opacity:.18">
-      <img class="orbi" src="${src}" style="height:${h}px;${x};${y}">`;
+    // Groupe ancré juste au-dessus de la barre en verre (data-above), rétréci si le titre descend.
+    return `<div data-m data-above=".glass" style="position:absolute;${x};bottom:0;height:${h}px;width:${Math.round(h * 0.9)}px">
+      <img class="trail" src="${src}" style="height:100%;left:0;bottom:0;transform:translate(60px,40px)">
+      <img class="trail" src="${src}" style="height:100%;left:0;bottom:0;transform:translate(120px,80px);opacity:.18">
+      <img data-core class="orbi" src="${src}" style="height:100%;left:0;bottom:0">
+    </div>`;
   };
   let inner: string;
   if (r === "end") {
-    inner = `<div style="position:absolute;left:60px;right:60px;top:${Math.round(c.H * 0.12)}px;display:flex;flex-direction:column;align-items:center;gap:30px;text-align:center">
+    inner = `<div data-txt style="position:absolute;left:60px;right:60px;top:${Math.round(c.H * 0.12)}px;display:flex;flex-direction:column;align-items:center;gap:30px;text-align:center">
       <img src="${logo}" style="height:120px;width:auto;filter:drop-shadow(0 0 30px rgba(167,139,250,.9))">
       ${titleHtml(size)}</div>
-      ${mascot(`left:${Math.round(c.W / 2 - mh * 0.4)}px`, `bottom:${Math.round(c.H * 0.17)}px`, Math.round(mh * 0.85), pose)}
-      <div class="glass"><p>${body || "Suis Saturn Studio pour la suite."}</p><div class="go">→</div></div>`;
+      ${mascot(`left:${Math.round(c.W / 2 - mh * 0.4)}px`, Math.round(mh * 0.85), pose)}
+      <div data-txt class="glass"><p>${body || "Suis Saturn Studio pour la suite."}</p><div class="go">→</div></div>`;
   } else {
     const mx = r === "cover" ? `right:${Math.round(c.W * 0.06)}px` : c.i % 2 ? `left:40px` : `right:40px`;
-    const my = r === "cover" ? `top:${Math.round(c.H * 0.46)}px` : `top:${Math.round(c.H * 0.5)}px`;
-    inner = `<div style="position:absolute;left:60px;right:60px;top:${Math.round(c.H * 0.16)}px">
+    inner = `<div data-txt style="position:absolute;left:60px;right:60px;top:${Math.round(c.H * 0.14)}px">
       <div class="tag">${r === "cover" ? "// Saturn Studio" : `// ${pad(c.i + 1)}`}</div>
       <div style="margin-top:26px">${titleHtml(size)}</div></div>
-      ${mascot(mx, my, mh, pose)}
-      <div class="glass"><p>${body || "Swipe pour décoder le signal."}</p><div class="go">→</div></div>`;
+      ${mascot(mx, mh, pose)}
+      <div data-txt class="glass"><p>${body || "Swipe pour décoder le signal."}</p><div class="go">→</div></div>`;
   }
   return doc(css, `<div class="blob"></div><div class="grid"></div>${grain}${hud}${inner}`, c);
 }
@@ -252,8 +298,8 @@ function grille(s: Slide, c: Ctx): string {
   .save{display:flex;align-items:center;gap:12px;font:700 22px/1 Inter;letter-spacing:.06em;text-transform:uppercase}`;
   const grain = `<svg class="grain" width="${c.W}" height="${c.H}"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>`;
   const top = `<div class="top"><img src="${logo}" class="lg"><span>${c.single ? "saturn.agency" : `${pad(c.i + 1)} — ${pad(c.total)}`}</span></div>`;
-  const foot = `<div class="foot"><div class="who"><span class="av" style="background-image:url(${orbi("base")})"></span><span><b>Saturn Studio</b>@saturn.agency</span></div>
-    <div class="save"><svg width="26" height="32" viewBox="0 0 26 32"><path d="M2 2h22v28l-11-8-11 8z" fill="#141414"/></svg>${r === "end" ? "Suivre" : "À enregistrer"}</div></div>`;
+  const foot = `<div class="foot"><div data-txt class="who"><span class="av" style="background-image:url(${orbi("base")})"></span><span><b>Saturn Studio</b>@saturn.agency</span></div>
+    <div data-txt class="save"><svg width="26" height="32" viewBox="0 0 26 32"><path d="M2 2h22v28l-11-8-11 8z" fill="#141414"/></svg>${r === "end" ? "Suivre" : "À enregistrer"}</div></div>`;
   // Grille met en valeur le PREMIER mot en violet (comme « AI » dans « AI Tools »).
   const words = `${head} ${tail}`.trim().split(/ +/);
   const t = `<em>${esc(words[0])}</em> ${esc(words.slice(1).join(" "))}`;
@@ -261,18 +307,18 @@ function grille(s: Slide, c: Ctx): string {
   if (r === "cover" || r === "end") {
     const size = fit(`${head} ${tail}`, c.W - 140, 3, 0.42, 170);
     const mh = Math.round(c.H * 0.4);
-    inner = `<div style="position:absolute;left:70px;right:70px;top:${Math.round(c.H * 0.12)}px;text-align:center">
+    inner = `<div data-txt style="position:absolute;left:70px;right:70px;top:${Math.round(c.H * 0.12)}px;text-align:center">
       <h1 class="h" style="font-size:${size}px">${t}</h1>
       ${body ? `<p class="sub" style="margin-top:30px">${body}</p>` : ""}</div>
-      <img src="${orbi(r === "end" ? "celebrate" : "base")}" style="position:absolute;height:${mh}px;left:50%;transform:translateX(-50%);bottom:${Math.round(c.H * 0.095)}px;filter:drop-shadow(0 30px 40px rgba(0,0,0,.25))">`;
+      <img data-m src="${orbi(r === "end" ? "celebrate" : "base")}" style="position:absolute;height:${mh}px;left:50%;transform:translateX(-50%);bottom:${Math.round(c.H * 0.095)}px;filter:drop-shadow(0 30px 40px rgba(0,0,0,.25))">`;
   } else {
     const size = fit(`${head} ${tail}`, c.W - 128, 3, 0.42, 120);
     const ch = Math.round(c.H * 0.36);
-    inner = `<div style="position:absolute;left:64px;right:64px;top:${Math.round(c.H * 0.12)}px">
+    inner = `<div data-txt style="position:absolute;left:64px;right:64px;top:${Math.round(c.H * 0.12)}px">
       <span class="num">ÉTAPE ${pad(c.i)}</span>
       <h2 class="h" style="font-size:${size}px;margin-top:30px">${t}</h2>
       ${body ? `<p class="p" style="margin-top:26px">${body}</p>` : ""}</div>
-      <div class="card" style="height:${ch}px;bottom:${Math.round(c.H * 0.14)}px">
+      <div data-m data-self class="card" style="height:${ch}px;bottom:${Math.round(c.H * 0.14)}px">
         <img src="${orbi((["point", "think", "sit", "peek"] as Pose[])[(c.i - 1) % 4])}" style="position:absolute;z-index:1;height:${Math.round(ch * 0.86)}px;left:50%;transform:translateX(-50%);bottom:0;filter:drop-shadow(0 0 30px rgba(167,139,250,.5))">
       </div>`;
   }
@@ -312,9 +358,9 @@ function atelier(s: Slide, c: Ctx): string {
   const pose: Pose = r === "cover" ? "wave" : r === "end" ? "hold-ring" : (["think", "point", "sit"] as Pose[])[(c.i - 1) % 3];
   const mh = Math.round(c.H * (r === "content" ? 0.3 : 0.38));
   const inner = `<div class="by"><img src="${logo}" class="lg"></div>
-    <div style="position:absolute;left:70px;right:70px;top:${Math.round(c.H * 0.13)}px;display:flex;flex-direction:column;align-items:center;gap:26px">
+    <div data-txt style="position:absolute;left:70px;right:70px;top:${Math.round(c.H * 0.13)}px;display:flex;flex-direction:column;align-items:center;gap:26px">
       ${titleHtml}${scriptHtml}${r !== "cover" && body ? `<p class="p">${body}</p>` : ""}</div>
-    <img class="orbi" src="${orbi(pose)}" style="height:${mh}px;left:50%;transform:translateX(-50%);${r === "end" ? "bottom:0" : `bottom:${Math.round(c.H * 0.07)}px`}">
+    <img data-m class="orbi" src="${orbi(pose)}" style="height:${mh}px;left:50%;transform:translateX(-50%);${r === "end" ? "bottom:0" : `bottom:${Math.round(c.H * 0.07)}px`}">
     <div style="position:absolute;right:64px;bottom:52px;font:600 20px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6B5E86">${c.single ? "" : `${pad(c.i + 1)}/${pad(c.total)}`}</div>`;
   return doc(css, `${grain}${floats}${inner}`, c);
 }
@@ -345,7 +391,8 @@ export async function composeDirection(postId: string, platform: Platform, slide
         page.evaluate(() => (document as Document & { fonts: FontFaceSet }).fonts.ready.then(() => true)),
         new Promise((r) => setTimeout(r, 5000)),
       ]).catch(() => {});
-      await new Promise((r) => setTimeout(r, 200));
+      await page.evaluate(() => (window as unknown as { __fit?: () => boolean }).__fit?.()).catch(() => {});
+      await new Promise((r) => setTimeout(r, 150));
       const file = `${postId}-${d}-${i}.png`;
       await page.screenshot({ path: path.join(OUT_DIR, file) });
       urls.push(`/content-out/${file}?v=${Date.now()}`);
