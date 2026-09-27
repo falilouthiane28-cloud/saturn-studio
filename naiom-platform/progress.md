@@ -1,5 +1,15 @@
 # Journal d'avancement — Saturn Studio
 
+## 📍 Où on en est (27 sept. 2026)
+- **En ligne** : https://209-74-71-111.sslip.io (VPS Spaceship, Docker, Caddy HTTPS, page /login).
+- **Fait** : 6 agents avec connecteurs (YouTube, Instagram/TikTok via Apify, Gmail, Drive, Fireflies) ; actions d'écriture sur approbation ; style « Poster » (carrousels de Léa + decks PDF) ; visuels Higgsfield ; **logo Saturn Studio sur toutes les créations**.
+- **En attente de l'utilisateur** : Client ID/Secret LinkedIn ; URI Google (`/api/integrations/google/callback`) dans Google Cloud ; Instagram bloqué (compte Facebook verrouillé par Meta).
+- **Prochaine étape** : publication LinkedIn réelle (dès réception des clés), puis TikTok / X.
+
+## Logo sur toutes les créations (27 sept. 2026) ✅
+- ✅ Logo officiel (`public/brand/saturn-logo-{black,white}.png`, fond transparent) : dans la mise en page des carrousels Poster/Éditorial, decks PDF (pied de page) et visuels hybrides ; apposé sur les images IA (Higgsfield, Gemini, Creative Studio) et les miniatures YouTube (bas droite). Noir ou blanc choisi selon le fond.
+- ✅ Module unique `src/lib/brand/logo.ts` (`logoDataUri`, `stampLogo`, `stampRemoteImage`, `stampLocalFile`). Vérifié en prod.
+
 ## Visuels Higgsfield + fiabilité du chat (27 sept. 2026) ✅
 - ✅ **Visuels héros via Higgsfield** (API REST, `HIGGSFIELD_API_KEY` « id:secret », modèle Soul 720p) ; Gemini en repli. Testé en prod : carrousel de 4 slides avec 3 visuels en ~60 s.
 - ✅ Le **fond de la slide suit celui du visuel** (luminosité des coins mesurée) et les bords du visuel sont en fondu radial : plus de rectangle visible.

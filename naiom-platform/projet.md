@@ -61,6 +61,9 @@ Images sources : `C:\Users\fallo\Documents\AGENTS AI CLAUDE\img\mascotte *.jpeg`
 - **Connecteurs des agents** : `src/lib/tools/` — `registry.ts` (outils + `AGENT_TOOLS` par agent), `meta.ts` (libellés, importable côté client), `agentTools.ts` (conversion AI SDK, journal `analytics/tools/tool-calls.jsonl`). Branchés dans `api/chat/route.ts`. Outils `kind: "write"` → `needsApproval` : carte « Approuver / Refuser » dans le chat (`components/chat/ToolActivity.tsx`). Aucun repli sur des données de démo.
 - **Navigation** : `SiteFooter` unique (landing `full` / app `compact`), `MobileTabBar` (≤ 768 px) montée hors des en-têtes (un `backdrop-filter` piège le `position: fixed`), sélecteur des 6 agents sur la fiche agent.
 
+## Marque
+Logo : `public/brand/saturn-logo-{black,white}.png`, géré par `src/lib/brand/logo.ts` (dans les rendus HTML + apposé sur les images IA).
+
 ## Production
 - VPS Spaceship `209.74.71.111`, SSH port **22022**. App dans `/srv/saturn` (clone du repo GitHub privé `falilouthiane28-cloud/saturn-studio`), conteneur Docker lié à `127.0.0.1:3000`.
 - **https://209-74-71-111.sslip.io** via Caddy (Let's Encrypt automatique). Pare-feu ufw : 22022, 80, 443.

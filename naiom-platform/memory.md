@@ -37,6 +37,9 @@ Règles et contexte persistants à respecter avant toute intervention.
 - Thème **clair par défaut**. Le CSS de `theme.css` est hors couche : il l'emporte sur les utilitaires Tailwind (`md:hidden`…) → piloter l'affichage par media query.
 - Derrière Caddy, `req.url` = `localhost:3000` → redirections **relatives** dans les routes.
 
+## Marque
+- **Le logo Saturn Studio doit figurer sur TOUTE création** (carrousels, decks, visuels, images IA, miniatures). Toujours passer par `src/lib/brand/logo.ts` ; ne jamais le faire dessiner par l'IA (apposé après génération). Changer le logo = remplacer les 2 PNG de `public/brand/`.
+
 ## Agents dans le chat
 - Les fiches `.claude/agents/*.md` viennent de Claude Code (outil Write) : dans le chat du Studio, les agents **n'ont aucun outil d'écriture de fichier**. La règle est imposée dans `api/chat/route.ts` (livrable complet dans la réponse, jamais « fichier enregistré »).
 
