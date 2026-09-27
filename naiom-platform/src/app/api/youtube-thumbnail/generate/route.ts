@@ -3,6 +3,7 @@ import { generateImage, isNanoBananaConfigured } from "@/lib/integrations/nanoBa
 import { pickReferenceFace, readReferenceInline } from "@/lib/thumbnails/references";
 import { buildThumbnailPrompts } from "@/lib/thumbnails/prompts";
 import { composeThumbnail, puppeteer } from "@/lib/thumbnails/compose";
+import { stampLocalFile } from "@/lib/brand/logo";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -96,6 +97,8 @@ export async function POST(req: Request) {
           browser,
           slug: `miniature-${spec.label}`,
         });
+        // Logo en bas à droite : le titre de la miniature occupe le haut / un côté.
+        await stampLocalFile(final.absPath, { corner: "bottom-right", widthRatio: 0.16 });
         thumbnails.push({
           label: spec.label,
           visualUrl: visual.publicUrl,

@@ -8,6 +8,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import puppeteer from "puppeteer";
 import { getLogos, type Logo } from "./logos";
+import { logoDataUriSync } from "../brand/logo";
 import { getIcons } from "./icons";
 import type { T1Content, T1Slide } from "./type1";
 
@@ -132,7 +133,7 @@ function noteCardHTML(s: T1Slide, ctx: Ctx): string {
 type Ctx = { icons: Record<string, string>; logoByName: Map<string, Logo> };
 
 function head(i: number, total: number): string {
-  return `<div class="top"><span class="brand">Saturn Studio</span><span class="pg">${String(i + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}</span></div>`;
+  return `<div class="top"><img class="brand-logo" src="${logoDataUriSync("black")}" alt="Saturn Studio"><span class="pg">${String(i + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}</span></div>`;
 }
 function foot(i: number, total: number, swipe = true): string {
   return `<div class="dots">${Array.from({ length: total }).map((_, k) => `<i class="${k === i ? "on" : ""}"></i>`).join("")}</div>${swipe && i < total - 1 ? '<div class="swipe">Swipe →</div>' : ""}`;
@@ -341,7 +342,8 @@ function slideHTML(s: T1Slide, ctx: Ctx, logos: Logo[], i: number, total: number
     background-image:radial-gradient(rgba(0,0,0,.028) 1px,transparent 1px);background-size:7px 7px;font-family:Inter,sans-serif;color:${INK}}
   .slide:before{content:"";position:absolute;top:0;left:0;right:0;height:340px;background:radial-gradient(120% 80% at 15% 0%, rgba(226,74,27,.10), transparent 60%)}
   .serif{font-family:Newsreader,serif;font-weight:800;letter-spacing:-.02em;line-height:1.02}
-  .top{position:absolute;top:56px;left:64px;right:64px;display:flex;justify-content:space-between;font-size:22px;font-weight:700;color:${MUTE}}
+  .top{position:absolute;top:56px;left:64px;right:64px;display:flex;justify-content:space-between;align-items:center;font-size:22px;font-weight:700;color:${MUTE}}
+  .brand-logo{width:200px;height:auto;display:block}
   .pg{font-variant-numeric:tabular-nums}
   .body{position:absolute;top:130px;left:64px;right:64px;bottom:120px;display:flex;flex-direction:column}
   h2.serif{font-size:70px;color:${INK}} h1.big{font-size:92px;color:${INK}}

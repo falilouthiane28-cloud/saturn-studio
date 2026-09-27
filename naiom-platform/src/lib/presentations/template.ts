@@ -1,4 +1,5 @@
 import { applyPosterTheme, POSTER_DECK_FONTS, POSTER_DECK_STYLES } from "./posterTheme";
+import { logoDataUriSync } from "../brand/logo";
 /**
  * Générateur HTML de présentations — reproduit fidèlement le template Saturn Studio
  * (fond crème, typo Inter Black extra-bold, gradients flous orange/rose/violet,
@@ -177,7 +178,7 @@ function renderFooter(i: number, total: number, p: Presentation): string {
   return `<footer class="footer">
     <span class="footer-left">${escapeHtml(date)}</span>
     <span class="footer-center">${pageNum(i, total)}</span>
-    <span class="footer-right">${escapeHtml(brand)}</span>
+    <span class="footer-right"><img class="footer-logo logo-b" src="${logoDataUriSync("black")}" alt="${escapeHtml(brand)}"><img class="footer-logo logo-w" src="${logoDataUriSync("white")}" alt=""></span>
   </footer>`;
 }
 
@@ -759,6 +760,10 @@ body {
   z-index: 10;
   color: ${COLOR.ink};
 }
+
+/* Logo de marque (pied de page) : noir par défaut, blanc sur les slides sombres du thème poster. */
+.footer-logo { height: 34px; width: auto; display: block; }
+.footer-logo.logo-w { display: none; }
 
 /* --- Title slide --- */
 .slide-title { display: flex; flex-direction: column; justify-content: center; }

@@ -61,6 +61,9 @@ body.theme-poster { background: #0B0A0F; }
 /* Graphiques : segment clair des barres en violet doux (au lieu de l'orange). */
 .theme-poster .bar-fill-light { background: ${ACCENT_SOFT} !important; }
 
+.theme-poster .pz-dark .footer-logo.logo-b { display: none; }
+.theme-poster .pz-dark .footer-logo.logo-w { display: block; }
+
 /* Décor */
 .theme-poster .slide { isolation: isolate; }
 .pz-deco { position: absolute; inset: 0; pointer-events: none; z-index: -1; }

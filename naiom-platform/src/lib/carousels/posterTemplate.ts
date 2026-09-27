@@ -111,7 +111,7 @@ function headlineLines(raw: string): { html: string; len: number }[] {
 
 export function renderPosterSlideHTML(
   slide: PosterSlide,
-  o: { ratio: CarouselRatio; index: number; total: number; brand: string; handle?: string; heroDataUri?: string; dark?: boolean }
+  o: { ratio: CarouselRatio; index: number; total: number; brand: string; handle?: string; heroDataUri?: string; dark?: boolean; logo?: { black: string; white: string } }
 ): string {
   const { w, h } = DIM[o.ratio];
   // Alternance sombre/clair, sauf si le visuel impose son fond (cf. generate.ts).
@@ -152,6 +152,7 @@ body{position:relative;font-family:Inter,sans-serif;
 .top{position:absolute;top:56px;left:64px;right:64px;display:flex;justify-content:space-between;align-items:center;z-index:5}
 .logo{font-family:Anton;font-size:34px;letter-spacing:.06em}
 .logo small{display:block;font-family:Inter;font-weight:700;font-size:11px;letter-spacing:.42em;opacity:.7;margin-top:2px}
+.logo-img{width:210px;height:auto;display:block}
 .count{font-family:'JetBrains Mono';font-size:20px;opacity:.75}
 .crop{position:absolute;width:34px;height:34px;border:0 solid ${dark ? "rgba(255,255,255,.35)" : "rgba(0,0,0,.35)"};z-index:4}
 .c1{top:30px;left:30px;border-top-width:2px;border-left-width:2px}.c2{top:30px;right:30px;border-top-width:2px;border-right-width:2px}
@@ -195,7 +196,7 @@ body{position:relative;font-family:Inter,sans-serif;
 </style></head><body>
 <div class="bg"></div><div class="grid"></div><div class="ghost">${esc(ghost)}</div><div class="grain"></div>
 <span class="crop c1"></span><span class="crop c2"></span><span class="crop c3"></span><span class="crop c4"></span>
-<div class="top"><div class="logo">${esc(o.brand.split(" ")[0].toUpperCase())}<small>${esc(o.brand.split(" ").slice(1).join(" ").toUpperCase() || "STUDIO")}</small></div><div class="count">${count}</div></div>
+<div class="top">${o.logo ? `<img class="logo-img" src="${dark ? o.logo.white : o.logo.black}" alt="${esc(o.brand)}">` : `<div class="logo">${esc(o.brand.split(" ")[0].toUpperCase())}<small>${esc(o.brand.split(" ").slice(1).join(" ").toUpperCase() || "STUDIO")}</small></div>`}<div class="count">${count}</div></div>
 <div class="stage">
   ${slide.kicker ? `<div class="kicker">${esc(slide.kicker)}</div>` : ""}
   <div class="hero">${hero}</div>

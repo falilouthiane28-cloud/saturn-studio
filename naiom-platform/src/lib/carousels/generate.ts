@@ -7,6 +7,7 @@ import { renderCarouselSlideHTML, type CarouselRatio } from "./template";
 import { heroPrompt, parsePosterMarkdown, renderPosterSlideHTML } from "./posterTemplate";
 import { generateImage, isNanoBananaConfigured } from "../integrations/nanoBanana";
 import { generateHiggsfieldImage, isHiggsfieldApiConfigured } from "../integrations/higgsfieldApi";
+import { logoDataUri } from "../brand/logo";
 
 export type CarouselStyle = "editorial" | "poster";
 
@@ -147,6 +148,7 @@ async function generatePoster(markdown: string, ratio: CarouselRatio, slug?: str
   if (!engine) notes.push("Aucun moteur d'images configuré (Higgsfield ou Gemini) : motif graphique utilisé.");
 
   await fs.mkdir(PUBLIC_CAROUSELS_DIR, { recursive: true });
+  const logo = { black: await logoDataUri("black"), white: await logoDataUri("white") };
   const batchId = `${new Date().toISOString().slice(0, 10)}-${(slug ?? slugifyTitle(deck.title)).slice(0, 40)}-${Date.now()}`;
   const browser: Browser = await puppeteer.launch({
     headless: true,
@@ -178,7 +180,7 @@ async function generatePoster(markdown: string, ratio: CarouselRatio, slug?: str
       // Le fond de la slide suit celui du visuel (le modèle ne respecte pas toujours
       // « fond blanc / fond noir ») : on mesure la luminosité des coins de l'image.
       const dark = heroDataUri ? await cornersAreDark(page, heroDataUri) : undefined;
-      const html = renderPosterSlideHTML(slide, { ratio, index: i, total: deck.slides.length, brand: "Saturn Studio", heroDataUri, dark });
+      const html = renderPosterSlideHTML(slide, { ratio, index: i, total: deck.slides.length, brand: "Saturn Studio", heroDataUri, dark, logo });
       await page.setContent(html, { waitUntil: "load", timeout: 30000 });
       await Promise.race([
         page.evaluate(() => (document as Document & { fonts: FontFaceSet }).fonts.ready.then(() => true)),

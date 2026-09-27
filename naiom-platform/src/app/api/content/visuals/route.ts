@@ -2,6 +2,7 @@ import { getPost, updatePost } from "@/lib/content/store";
 import { createSlideJobs, pollSlideJobs } from "@/lib/content/visual";
 import { composeType1 } from "@/lib/content/hybrid";
 import { isHiggsfieldConfigured } from "@/lib/integrations/higgsfield";
+import { stampRemoteImage } from "@/lib/brand/logo";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -47,7 +48,12 @@ export async function GET(req: Request) {
   try {
     const results = await pollSlideJobs(post.visuals.jobs);
     const images = [...post.visuals.images];
-    for (const r of results) if (r.status === "completed" && r.imageUrl) images[r.index] = r.imageUrl;
+    for (const r of results) {
+      // Nouvelle image terminée : on y appose le logo et on sert la copie de la plateforme.
+      if (r.status === "completed" && r.imageUrl && !images[r.index]) {
+        images[r.index] = await stampRemoteImage(r.imageUrl, "generated-images", `post-${id}-${r.index + 1}-${Date.now()}`);
+      }
+    }
     const done = images.every((x) => x) || results.every((r) => r.status === "completed" || r.status === "failed");
     await updatePost(id, { visuals: { ...post.visuals, images, done } });
     return Response.json({ images, done, statuses: results.map((r) => r.status) });

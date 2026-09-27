@@ -1,5 +1,6 @@
 import { readStore, updateCreative } from "@/lib/creative/store";
 import { pollSoul } from "@/lib/integrations/higgsfield";
+import { stampRemoteImage } from "@/lib/brand/logo";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -15,7 +16,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   try {
     const r = await pollSoul({ requestId: c.requestId });
     if (r.status === "completed" && r.imageUrl) {
-      const upd = await updateCreative(id, { status: "done", imageUrl: r.imageUrl, thumbUrl: r.thumbUrl });
+      // Logo Saturn Studio apposé sur l'image finale (copie servie par la plateforme).
+      const branded = await stampRemoteImage(r.imageUrl, "generated-images", `creative-${id}`);
+      const upd = await updateCreative(id, { status: "done", imageUrl: branded, thumbUrl: branded });
       return Response.json({ status: "done", imageUrl: upd?.imageUrl, thumbUrl: upd?.thumbUrl });
     }
     if (r.status === "failed") {

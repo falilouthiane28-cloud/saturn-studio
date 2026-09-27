@@ -7,7 +7,7 @@
  * - Accents italiques terracotta #C94F3C pour 1-2 mots d'emphase par slide
  * - Soulignements main-levée (double ou simple) sous les mots-clés de titre
  * - Sous-texte gris (#6B6B6B) en sans-serif
- * - Header top-left : cercle terracotta + astérisque blanc + "Saturn Studio" en serif
+ * - Header top-left : logo Saturn Studio (public/brand)
  * - Header top-right : pill sombre arrondie avec "1/5"
  * - Footer : @saturnagency en terracotta letterspacé
  *
@@ -15,6 +15,7 @@
  */
 
 import type { Slide, Presentation } from "../presentations/template";
+import { logoDataUriSync } from "../brand/logo";
 
 export type CarouselRatio = "1:1" | "4:5" | "9:16";
 
@@ -82,17 +83,10 @@ function pageIndicator(index: number, total: number): string {
   return `<div class="page-pill">${String(index + 1)}/${total}</div>`;
 }
 
+/** En-tête de marque : le vrai logo Saturn Studio (noir, fonds crème). */
 function brandHeader(variant: "compact" | "centered" = "compact"): string {
-  if (variant === "centered") {
-    return `<div class="brand-centered">
-      <span class="brand-dot">✳</span>
-      <span class="brand-name">Saturn Studio</span>
-    </div>`;
-  }
-  return `<div class="brand-compact">
-    <span class="brand-dot">✳</span>
-    <span class="brand-name">Saturn Studio</span>
-  </div>`;
+  const img = `<img src="${logoDataUriSync("black")}" alt="Saturn Studio" style="display:block;width:${variant === "centered" ? 260 : 190}px;height:auto">`;
+  return `<div class="${variant === "centered" ? "brand-centered" : "brand-compact"}">${img}</div>`;
 }
 
 function handleFooter(): string {

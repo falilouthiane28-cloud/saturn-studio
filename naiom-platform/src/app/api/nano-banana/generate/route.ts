@@ -1,3 +1,4 @@
+import { stampLocalFile } from "@/lib/brand/logo";
 import { generateImage, isNanoBananaConfigured } from "@/lib/integrations/nanoBanana";
 
 export const runtime = "nodejs";
@@ -25,6 +26,7 @@ export async function POST(req: Request) {
       return Response.json({ error: "prompt (string, >=10 car.) requis" }, { status: 400 });
     }
     const result = await generateImage(prompt, { slug });
+    await stampLocalFile(result.absPath); // logo Saturn Studio sur toute création
     return Response.json({
       success: true,
       filename: result.filename,
