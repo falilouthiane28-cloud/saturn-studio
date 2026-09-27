@@ -6,6 +6,7 @@ import type { Presentation } from "../presentations/template";
 import { renderCarouselSlideHTML, type CarouselRatio } from "./template";
 import { heroPrompt, parsePosterMarkdown, renderPosterSlideHTML } from "./posterTemplate";
 import { generateImage, isNanoBananaConfigured } from "../integrations/nanoBanana";
+import { generateHiggsfieldImage, isHiggsfieldApiConfigured } from "../integrations/higgsfieldApi";
 
 export type CarouselStyle = "editorial" | "poster";
 
@@ -140,8 +141,10 @@ async function generatePoster(markdown: string, ratio: CarouselRatio, slug?: str
   if (!deck.slides.length) throw new Error("Aucune slide : chaque slide commence par « ## Titre ».");
   const dim = DIMENSIONS[ratio];
   const notes: string[] = [];
-  let gemini = isNanoBananaConfigured();
-  if (!gemini) notes.push("Visuels Gemini inactifs (GEMINI_API_KEY absente) : motif graphique utilisé.");
+  // Moteur des visuels héros : Higgsfield s'il est configuré, sinon Gemini.
+  const engine = isHiggsfieldApiConfigured() ? "Higgsfield" : isNanoBananaConfigured() ? "Gemini" : null;
+  let visuals = engine !== null;
+  if (!engine) notes.push("Aucun moteur d'images configuré (Higgsfield ou Gemini) : motif graphique utilisé.");
 
   await fs.mkdir(PUBLIC_CAROUSELS_DIR, { recursive: true });
   const batchId = `${new Date().toISOString().slice(0, 10)}-${(slug ?? slugifyTitle(deck.title)).slice(0, 40)}-${Date.now()}`;
@@ -156,14 +159,20 @@ async function generatePoster(markdown: string, ratio: CarouselRatio, slug?: str
     for (let i = 0; i < deck.slides.length; i++) {
       const slide = deck.slides[i];
       let heroDataUri: string | undefined;
-      if (gemini && slide.visual) {
+      if (visuals && slide.visual) {
         try {
-          const img = await generateImage(heroPrompt(slide.visual, i % 2 === 0), { slug: "lea-poster" });
-          heroDataUri = `data:image/png;base64,${(await fs.readFile(img.absPath)).toString("base64")}`;
+          const prompt = heroPrompt(slide.visual, i % 2 === 0);
+          if (engine === "Higgsfield") {
+            const img = await generateHiggsfieldImage(prompt, "1:1");
+            heroDataUri = `data:${img.mime};base64,${img.bytes.toString("base64")}`;
+          } else {
+            const img = await generateImage(prompt, { slug: "lea-poster" });
+            heroDataUri = `data:image/png;base64,${(await fs.readFile(img.absPath)).toString("base64")}`;
+          }
         } catch (e) {
-          // Quota, facturation… : on n'insiste pas pour les slides suivantes.
-          gemini = false;
-          notes.push(`Visuels Gemini indisponibles (${e instanceof Error ? e.message.slice(0, 140) : "erreur"}) : motif graphique utilisé.`);
+          // Crédits, facturation… : on n'insiste pas pour les slides suivantes.
+          visuals = false;
+          notes.push(`Visuels ${engine} indisponibles (${e instanceof Error ? e.message.slice(0, 140) : "erreur"}) : motif graphique utilisé.`);
         }
       }
       const html = renderPosterSlideHTML(slide, { ratio, index: i, total: deck.slides.length, brand: "Saturn Studio", heroDataUri });
