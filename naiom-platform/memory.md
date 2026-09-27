@@ -37,6 +37,9 @@ Règles et contexte persistants à respecter avant toute intervention.
 - Thème **clair par défaut**. Le CSS de `theme.css` est hors couche : il l'emporte sur les utilitaires Tailwind (`md:hidden`…) → piloter l'affichage par media query.
 - Derrière Caddy, `req.url` = `localhost:3000` → redirections **relatives** dans les routes.
 
+## Agents dans le chat
+- Les fiches `.claude/agents/*.md` viennent de Claude Code (outil Write) : dans le chat du Studio, les agents **n'ont aucun outil d'écriture de fichier**. La règle est imposée dans `api/chat/route.ts` (livrable complet dans la réponse, jamais « fichier enregistré »).
+
 ## Sécurité (règles dures)
 - Tout ce qui agit à l'extérieur (email, publication) passe par un outil `kind: "write"` → approbation de l'utilisateur. Jamais d'envoi automatique.
 - Ne jamais exposer le port 3000 publiquement ni remettre un basic_auth Caddy (popup sur l'accueil à cause du prefetch).

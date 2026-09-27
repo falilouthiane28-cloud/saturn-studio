@@ -1,5 +1,11 @@
 # Journal d'avancement — Saturn Studio
 
+## Visuels Higgsfield + fiabilité du chat (27 sept. 2026) ✅
+- ✅ **Visuels héros via Higgsfield** (API REST, `HIGGSFIELD_API_KEY` « id:secret », modèle Soul 720p) ; Gemini en repli. Testé en prod : carrousel de 4 slides avec 3 visuels en ~60 s.
+- ✅ Le **fond de la slide suit celui du visuel** (luminosité des coins mesurée) et les bords du visuel sont en fondu radial : plus de rectangle visible.
+- ✅ **Bug corrigé (tous les agents)** : Léa affirmait « fichier enregistré dans content/… » sans l'écrire (consigne de sa fiche pensée pour Claude Code) → le carrousel était perdu. Le prompt du chat interdit désormais d'annoncer un fichier et impose le livrable complet dans la réponse.
+- ✅ Vérifié en prod : la direction artistique « Poster » de Léa est bien chargée dans le conteneur.
+
 ## Style visuel de Léa + decks PDF (26 sept. 2026) ✅
 - ✅ **Carrousels « Poster »** (défaut) : titres massifs Anton, un mot en accent (`**mot**`) ou en pastille (`==mot==`), visuel héros Gemini par slide (`> visuel:`), noir/blanc + violet, alternance sombre/clair, mot fantôme, repères de recadrage, grain. Sans Gemini : motifs graphiques de repli (bandes tramées, sphère + orbite, cadres de sélection). Sélecteur Poster / Éditorial dans le Studio.
 - ✅ **Decks PDF** : même langage par défaut (`theme: "classic"` pour l'ancien). Slides d'affirmation sombres, slides de données claires. Sans grain ni masques → PDF léger (≈ 260 Ko pour 4 slides au lieu de 7,4 Mo) et texte sélectionnable.
