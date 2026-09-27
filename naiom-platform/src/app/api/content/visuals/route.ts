@@ -3,6 +3,7 @@ import { createSlideJobs, pollSlideJobs } from "@/lib/content/visual";
 import { composeType1 } from "@/lib/content/hybrid";
 import { isHiggsfieldConfigured } from "@/lib/integrations/higgsfield";
 import { stampRemoteImage } from "@/lib/brand/logo";
+import { composeDirection, directionOf } from "@/lib/content/directions";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -15,9 +16,20 @@ export async function POST(req: Request) {
   try {
     const { id } = (await req.json()) as { id?: string };
     if (!id) return Response.json({ error: "id requis" }, { status: 400 });
-    if (!isHiggsfieldConfigured()) return Response.json({ error: "Higgsfield non configuré : HIGGSFIELD_API_KEY absente sur le serveur." }, { status: 412 });
     const post = await getPost(id);
     if (!post) return Response.json({ error: "Post introuvable" }, { status: 404 });
+
+    // Directions Saturn (Vanguard / Orbit / Signal) : rendu HTML avec Orbi et le logo intégrés.
+    const direction = directionOf(post.refId);
+    if (direction) {
+      const slides = post.result.slides ?? (post.result.headline ? [{ title: post.result.headline, body: "" }] : []);
+      if (!slides.length) return Response.json({ error: "Ce post n'a pas de slides à visualiser." }, { status: 400 });
+      const images = await composeDirection(id, post.platform, slides, direction);
+      await updatePost(id, { visuals: { jobs: [], images, done: true } });
+      return Response.json({ success: true, count: images.length, direction });
+    }
+
+    if (!isHiggsfieldConfigured()) return Response.json({ error: "Higgsfield non configuré : HIGGSFIELD_API_KEY absente sur le serveur." }, { status: 412 });
 
     // Type 1 : rendu hybride (déterministe, logos/texte exacts)
     if (post.t1?.slides?.length) {

@@ -13,7 +13,7 @@ interface Result {
   slides?: Slide[]; caption?: string; hashtags?: string[]; headline?: string; body?: string; tweets?: string[];
 }
 interface ContentPost {
-  id: string; platform: Platform; format: Format; idea: string; template?: string;
+  id: string; platform: Platform; format: Format; idea: string; template?: string; refId?: string;
   result: Result; status: "draft" | "scheduled" | "posted"; schedule?: { at: string } | null; createdAt: string;
   visuals?: { jobs: { index: number; jobId: string }[]; images: (string | null)[]; done: boolean };
 }
@@ -33,6 +33,15 @@ const REF_TEMPLATES: Record<Platform, { id: string; src: string }[]> = {
   twitter: ["1", "2", "3", "4", "6", "7", "8", "9", "10", "13", "14", "15", "16"].map((n) => ({ id: `li-${n}`, src: `/templates/li/${n}.png` })),
   instagram: ["type1", "type2", "type3", "type4"].map((t) => ({ id: `ig-${t}`, src: `/templates/ig/${t}.png` })),
 };
+
+// Directions Saturn : rendu HTML avec Orbi (mascotte) et logo intégrés — modèles par défaut.
+const DIRECTIONS = [
+  { id: "da-vanguard", name: "Vanguard", hint: "Minimaliste", src: "/templates/da/vanguard.png" },
+  { id: "da-orbit", name: "Orbit Story", hint: "Narratif", src: "/templates/da/orbit.png" },
+  { id: "da-signal", name: "Signal", hint: "Immersif", src: "/templates/da/signal.png" },
+  { id: "da-grille", name: "Grille", hint: "Éditorial", src: "/templates/da/grille.png" },
+  { id: "da-atelier", name: "Atelier", hint: "Texturé", src: "/templates/da/atelier.png" },
+];
 
 const tplByName = (n?: string) => TEMPLATES.find((t) => t.name === n) ?? TEMPLATES[0];
 
@@ -118,7 +127,7 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
   const [format, setFormat] = useState<Format>(saved?.format ?? formats[0].key);
   const [idea, setIdea] = useState(saved?.idea ?? "");
   const [tmpl, setTmpl] = useState<Tmpl>(tmplByName(saved?.template));
-  const [refTpl, setRefTpl] = useState<string | null>(REF_TEMPLATES[platform]?.[0]?.id ?? null);
+  const [refTpl, setRefTpl] = useState<string | null>(saved?.refId ?? DIRECTIONS[0].id);
   const [tools, setTools] = useState<string>((saved as { tools?: string[] })?.tools?.join(", ") ?? "");
   const [res, setRes] = useState<Result | null>(saved?.result ?? null);
   const [currentId, setCurrentId] = useState<string | null>(saved?.id ?? null);
@@ -210,6 +219,25 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
                   className={cn("overflow-hidden rounded-lg border-2 transition", tmpl.id === t.id ? "border-[var(--color-ink)]" : "border-transparent")}>
                   <div className="flex h-12 items-center justify-center text-[11px] font-black" style={{ background: t.bg, color: t.fg, fontFamily: t.font }}>Aa</div>
                   <div className="bg-white py-0.5 text-center text-[9px] font-bold text-[var(--color-muted)]">{t.name}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {showTemplates && (
+          <div>
+            <Label>Directions Saturn · avec Orbi</Label>
+            <div className="mt-1.5 grid grid-cols-3 gap-2">
+              {DIRECTIONS.map((d) => (
+                <button key={d.id} onClick={() => setRefTpl(d.id)}
+                  className={cn("relative overflow-hidden rounded-lg border-2 text-left transition", refTpl === d.id ? "border-[var(--color-primary)]" : "border-transparent opacity-85 hover:opacity-100")}>
+                  <img src={d.src} alt="" className="aspect-[4/5] w-full object-cover" />
+                  <div className="bg-[var(--color-bg)] px-1.5 py-1">
+                    <div className="text-[10px] font-black text-[var(--color-ink)]">{d.name}</div>
+                    <div className="text-[9px] text-[var(--color-muted)]">{d.hint}</div>
+                  </div>
+                  {refTpl === d.id && <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-primary)] text-[9px] text-white">✓</span>}
                 </button>
               ))}
             </div>

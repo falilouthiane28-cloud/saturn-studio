@@ -1,6 +1,7 @@
 import { generateContent, type Platform, type Format, type ContentResult } from "@/lib/content/generate";
 import { generateType1 } from "@/lib/content/type1";
 import { addPost } from "@/lib/content/store";
+import { directionOf } from "@/lib/content/directions";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -14,8 +15,8 @@ export async function POST(req: Request) {
     if (!platform || !format || !idea?.trim())
       return Response.json({ error: "platform, format et idea requis" }, { status: 400 });
 
-    // TOUS les carrousels Instagram → rendu HTML éducatif (JAMAIS Higgsfield)
-    if (platform === "instagram" && format === "carousel") {
+    // Carrousels Instagram hors directions Saturn → rendu HTML éducatif (JAMAIS Higgsfield)
+    if (platform === "instagram" && format === "carousel" && !directionOf(refId)) {
       const t1 = await generateType1(idea.trim(), tools ?? []);
       const arr = (v: unknown) => (Array.isArray(v) ? v.map(String) : []);
       const result: ContentResult = {
