@@ -18,32 +18,24 @@ interface ContentPost {
   visuals?: { jobs: { index: number; jobId: string }[]; images: (string | null)[]; done: boolean };
 }
 
-/* ============ carousel templates (DA) ============ */
-interface Tmpl { id: string; name: string; bg: string; fg: string; accent: string; sub: string; font: string }
-const TEMPLATES: Tmpl[] = [
-  { id: "minimal", name: "Minimal", bg: "#ffffff", fg: "#141414", accent: "var(--color-primary)", sub: "#6b7280", font: "'Archivo',sans-serif" },
-  { id: "bold", name: "Bold", bg: "#141414", fg: "#ffffff", accent: "var(--color-primary)", sub: "#a7abb6", font: "'Archivo',sans-serif" },
-  { id: "gradient", name: "Gradient", bg: "linear-gradient(135deg,var(--color-primary),#5B4DEE)", fg: "#ffffff", accent: "#ffffff", sub: "rgba(255,255,255,.8)", font: "'Archivo',sans-serif" },
-  { id: "editorial", name: "Éditorial", bg: "#FAF6F4", fg: "#1a1a1a", accent: "#5B4DEE", sub: "#7a7a7a", font: "Georgia,'Times New Roman',serif" },
-];
+/* ============ style de repli de l'aperçu (avant que les visuels soient rendus) ============ */
+interface Tmpl { bg: string; fg: string; accent: string; sub: string; font: string }
+const PREVIEW_TMPL: Tmpl = { bg: "#ffffff", fg: "#141414", accent: "var(--color-primary)", sub: "#6b7280", font: "'Archivo',sans-serif" };
 
-// Modèles de référence (images de Fallou) servis depuis /public/templates
-const REF_TEMPLATES: Record<Platform, { id: string; src: string }[]> = {
-  linkedin: ["1", "2", "3", "4", "6", "7", "8", "9", "10", "13", "14", "15", "16"].map((n) => ({ id: `li-${n}`, src: `/templates/li/${n}.png` })),
-  twitter: ["1", "2", "3", "4", "6", "7", "8", "9", "10", "13", "14", "15", "16"].map((n) => ({ id: `li-${n}`, src: `/templates/li/${n}.png` })),
-  instagram: ["type1", "type2", "type3", "type4"].map((t) => ({ id: `ig-${t}`, src: `/templates/ig/${t}.png` })),
-};
-
-// Directions Saturn : rendu HTML avec Orbi (mascotte) et logo intégrés — modèles par défaut.
+// Directions Saturn : les 10 modèles de Léa, rendus avec Orbi (mascotte) et le logo intégrés.
 const DIRECTIONS = [
-  { id: "da-vanguard", name: "Vanguard", hint: "Minimaliste", src: "/templates/da/vanguard.png" },
-  { id: "da-orbit", name: "Orbit Story", hint: "Narratif", src: "/templates/da/orbit.png" },
-  { id: "da-signal", name: "Signal", hint: "Immersif", src: "/templates/da/signal.png" },
-  { id: "da-grille", name: "Grille", hint: "Éditorial", src: "/templates/da/grille.png" },
-  { id: "da-atelier", name: "Atelier", hint: "Texturé", src: "/templates/da/atelier.png" },
-];
-
-const tplByName = (n?: string) => TEMPLATES.find((t) => t.name === n) ?? TEMPLATES[0];
+  { id: "da-vanguard", name: "Vanguard", hint: "Minimaliste" },
+  { id: "da-orbit", name: "Orbit Story", hint: "Narratif" },
+  { id: "da-signal", name: "Signal", hint: "Néon" },
+  { id: "da-grille", name: "Grille", hint: "Éditorial" },
+  { id: "da-atelier", name: "Atelier", hint: "Texturé" },
+  { id: "da-cinema", name: "Cinéma", hint: "Scène 3D" },
+  { id: "da-brasier", name: "Brasier", hint: "Mot géant" },
+  { id: "da-studio", name: "Studio", hint: "Produit" },
+  { id: "da-plein-air", name: "Plein air", hint: "Paysage" },
+  { id: "da-conversation", name: "Conversation", hint: "Chat" },
+].map((d) => ({ ...d, src: `/templates/da/${d.id.slice(3)}.png` }));
+const directionName = (id?: string | null) => DIRECTIONS.find((d) => d.id === id)?.name;
 
 const FORMATS: Record<Platform, { key: Format; label: string }[]> = {
   instagram: [{ key: "carousel", label: "Carrousel" }, { key: "post", label: "Post (visuel)" }],
@@ -122,13 +114,11 @@ export function ContentStudio() {
 /* ============ per-platform panel ============ */
 function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved: ContentPost | null; onSaved: () => void }) {
   const formats = FORMATS[platform];
-  const tmplByName = (n?: string) => TEMPLATES.find((t) => t.name === n) ?? TEMPLATES[0];
   // reprise de la session précédente
   const [format, setFormat] = useState<Format>(saved?.format ?? formats[0].key);
   const [idea, setIdea] = useState(saved?.idea ?? "");
-  const [tmpl, setTmpl] = useState<Tmpl>(tmplByName(saved?.template));
-  const [refTpl, setRefTpl] = useState<string | null>(saved?.refId ?? DIRECTIONS[0].id);
-  const [tools, setTools] = useState<string>((saved as { tools?: string[] })?.tools?.join(", ") ?? "");
+  const tmpl = PREVIEW_TMPL;
+  const [refTpl, setRefTpl] = useState<string>(directionName(saved?.refId) ? saved!.refId! : DIRECTIONS[0].id);
   const [res, setRes] = useState<Result | null>(saved?.result ?? null);
   const [currentId, setCurrentId] = useState<string | null>(saved?.id ?? null);
   const [err, setErr] = useState<string | null>(null);
@@ -162,30 +152,25 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
     try {
       const r = await fetch("/api/content/generate", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform, format, idea, template: showTemplates ? tmpl.name : undefined, refId: refTpl, tools: tools.split(",").map((t) => t.trim()).filter(Boolean) }),
+        body: JSON.stringify({ platform, format, idea, template: showTemplates ? directionName(refTpl) : undefined, refId: refTpl }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? "Génération impossible");
       setRes(j); setCurrentId(j.id);
       const slideCount = (j.slides?.length as number) || (j.headline ? 1 : 0);
-      if (showTemplates && refTpl && slideCount > 0) {
+      if (showTemplates && slideCount > 0) {
         await runVisuals(j.id, slideCount);
       } else { onSaved(); }
     } catch (e) { setErr(e instanceof Error ? e.message : "Erreur"); } finally { setPhase("idle"); setProgress(null); }
   }
 
-  async function download() {
+  async function download(kind: "pdf" | "zip") {
     if (!currentId) return;
     setDownloading(true);
-    try {
-      const r = await fetch("/api/content/download", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: currentId }) });
-      if (!r.ok) throw new Error("Téléchargement impossible");
-      const blob = await r.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = `saturn-${platform}.pdf`; a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) { alert(e instanceof Error ? e.message : "Erreur"); } finally { setDownloading(false); }
+    try { await downloadPost(currentId, kind); }
+    catch (e) { alert(e instanceof Error ? e.message : "Erreur"); } finally { setDownloading(false); }
   }
+  const hasVisuals = slideImages.some((x) => x);
 
   return (
     <div className="grid gap-5 md:grid-cols-[1fr_340px]">
@@ -212,23 +197,8 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
 
         {showTemplates && (
           <div>
-            <Label>Direction artistique (template)</Label>
-            <div className="mt-1.5 grid grid-cols-4 gap-2">
-              {TEMPLATES.map((t) => (
-                <button key={t.id} onClick={() => setTmpl(t)}
-                  className={cn("overflow-hidden rounded-lg border-2 transition", tmpl.id === t.id ? "border-[var(--color-ink)]" : "border-transparent")}>
-                  <div className="flex h-12 items-center justify-center text-[11px] font-black" style={{ background: t.bg, color: t.fg, fontFamily: t.font }}>Aa</div>
-                  <div className="bg-white py-0.5 text-center text-[9px] font-bold text-[var(--color-muted)]">{t.name}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {showTemplates && (
-          <div>
-            <Label>Directions Saturn · avec Orbi</Label>
-            <div className="mt-1.5 grid grid-cols-3 gap-2">
+            <Label>Modèle · {directionName(refTpl)}</Label>
+            <div className="mt-1.5 grid max-h-[430px] grid-cols-3 gap-2 overflow-y-auto pr-1">
               {DIRECTIONS.map((d) => (
                 <button key={d.id} onClick={() => setRefTpl(d.id)}
                   className={cn("relative overflow-hidden rounded-lg border-2 text-left transition", refTpl === d.id ? "border-[var(--color-primary)]" : "border-transparent opacity-85 hover:opacity-100")}>
@@ -244,45 +214,29 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
           </div>
         )}
 
-        <div>
-          <Label>Modèle {platform === "instagram" ? "Instagram" : "photo (LinkedIn/X)"}</Label>
-          <p className="mt-0.5 text-[10px] text-[var(--color-muted)]">Style éditorial du modèle, adapté à ton sujet : carrousel explicatif (schémas, graphs, logos).</p>
-          <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
-            {(REF_TEMPLATES[platform] ?? []).map((t) => (
-              <button key={t.id} onClick={() => setRefTpl(t.id)}
-                className={cn("relative shrink-0 overflow-hidden rounded-lg border-2 transition", refTpl === t.id ? "border-[var(--color-ink)]" : "border-transparent opacity-80 hover:opacity-100")}>
-                <img src={t.src} alt="" className="h-[92px] w-[72px] object-cover" />
-                {refTpl === t.id && <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-ink)] text-[9px] text-white">✓</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {showTemplates && (
-          <div>
-            <Label>Outils / logos à afficher</Label>
-            <input value={tools} onChange={(e) => setTools(e.target.value)} placeholder="Ex. Claude, Obsidian, n8n"
-              className="cinput mt-1.5" />
-            <p className="mt-0.5 text-[10px] text-[var(--color-muted)]">Seuls ces logos apparaîtront (vrais logos officiels). Sépare par des virgules.</p>
-          </div>
-        )}
-
         <button onClick={run} disabled={!idea.trim() || loading}
           className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold text-white transition hover:opacity-90 disabled:opacity-40"
           style={{ background: PLAT[platform].color }}>
           <Icon name={loading ? "Loader" : "Sparkles"} size={15} className={loading ? "animate-spin" : ""} />
           {phase === "text" ? "Léa rédige le contenu…"
-            : phase === "visuals" ? `Higgsfield crée les visuels… ${progress ? `(${progress.done}/${progress.total})` : ""}`
+            : phase === "visuals" ? `Mise en image des slides… ${progress ? `(${progress.done}/${progress.total})` : ""}`
             : res ? "Regénérer" : "Générer"}
         </button>
-        {phase === "visuals" && <div className="text-[11px] text-[var(--color-muted)]">Chaque slide est créée avec ton template (≈1 min/slide).</div>}
+        {phase === "visuals" && <div className="text-[11px] text-[var(--color-muted)]">Léa met chaque slide en page avec Orbi (quelques secondes).</div>}
 
         {res && currentId && !loading && (
-          <div className="flex gap-2">
-            <button onClick={download} disabled={downloading} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-line)] px-3 py-2 text-[12px] font-bold hover:bg-white/60 disabled:opacity-50">
-              <Icon name={downloading ? "Loader" : "Download"} size={13} className={downloading ? "animate-spin" : ""} /> Télécharger
-            </button>
-            <button onClick={() => setSched(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[var(--color-ink)] px-3 py-2 text-[12px] font-bold text-white hover:opacity-90">
+          <div className="space-y-2">
+            {hasVisuals && (
+              <div className="flex gap-2">
+                <button onClick={() => download("pdf")} disabled={downloading} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-line)] px-3 py-2 text-[12px] font-bold hover:bg-white/60 disabled:opacity-50">
+                  <Icon name={downloading ? "Loader" : "FileText"} size={13} className={downloading ? "animate-spin" : ""} /> PDF
+                </button>
+                <button onClick={() => download("zip")} disabled={downloading} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-line)] px-3 py-2 text-[12px] font-bold hover:bg-white/60 disabled:opacity-50">
+                  <Icon name={downloading ? "Loader" : "Download"} size={13} className={downloading ? "animate-spin" : ""} /> Images (ZIP)
+                </button>
+              </div>
+            )}
+            <button onClick={() => setSched(true)} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[var(--color-ink)] px-3 py-2 text-[12px] font-bold text-white hover:opacity-90">
               <Icon name="Calendar" size={13} /> Programmer
             </button>
           </div>
@@ -333,12 +287,26 @@ function ScheduleModal({ id, current, onClose, onSaved }: { id: string; current:
   );
 }
 
+/* ============ téléchargement des visuels rendus (PDF ou ZIP de PNG) ============ */
+async function downloadPost(id: string, kind: "pdf" | "zip") {
+  const r = await fetch("/api/content/download", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, format: kind }) });
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    throw new Error((j as { error?: string }).error ?? "Téléchargement impossible");
+  }
+  const name = /filename="([^"]+)"/.exec(r.headers.get("Content-Disposition") ?? "")?.[1] ?? `saturn-${id}.${kind}`;
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /* ============ mini visuel (visuel AVANT le texte) ============ */
 function MiniVisual({ post }: { post: ContentPost }) {
   const r = post.result;
-  const t = tplByName(post.template);
+  const t = PREVIEW_TMPL;
   const genImg = post.visuals?.images?.find((x) => x);
-  if (genImg) return <div className="relative aspect-square w-full overflow-hidden"><img src={genImg} alt="" className="h-full w-full object-cover" /></div>;
+  if (genImg) return <div className="relative aspect-square w-full overflow-hidden bg-neutral-100"><img src={genImg} alt="" className="h-full w-full object-cover object-top" /></div>;
   if (r.slides?.length || r.headline) {
     const s = r.slides?.[0] ?? { title: r.headline ?? "", body: "" };
     return (
@@ -367,11 +335,14 @@ function MiniVisual({ post }: { post: ContentPost }) {
 /* ============ modal détail d'un post ============ */
 function PostDetailModal({ post, onClose, onChange }: { post: ContentPost; onClose: () => void; onChange: () => void }) {
   const [sched, setSched] = useState(false);
-  const t = tplByName(post.template);
+  const t = PREVIEW_TMPL;
   const r = post.result;
-  const download = async () => {
-    const rr = await fetch("/api/content/download", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: post.id }) });
-    const b = await rr.blob(); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = `saturn-${post.platform}.pdf`; a.click(); URL.revokeObjectURL(u);
+  const [busy, setBusy] = useState(false);
+  const canDownload = !!(r.slides?.length || r.headline);
+  const download = async (kind: "pdf" | "zip") => {
+    setBusy(true);
+    try { await downloadPost(post.id, kind); onChange(); }
+    catch (e) { alert(e instanceof Error ? e.message : "Erreur"); } finally { setBusy(false); }
   };
   const del = async () => { await fetch(`/api/content/schedule?id=${post.id}`, { method: "DELETE" }); onChange(); onClose(); };
   return (
@@ -398,7 +369,10 @@ function PostDetailModal({ post, onClose, onChange }: { post: ContentPost; onClo
         <div className="mt-4 flex items-center justify-between gap-2">
           <button onClick={del} className="text-[12px] font-bold text-rose-500">Supprimer</button>
           <div className="flex gap-2">
-            <button onClick={download} className="flex items-center gap-1.5 rounded-lg border border-[var(--color-line)] px-3 py-2 text-[12px] font-bold hover:bg-white/60"><Icon name="Download" size={13} /> Télécharger</button>
+            {canDownload && <>
+              <button onClick={() => download("pdf")} disabled={busy} className="flex items-center gap-1.5 rounded-lg border border-[var(--color-line)] px-3 py-2 text-[12px] font-bold hover:bg-white/60 disabled:opacity-50"><Icon name={busy ? "Loader" : "FileText"} size={13} className={busy ? "animate-spin" : ""} /> PDF</button>
+              <button onClick={() => download("zip")} disabled={busy} className="flex items-center gap-1.5 rounded-lg border border-[var(--color-line)] px-3 py-2 text-[12px] font-bold hover:bg-white/60 disabled:opacity-50"><Icon name="Download" size={13} /> Images</button>
+            </>}
             <button onClick={() => setSched(true)} className="flex items-center gap-1.5 rounded-lg bg-[var(--color-ink)] px-3 py-2 text-[12px] font-bold text-white"><Icon name="Calendar" size={13} /> {post.status === "scheduled" ? "Reprogrammer" : "Programmer"}</button>
           </div>
         </div>
@@ -561,7 +535,7 @@ function LinkedInPreview({ res, tmpl, images }: { res: Result; tmpl: Tmpl; image
       )}
       {isCarousel && (
         <div className="mx-3 mb-2 overflow-hidden rounded-lg border border-[#e0e0e0]">
-          <Carousel slides={res.slides!} tmpl={tmpl} rounded={false} images={images} ratio="1/1" />
+          <Carousel slides={res.slides!} tmpl={tmpl} rounded={false} images={images} ratio={hasImg ? "4/5" : "1/1"} />
         </div>
       )}
       {isImage && (

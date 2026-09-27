@@ -1,72 +1,73 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import puppeteer from "puppeteer";
-import { getPost } from "@/lib/content/store";
+import sharp from "sharp";
+import { getPost, updatePost } from "@/lib/content/store";
+import { composeDirection, directionOf, slidesOf } from "@/lib/content/directions";
+import { zipStore } from "@/lib/zip";
 
 export const runtime = "nodejs";
-export const maxDuration = 90;
+export const maxDuration = 300;
 
-const TMPL: Record<string, { bg: string; fg: string; accent: string; sub: string; font: string }> = {
-  Minimal: { bg: "#ffffff", fg: "#141414", accent: "#6D28D9", sub: "#6b7280", font: "'Archivo',sans-serif" },
-  Bold: { bg: "#141414", fg: "#ffffff", accent: "#6D28D9", sub: "#a7abb6", font: "'Archivo',sans-serif" },
-  Gradient: { bg: "linear-gradient(135deg,#6D28D9,#5B4DEE)", fg: "#ffffff", accent: "#ffffff", sub: "rgba(255,255,255,.85)", font: "'Archivo',sans-serif" },
-  "Éditorial": { bg: "#FAF6F4", fg: "#1a1a1a", accent: "#5B4DEE", sub: "#7a7a7a", font: "Georgia,serif" },
-};
-const esc = (s: string) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-function slideHTML(t: { bg: string; fg: string; accent: string; sub: string; font: string }, title: string, body: string, i: number, total: number) {
-  const cover = i === 0, last = i === total - 1;
-  return `<div class="slide" style="background:${t.bg};color:${t.fg};font-family:${t.font}">
-    <div class="row"><span class="brand" style="color:${t.accent}">Saturn Studio</span>${!cover ? `<span class="pg" style="color:${t.sub}">${i + 1}/${total}</span>` : ""}</div>
-    <div class="mid">
-      ${!cover && !last ? `<span class="num" style="background:${t.accent};color:${t.bg.includes("gradient") ? "#6D28D9" : t.bg}">${i}</span>` : ""}
-      <div class="title" style="font-size:${cover ? 64 : 46}px">${esc(title)}</div>
-      ${body ? `<div class="body" style="color:${t.sub};font-size:${cover ? 30 : 28}px">${esc(body)}</div>` : ""}
-    </div>
-    <div class="row foot" style="color:${t.sub}"><span>@saturn.agency</span><span style="color:${t.accent}">${cover ? "Swipe →" : last ? "↗ Contactez-nous" : "→"}</span></div>
-  </div>`;
+/** URL publique d'une image rendue (« /content-out/x.png?v=… ») → chemin disque, sans sortir de public/. */
+function fileOf(url: string): string {
+  const abs = path.resolve(PUBLIC_DIR, "." + decodeURIComponent(url.split("?")[0]));
+  if (!abs.startsWith(PUBLIC_DIR + path.sep)) throw new Error("Chemin d'image invalide.");
+  return abs;
 }
 
+/**
+ * POST /api/content/download { id, format?: "pdf" | "zip" }
+ * Renvoie les VRAIES images du post (celles de l'aperçu) : un PDF d'une page par slide
+ * (format carrousel LinkedIn) ou un ZIP des PNG. Si le post n'a pas encore d'images,
+ * elles sont rendues maintenant dans sa direction Saturn.
+ */
 export async function POST(req: Request) {
   try {
-    const { id } = (await req.json()) as { id?: string };
+    const { id, format = "pdf" } = (await req.json()) as { id?: string; format?: "pdf" | "zip" };
     if (!id) return Response.json({ error: "id requis" }, { status: 400 });
     const post = await getPost(id);
     if (!post) return Response.json({ error: "Post introuvable" }, { status: 404 });
-    const t = TMPL[post.template ?? "Minimal"] ?? TMPL.Minimal;
-    const r = post.result;
 
-    let slides: { title: string; body: string }[] = [];
-    if (r.slides?.length) slides = r.slides;
-    else if (r.headline) slides = [{ title: r.headline, body: "" }];
-    else if (r.tweets?.length) slides = r.tweets.map((x, i) => ({ title: i === 0 ? x : "", body: i === 0 ? "" : x }));
-    else if (r.body) slides = [{ title: "", body: r.body }];
-    const total = slides.length || 1;
+    let images = (post.visuals?.images ?? []).filter((x): x is string => !!x);
+    if (!images.length) {
+      const slides = slidesOf(post.result);
+      if (!slides.length) return Response.json({ error: "Ce post est un texte seul : il n'a pas d'images à télécharger." }, { status: 400 });
+      images = await composeDirection(id, post.platform, slides, directionOf(post.refId) ?? "vanguard");
+      await updatePost(id, { visuals: { jobs: [], images, done: true } });
+    }
+    const pngs = await Promise.all(images.map((u) => fs.readFile(fileOf(u))));
+    const base = `saturn-${post.platform}-${post.id}`;
 
+    if (format === "zip") {
+      const zip = zipStore(pngs.map((data, i) => ({ name: `${base}-${String(i + 1).padStart(2, "0")}.png`, data })));
+      return new Response(new Uint8Array(zip), {
+        headers: { "Content-Type": "application/zip", "Content-Disposition": `attachment; filename="${base}.zip"` },
+      });
+    }
+
+    const { width = 1080, height = 1350 } = await sharp(pngs[0]).metadata();
+    const pages = pngs
+      .map((b) => `<div class="p"><img src="data:image/png;base64,${b.toString("base64")}"></div>`)
+      .join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"><style>
-    @page { size:1080px 1080px; margin:0; }
-    *{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .slide{width:1080px;height:1080px;padding:90px;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always}
-    .row{display:flex;justify-content:space-between;align-items:center}
-    .brand{font-size:26px;font-weight:800;letter-spacing:.12em}.pg{font-size:24px;font-weight:700}
-    .mid{flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px 0}
-    .num{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;margin-bottom:28px}
-    .title{font-weight:800;line-height:1.05;letter-spacing:-.01em}
-    .body{margin-top:26px;line-height:1.35}
-    .foot{font-size:24px;font-weight:700}
-    </style></head><body>${slides.map((s, i) => slideHTML(t, s.title, s.body, i, total)).join("")}</body></html>`;
-
+      @page{size:${width}px ${height}px;margin:0}*{margin:0;padding:0}
+      .p{width:${width}px;height:${height}px;page-break-after:always;overflow:hidden}.p:last-child{page-break-after:auto}
+      .p img{display:block;width:100%;height:100%;object-fit:cover}
+    </style></head><body>${pages}</body></html>`;
     const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"] });
     try {
       const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 30000 });
-      await new Promise((r) => setTimeout(r, 500));
-      const pdf = await page.pdf({ width: "1080px", height: "1080px", printBackground: true, pageRanges: "" });
+      await page.setContent(html, { waitUntil: "load", timeout: 60000 });
+      const pdf = await page.pdf({ width: `${width}px`, height: `${height}px`, printBackground: true });
       return new Response(new Uint8Array(pdf), {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="saturn-${post.platform}-${post.id}.pdf"`,
-        },
+        headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${base}.pdf"` },
       });
-    } finally { await browser.close(); }
+    } finally {
+      await browser.close();
+    }
   } catch (err) {
     return Response.json({ error: err instanceof Error ? err.message : "Erreur" }, { status: 500 });
   }

@@ -1,75 +1,33 @@
 import { getPost, updatePost } from "@/lib/content/store";
-import { createSlideJobs, pollSlideJobs } from "@/lib/content/visual";
-import { composeType1 } from "@/lib/content/hybrid";
-import { isHiggsfieldConfigured } from "@/lib/integrations/higgsfield";
-import { stampRemoteImage } from "@/lib/brand/logo";
-import { composeDirection, directionOf } from "@/lib/content/directions";
+import { composeDirection, directionOf, slidesOf } from "@/lib/content/directions";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-/**
- * POST /api/content/visuals { id }
- * Type 1 → rendu HYBRIDE (fond IA + overlay exact). Sinon → 1 job Higgsfield par slide.
- */
+/** POST /api/content/visuals { id } — rend les slides du post dans sa direction Saturn. */
 export async function POST(req: Request) {
   try {
     const { id } = (await req.json()) as { id?: string };
     if (!id) return Response.json({ error: "id requis" }, { status: 400 });
     const post = await getPost(id);
     if (!post) return Response.json({ error: "Post introuvable" }, { status: 404 });
-
-    // Directions Saturn (Vanguard / Orbit / Signal) : rendu HTML avec Orbi et le logo intégrés.
-    const direction = directionOf(post.refId);
-    if (direction) {
-      const slides = post.result.slides ?? (post.result.headline ? [{ title: post.result.headline, body: "" }] : []);
-      if (!slides.length) return Response.json({ error: "Ce post n'a pas de slides à visualiser." }, { status: 400 });
-      const images = await composeDirection(id, post.platform, slides, direction);
-      await updatePost(id, { visuals: { jobs: [], images, done: true } });
-      return Response.json({ success: true, count: images.length, direction });
-    }
-
-    if (!isHiggsfieldConfigured()) return Response.json({ error: "Higgsfield non configuré : HIGGSFIELD_API_KEY absente sur le serveur." }, { status: 412 });
-
-    // Type 1 : rendu hybride (déterministe, logos/texte exacts)
-    if (post.t1?.slides?.length) {
-      const images = await composeType1(id, post.t1, post.refId);
-      await updatePost(id, { visuals: { jobs: [], images, done: true } });
-      return Response.json({ success: true, count: images.length, hybrid: true });
-    }
-    const slides = post.result.slides ?? (post.result.headline ? [{ title: post.result.headline, body: "" }] : []);
+    const slides = slidesOf(post.result);
     if (!slides.length) return Response.json({ error: "Ce post n'a pas de slides à visualiser." }, { status: 400 });
-    if (!post.refId) return Response.json({ error: "Aucun template de référence sélectionné." }, { status: 400 });
-
-    const jobs = await createSlideJobs(post.platform, slides, post.refId, post.idea);
-    await updatePost(id, { visuals: { jobs, images: new Array(slides.length).fill(null), done: false } });
-    return Response.json({ success: true, count: jobs.length });
+    // Anciens posts (modèles supprimés) : rendus dans la direction par défaut.
+    const direction = directionOf(post.refId) ?? "vanguard";
+    const images = await composeDirection(id, post.platform, slides, direction);
+    await updatePost(id, { visuals: { jobs: [], images, done: true } });
+    return Response.json({ success: true, count: images.length, direction });
   } catch (err) {
     return Response.json({ error: err instanceof Error ? err.message : "Erreur" }, { status: 500 });
   }
 }
 
-/** GET /api/content/visuals?id=... — poll l'état des jobs, met à jour les images. */
+/** GET /api/content/visuals?id=... — images rendues du post. */
 export async function GET(req: Request) {
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return Response.json({ error: "id requis" }, { status: 400 });
   const post = await getPost(id);
   if (!post?.visuals) return Response.json({ error: "Aucune génération en cours." }, { status: 404 });
-  // hybride Type 1 (pas de jobs, images déjà rendues)
-  if (!post.visuals.jobs?.length) return Response.json({ images: post.visuals.images, done: post.visuals.done });
-  try {
-    const results = await pollSlideJobs(post.visuals.jobs);
-    const images = [...post.visuals.images];
-    for (const r of results) {
-      // Nouvelle image terminée : on y appose le logo et on sert la copie de la plateforme.
-      if (r.status === "completed" && r.imageUrl && !images[r.index]) {
-        images[r.index] = await stampRemoteImage(r.imageUrl, "generated-images", `post-${id}-${r.index + 1}-${Date.now()}`);
-      }
-    }
-    const done = images.every((x) => x) || results.every((r) => r.status === "completed" || r.status === "failed");
-    await updatePost(id, { visuals: { ...post.visuals, images, done } });
-    return Response.json({ images, done, statuses: results.map((r) => r.status) });
-  } catch (err) {
-    return Response.json({ images: post.visuals.images, done: false, note: err instanceof Error ? err.message : "poll" });
-  }
+  return Response.json({ images: post.visuals.images, done: post.visuals.done });
 }

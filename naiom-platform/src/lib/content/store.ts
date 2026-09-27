@@ -7,7 +7,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { REPO_ROOT } from "@/lib/paths";
 import type { ContentResult, Platform, Format } from "./generate";
-import type { T1Content } from "./type1";
 
 const DIR = path.join(REPO_ROOT, "content");
 const STORE = path.join(DIR, "store.json");
@@ -19,9 +18,7 @@ export interface ContentPost {
   format: Format;
   idea: string;
   template?: string; // nom DA (aperçu texte)
-  refId?: string; // template de référence choisi (li-3, ig-type2…)
-  tools?: string[]; // logos/outils du sujet (champ dédié)
-  t1?: T1Content; // contenu structuré pour rendu hybride Type 1
+  refId?: string; // direction Saturn choisie (da-vanguard, da-signal…)
   result: ContentResult;
   visuals?: { jobs: SlideJob[]; images: (string | null)[]; done: boolean };
   status: "draft" | "scheduled" | "posted";

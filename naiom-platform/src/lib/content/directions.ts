@@ -1,5 +1,5 @@
 /**
- * Les 5 directions artistiques Saturn (Vanguard · Orbit Story · Signal · Grille · Atelier), rendues en HTML → PNG.
+ * Les 10 directions artistiques Saturn, rendues en HTML → PNG.
  * Texte rendu par le navigateur (100 % fidèle, aucune faute d'IA) ; la mascotte Orbi
  * (poses générées sur Higgsfield puis détourées, cf. scripts/build_mascot.mjs) et le logo
  * font partie de la composition — jamais collés après coup.
@@ -11,8 +11,16 @@ import puppeteer from "puppeteer";
 import { logoDataUriSync } from "../brand/logo";
 import type { Platform, Slide } from "./generate";
 
-export type Direction = "vanguard" | "orbit" | "signal" | "grille" | "atelier";
-export const DIRECTIONS: Direction[] = ["vanguard", "orbit", "signal", "grille", "atelier"];
+export type Direction =
+  | "vanguard" | "orbit" | "signal" | "grille" | "atelier"
+  | "cinema" | "brasier" | "studio" | "plein-air" | "conversation";
+export const DIRECTIONS: Direction[] = ["vanguard", "orbit", "signal", "grille", "atelier", "cinema", "brasier", "studio", "plein-air", "conversation"];
+
+/** Slides à mettre en image : carrousel, ou accroche seule d'un post visuel. */
+export function slidesOf(r: { slides?: Slide[]; headline?: string }): Slide[] {
+  if (r.slides?.length) return r.slides;
+  return r.headline ? [{ title: r.headline, body: "" }] : [];
+}
 
 export function directionOf(refId?: string | null): Direction | null {
   const d = refId?.startsWith("da-") ? refId.slice(3) : null;
@@ -68,7 +76,7 @@ function fit(text: string, width: number, lines: number, em: number, max: number
 interface Ctx { i: number; total: number; W: number; H: number; single: boolean }
 const role = (c: Ctx) => (c.single || c.i === 0 ? "cover" : c.i === c.total - 1 ? "end" : "content");
 
-const FONTS = `<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,800;1,900&family=Instrument+Serif:ital@0;1&family=Archivo:wght@500;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">`;
+const FONTS = `<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,800;1,800;1,900&family=Instrument+Serif:ital@0;1&family=Archivo:wght@500;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">`;
 /**
  * Ajustement anti-chevauchement, exécuté dans la page une fois les polices chargées.
  * Les textes réels sont de longueur imprévisible : on mesure puis, dans l'ordre,
@@ -85,19 +93,24 @@ window.__fit = function () {
   var ms = [].slice.call(document.querySelectorAll('[data-m]'));
   function hit(a, b) { return a.left < b.right + GAP && a.right + GAP > b.left && a.top < b.bottom + GAP && a.bottom + GAP > b.top; }
   function parts(m) { return (m.tagName === 'IMG' || m.hasAttribute('data-self')) ? [m] : [].slice.call(m.querySelectorAll('[data-core]')); }
-  function overlaps(m) { return parts(m).some(function (p) { var r = p.getBoundingClientRect(); return txt.some(function (t) { return hit(r, t.getBoundingClientRect()); }); }); }
+  // data-soft="0.3" : la mascotte peut recouvrir les 30 % du bas de ce texte (effet de profondeur voulu).
+  function box(t) { var b = t.getBoundingClientRect(), f = +(t.getAttribute('data-soft') || 0); return { left: b.left, right: b.right, top: b.top, bottom: b.bottom - b.height * f + (f ? GAP : 0) }; }
+  function overlaps(m) { return parts(m).some(function (p) { var r = p.getBoundingClientRect(); return txt.some(function (t) { return hit(r, box(t)); }); }); }
   function shrink(els, f) { els.forEach(function (e) { e.style.fontSize = (parseFloat(getComputedStyle(e).fontSize) * f) + 'px'; }); }
   function textEls() { var out = []; txt.forEach(function (t) { out = out.concat([].slice.call(t.querySelectorAll('h1,h2,p,.it,.sub,.script,.kick'))); }); return out; }
   txt.forEach(function (t) { [].slice.call(t.querySelectorAll('h1,h2')).forEach(function (h) {
     var k = 0; while (h.scrollWidth > h.clientWidth + 2 && k++ < 30) shrink([h].concat([].slice.call(h.querySelectorAll('.it'))), 0.95);
   }); });
+  [].slice.call(document.querySelectorAll('[data-fitbox]')).forEach(function (b) {
+    var n = 0; while (b.scrollHeight > b.clientHeight + 2 && n++ < 24) shrink([].slice.call(b.querySelectorAll('h1,h2,p')), 0.95);
+  });
   var k, i;
   for (i = 0; i < txt.length; i++) for (var j = i + 1; j < txt.length; j++) {
     k = 0; while (hit(txt[i].getBoundingClientRect(), txt[j].getBoundingClientRect()) && k++ < 14) shrink(textEls(), 0.95);
   }
   ms.forEach(function (m) {
     m.style.transformOrigin = 'bottom center';
-    if (m.dataset.above) { var a = document.querySelector(m.dataset.above); if (a) { m.style.top = 'auto'; m.style.bottom = (H - a.getBoundingClientRect().top + 18) + 'px'; } }
+    if (m.dataset.above) { var a = document.querySelector(m.dataset.above); if (a) { m.style.top = 'auto'; m.style.bottom = (H - a.getBoundingClientRect().top + GAP + 6) + 'px'; } }
     if (m.dataset.minbottom !== undefined) {
       var min = +m.dataset.minbottom; k = 0;
       while (overlaps(m) && k++ < 200) { var b = parseFloat(getComputedStyle(m).bottom); if (b <= min) break; m.style.bottom = Math.max(min, b - 8) + 'px'; }
@@ -365,7 +378,231 @@ function atelier(s: Slide, c: Ctx): string {
   return doc(css, `${grain}${floats}${inner}`, c);
 }
 
-const RENDER: Record<Direction, (s: Slide, c: Ctx) => string> = { vanguard, orbit: orbitStory, signal, grille, atelier };
+const GRAIN = (c: Ctx, o = 0.3, f = 0.85, blend = "multiply") =>
+  `<svg style="position:absolute;inset:0;opacity:${o};mix-blend-mode:${blend};pointer-events:none" width="${c.W}" height="${c.H}"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency="${f}" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#g)"/></svg>`;
+
+/** Répartit le titre autour d'un mot-vedette (le plus long) sans casser l'ordre de lecture. */
+function aroundKeyword(t: string): { before: string; key: string; after: string } {
+  const w = glue(t).split(/ +/);
+  let k = 0;
+  w.forEach((x, i) => { if (x.replace(/[^\p{L}\p{N}/]/gu, "").length > w[k].replace(/[^\p{L}\p{N}/]/gu, "").length) k = i; });
+  return { before: w.slice(0, k).join(" "), key: w[k] ?? "", after: w.slice(k + 1).join(" ") };
+}
+
+/* ======================= 6. CINÉMA — scène chaude, mot géant derrière Orbi ======================= */
+function cinema(s: Slide, c: Ctx): string {
+  const r = role(c);
+  const logo = logoDataUriSync("black");
+  const [head, tail] = splitTitle(s.title);
+  const body = esc(s.body ?? "");
+  const pose: Pose = r === "cover" ? "sit" : r === "end" ? "hold-ring" : (["wave", "think", "point", "sit"] as Pose[])[(c.i - 1) % 4];
+  const giant = fit(tail, c.W - 100, 2, 0.46, 300, 90);
+  const stepsTop = Math.round(c.H * 0.64);
+  // Marches de pierre : dalles superposées, chacune avec sa face supérieure plus claire.
+  const steps = [0, 1, 2, 3].map((k) => {
+    const top = stepsTop + k * Math.round(c.H * 0.085);
+    const inset = Math.max(-40, 150 - k * 70);
+    return `<div style="position:absolute;left:${inset}px;right:${inset - 60}px;top:${top}px;height:${Math.round(c.H * 0.1)}px;border-radius:10px;background:linear-gradient(180deg,#C9A07A 0 16%,#8C5F3F 17%,#6B4430 100%);box-shadow:0 18px 30px rgba(60,30,10,.35)"></div>`;
+  }).join("");
+  const petals = [[0.08, 0.2, 38, -30, 0], [0.86, 0.16, 26, 40, 0], [0.9, 0.46, 34, 10, 0], [0.04, 0.58, 60, -12, 6], [0.72, 0.9, 70, 25, 7], [0.2, 0.93, 30, 60, 3]]
+    .map(([x, y, sz, rot, blur]) => `<span style="position:absolute;left:${Math.round(c.W * x)}px;top:${Math.round(c.H * y)}px;width:${sz}px;height:${Math.round(sz * 0.62)}px;border-radius:60% 40% 60% 40%;background:radial-gradient(circle at 40% 40%,#E0473A,#8E1B17);transform:rotate(${rot}deg);filter:blur(${blur}px);opacity:.92"></span>`).join("");
+  const rocks = [[0.8, 0.08, 46, 20, 0], [0.12, 0.44, 22, 45, 0], [0.62, 0.3, 16, 10, 0], [0.94, 0.7, 30, 30, 4]]
+    .map(([x, y, sz, rot, blur]) => `<span style="position:absolute;left:${Math.round(c.W * x)}px;top:${Math.round(c.H * y)}px;width:${sz}px;height:${sz}px;background:linear-gradient(135deg,#B0876A,#5E3E2B);border-radius:4px;transform:rotate(${rot}deg);filter:blur(${blur}px)"></span>`).join("");
+  const css = `.s{background:radial-gradient(70% 45% at 50% 30%,#FFF6E6 0%,rgba(255,246,230,0) 70%),linear-gradient(180deg,#EADFCB 0%,#DCC6A4 50%,#C49A70 100%);color:#1E1A17;font-family:Inter,sans-serif}
+  .top{position:absolute;top:50px;left:56px;right:56px;display:flex;justify-content:space-between;align-items:center;font:600 20px/1 Inter}
+  .pill{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:12px;background:rgba(255,255,255,.55);backdrop-filter:blur(8px)}
+  .pill i{width:18px;height:22px;background:#E0473A;clip-path:polygon(0 0,100% 0,100% 100%,50% 75%,0 100%)}
+  .lg{height:32px;width:auto}
+  .kick{font:500 38px/1.15 Archivo,sans-serif;text-transform:uppercase;letter-spacing:-.01em;text-align:center;color:#2A2420}
+  .kick b{font-weight:800}
+  .giant{font-family:'Barlow Condensed',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:-.02em;line-height:.84;text-align:center;color:#1E1A17;text-shadow:0 10px 30px rgba(80,40,10,.18)}
+  .prompt{position:absolute;left:70px;right:70px;bottom:${Math.round(c.H * 0.05)}px;border-radius:26px;padding:24px 26px;background:rgba(255,255,255,.34);border:1px solid rgba(255,255,255,.6);backdrop-filter:blur(14px);box-shadow:0 20px 40px rgba(60,30,10,.2)}
+  .prompt p{font-size:28px;line-height:1.38;color:#2A2420}
+  .bar{display:flex;justify-content:space-between;align-items:center;margin-top:16px;font:600 20px/1 Inter;color:#5A4A3E}
+  .chip{padding:8px 14px;border-radius:10px;background:rgba(255,255,255,.6)}
+  .send{width:52px;height:52px;border-radius:50%;background:#1E1A17;color:#fff;display:flex;align-items:center;justify-content:center;font:700 24px/1 Inter}
+  .part{position:absolute;right:66px;top:${Math.round(c.H * 0.56)}px;font:700 50px/1 Caveat,cursive;color:#FFF7EC;text-shadow:0 4px 18px rgba(80,40,10,.5);transform:rotate(-6deg)}
+  .orbi{position:absolute;filter:drop-shadow(0 30px 30px rgba(60,30,10,.45))}`;
+  const partText = r === "cover" ? "part #1" : r === "end" ? "à suivre" : `part #${c.i + 1}`;
+  const inner = `${GRAIN(c, 0.35)}${steps}${rocks}
+    <div class="top"><span class="pill"><i></i>À enregistrer</span><img src="${logo}" class="lg"><span>${c.single ? "" : `${pad(c.i + 1)}/${pad(c.total)}`}</span></div>
+    <div data-txt style="position:absolute;left:70px;right:70px;top:${Math.round(c.H * 0.12)}px"><div class="kick">${head ? esc(head) : "<b>Saturn Studio</b>"}</div></div>
+    <div data-txt data-soft="0.3" class="giant" style="position:absolute;left:40px;right:40px;top:${Math.round(c.H * 0.2)}px;font-size:${giant}px">${esc(tail)}</div>
+    <img data-m data-above=".prompt" class="orbi" src="${orbi(pose)}" style="height:${Math.round(c.H * 0.38)}px;left:${r === "content" && c.i % 2 ? Math.round(c.W * 0.52) : Math.round(c.W * 0.14)}px;bottom:0">
+    <div class="part">${partText} ›</div>
+    ${petals}
+    <div data-txt class="prompt"><p>${body || "Swipe pour la suite."}</p><div class="bar"><span class="chip">Orbi · Saturn Studio</span><span class="send">→</span></div></div>`;
+  return doc(css, inner, c);
+}
+
+/* ======================= 7. BRASIER — dégradé feu, mot géant, Orbi en mouvement ======================= */
+function brasier(s: Slide, c: Ctx): string {
+  const r = role(c);
+  const logoB = logoDataUriSync("black");
+  const { before, key, after } = aroundKeyword(s.title);
+  const aw = after.split(/ +/).filter(Boolean);
+  const afterL = aw.slice(0, Math.ceil(aw.length / 2)).join(" "), afterR = aw.slice(Math.ceil(aw.length / 2)).join(" ");
+  const body = esc(s.body ?? "");
+  const giant = fit(key.toLowerCase(), c.W - 100, 1, 0.56, 330, 110);
+  const pose: Pose = r === "end" ? "celebrate" : (["fly", "wave", "point", "fly"] as Pose[])[c.i % 4];
+  const css = `.s{background:linear-gradient(180deg,#F8B25A 0%,#F2702C 30%,#DB2B1F 62%,#4C1D95 100%);color:#0B0B0B;font-family:Inter,sans-serif}
+  .streak{position:absolute;inset:0;background:repeating-linear-gradient(180deg,rgba(255,255,255,.07) 0 3px,transparent 3px 22px);filter:blur(3px)}
+  .meta{position:absolute;top:54px;left:60px;right:60px;display:flex;justify-content:space-between;font:800 20px/1 Archivo,sans-serif;letter-spacing:.04em;text-transform:uppercase}
+  .small{font:700 44px/1.05 Archivo,sans-serif;letter-spacing:-.03em}
+  .giant{font-family:Archivo,sans-serif;font-weight:900;letter-spacing:-.07em;line-height:.8;text-transform:lowercase;white-space:nowrap}
+  .body{font:700 30px/1.3 Archivo,sans-serif;text-transform:uppercase;color:#fff;text-align:center;letter-spacing:.01em}
+  .body b{color:#FDBA74}
+  .app{position:absolute;right:74px;bottom:${Math.round(c.H * 0.27)}px;width:170px;height:170px;border-radius:40px;background:#fff;box-shadow:0 24px 40px rgba(0,0,0,.3);transform:rotate(8deg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+  .app img{width:120px;height:auto}
+  .app span{font:700 18px/1 Inter;color:#444}
+  .orbi{position:absolute;filter:blur(2px) drop-shadow(0 30px 30px rgba(0,0,0,.4))}
+  .ghost{position:absolute;filter:blur(16px);opacity:.5}`;
+  const ray = Array.from({ length: 10 }, (_, k) => `<rect x="-11" y="-150" width="22" height="130" rx="11" transform="rotate(${k * 36})"/>`).join("");
+  const star = `<svg style="position:absolute;left:-70px;bottom:${Math.round(c.H * 0.14)}px" width="320" height="320" viewBox="-160 -160 320 320"><g fill="#0B0B0B">${ray}</g></svg>`;
+  const mh = Math.round(c.H * 0.46);
+  const mx = Math.round(c.W / 2 - mh * 0.36);
+  const inner = `<div class="streak"></div>${GRAIN(c, 0.25, 0.9, "overlay")}
+    <div class="meta"><span>${new Date().toLocaleDateString("fr-FR", { month: "long" })} ©${new Date().getFullYear()}</span><span>Saturn Studio</span><span>${c.single ? "Agence IA" : `${pad(c.i + 1)} / ${pad(c.total)}`}</span></div>
+    <div data-txt style="position:absolute;left:60px;right:60px;top:${Math.round(c.H * 0.13)}px">
+      ${before ? `<div class="small">${esc(before)}</div>` : ""}
+      <h1 class="giant" style="font-size:${giant}px;margin-top:6px">${esc(key.toLowerCase())}</h1>
+      ${aw.length ? `<div class="small" style="display:flex;justify-content:space-between;gap:30px;margin-top:10px"><span>${esc(afterL)}</span><span style="text-align:right">${esc(afterR)}</span></div>` : ""}
+    </div>
+    ${star}
+    <div data-m data-above=".body" style="position:absolute;left:${mx}px;bottom:0;height:${mh}px;width:${Math.round(mh * 0.8)}px">
+      <img class="ghost" src="${orbi(pose)}" style="height:100%;left:0;bottom:0;transform:translateX(-70px)">
+      <img data-core class="orbi" src="${orbi(pose)}" style="height:100%;left:0;bottom:0">
+    </div>
+    <div data-txt class="app"><img src="${logoB}"><span>Saturn</span></div>
+    <div data-txt class="body" style="position:absolute;left:80px;right:80px;bottom:${Math.round(c.H * 0.06)}px">${body || "<b>Suis Saturn Studio</b> pour la suite."}</div>`;
+  return doc(css, inner, c);
+}
+
+/* ======================= 8. STUDIO — Orbi en produit, fond blanc, reflet ======================= */
+function studio(s: Slide, c: Ctx): string {
+  const r = role(c);
+  const logo = logoDataUriSync("black");
+  const [head, tail] = splitTitle(s.title);
+  const body = esc(s.body ?? "");
+  const pose: Pose = r === "cover" ? "base" : r === "end" ? "hold-ring" : (["think", "point", "wave", "sit"] as Pose[])[(c.i - 1) % 4];
+  const size = fit(`${head} ${tail}`, c.W - 160, 3, 0.55, 104, 56);
+  const mh = Math.round(c.H * (r === "content" ? 0.36 : 0.42));
+  const floorY = Math.round(c.H * 0.8);
+  const css = `.s{background:radial-gradient(90% 60% at 50% 38%,#FFFFFF 0%,#F1F1F2 55%,#E3E3E6 100%);color:#111;font-family:Inter,sans-serif}
+  .floor{position:absolute;left:0;right:0;top:${floorY}px;bottom:0;background:linear-gradient(180deg,#E6E6EA,#F4F4F6)}
+  .h{font-family:Archivo,sans-serif;font-weight:800;letter-spacing:-.035em;line-height:1.02;text-align:center}
+  .h .a{display:block;color:${VIOLET}}
+  .p{font-size:30px;line-height:1.42;color:#55555C;text-align:center}
+  .spark{position:absolute;right:70px;bottom:70px;width:34px;height:34px;opacity:.5}
+  .lg{position:absolute;left:64px;bottom:64px;height:30px;width:auto}
+  .n{position:absolute;right:120px;bottom:70px;font:600 20px/1 'JetBrains Mono',monospace;color:#888}
+  .glow{position:absolute;left:50%;width:${Math.round(mh * 0.9)}px;height:${Math.round(mh * 0.9)}px;transform:translate(-50%,0);border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.22),transparent 65%)}
+  .shadow{position:absolute;left:50%;top:${floorY - 18}px;width:${Math.round(mh * 0.7)}px;height:36px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.28),transparent 70%)}`;
+  // Orbi posé sur le sol + reflet inversé qui s'estompe.
+  const product = `<div data-m data-self style="position:absolute;left:${Math.round(c.W / 2 - mh * 0.4)}px;bottom:${c.H - floorY}px;height:${mh}px;width:${Math.round(mh * 0.8)}px">
+      <img src="${orbi(pose)}" style="position:absolute;height:100%;left:50%;transform:translateX(-50%);bottom:0;filter:drop-shadow(0 10px 18px rgba(0,0,0,.18))">
+      <img src="${orbi(pose)}" style="position:absolute;height:100%;left:50%;transform:translateX(-50%) scaleY(-1);top:100%;opacity:.22;-webkit-mask-image:linear-gradient(0deg,rgba(0,0,0,.9),transparent 45%);mask-image:linear-gradient(0deg,rgba(0,0,0,.9),transparent 45%)">
+    </div>`;
+  const inner = `<div class="floor"></div><div class="shadow"></div>
+    <div class="glow" style="top:${floorY - mh}px"></div>
+    <div data-txt style="position:absolute;left:80px;right:80px;top:${Math.round(c.H * 0.1)}px;display:flex;flex-direction:column;gap:26px;align-items:center">
+      <h1 class="h" style="font-size:${size}px">${head ? `<span class="a">${esc(head)}</span>${esc(tail)}` : esc(tail)}</h1>
+      ${body ? `<p class="p">${body}</p>` : ""}</div>
+    ${product}
+    <img data-txt class="lg" src="${logo}">
+    <span class="n">${c.single ? "" : `${pad(c.i + 1)}/${pad(c.total)}`}</span>
+    <svg class="spark" viewBox="0 0 24 24"><path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#9A9AA2"/></svg>`;
+  return doc(css, inner, c);
+}
+
+/* ======================= 9. PLEIN AIR — paysage, serif italique géant ======================= */
+function pleinAir(s: Slide, c: Ctx): string {
+  const r = role(c);
+  const logoW = logoDataUriSync("white");
+  const words = glue(s.title).split(/ +/);
+  const key = words.length > 1 ? words[words.length - 1] : words[0];
+  const lead = words.length > 1 ? words.slice(0, -1).join(" ") : "";
+  const body = esc(s.body ?? "");
+  const horizon = Math.round(c.H * 0.4);
+  const giant = fit(key, c.W - 120, 1, 0.42, 280, 100);
+  const pose: Pose = r === "end" ? "wave" : r === "cover" ? "sit" : (["think", "sit", "point"] as Pose[])[(c.i - 1) % 3];
+  const css = `.s{background:linear-gradient(180deg,#E9E7DC 0%,#D8DDD0 ${Math.round((horizon / c.H) * 100) - 4}%,#9BB07A ${Math.round((horizon / c.H) * 100)}%,#6F8C48 60%,#3F5A2A 100%);color:#fff;font-family:Inter,sans-serif}
+  .fog{position:absolute;left:0;right:0;top:${horizon - 60}px;height:140px;background:linear-gradient(180deg,transparent,rgba(233,231,220,.75) 45%,transparent)}
+  .grass{position:absolute;left:0;right:0;top:${horizon}px;bottom:0;background:repeating-linear-gradient(95deg,rgba(40,70,20,.18) 0 2px,transparent 2px 7px),repeating-linear-gradient(85deg,rgba(210,230,160,.12) 0 1px,transparent 1px 9px)}
+  .front{position:absolute;left:-20px;right:-20px;bottom:-10px;height:${Math.round(c.H * 0.12)}px;background:repeating-linear-gradient(92deg,#2F4A1E 0 3px,#4D6E2E 3px 6px,transparent 6px 11px);-webkit-mask-image:linear-gradient(0deg,#000 40%,transparent);mask-image:linear-gradient(0deg,#000 40%,transparent);filter:blur(1px)}
+  .corner{position:absolute;font:500 24px/1 Inter;color:#3B3A34}
+  .cornerb{position:absolute;font:500 24px/1 Inter;color:#F4F6EC}
+  .tile{position:absolute;left:50%;top:${Math.round(c.H * 0.1)}px;transform:translateX(-50%);width:104px;height:104px;border-radius:26px;background:${VIOLET};display:flex;align-items:center;justify-content:center;box-shadow:0 14px 30px rgba(76,29,149,.35)}
+  .tile img{width:84px;height:auto}
+  .lead{font:400 46px/1.15 Inter,sans-serif;color:#2B2A25;text-align:center;letter-spacing:-.01em}
+  .lead b{font-weight:700}
+  .giant{font-family:'Instrument Serif',serif;font-style:italic;line-height:.9;text-align:center;color:#fff;text-shadow:0 8px 40px rgba(20,40,10,.45)}
+  .note{font:500 32px/1.25 Inter;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.45)}
+  .note em{font-weight:800}
+  .orbi{position:absolute;filter:drop-shadow(0 20px 22px rgba(20,40,10,.5))}`;
+  const scribble = `<svg width="240" height="22" viewBox="0 0 240 22" style="display:block;margin-top:6px"><path d="M4 14 C 40 4, 70 20, 110 10 S 190 6, 236 12" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>`;
+  const inner = `<div class="grass"></div><div class="fog"></div>${GRAIN(c, 0.25)}
+    <span class="corner" style="left:56px;top:56px">@saturn.agency</span><span class="corner" style="right:56px;top:56px">${c.single ? "#Stratégie" : `${pad(c.i + 1)}/${pad(c.total)}`}</span>
+    <div class="tile"><img src="${logoW}"></div>
+    <div data-txt style="position:absolute;left:70px;right:70px;top:${Math.round(c.H * 0.2)}px">
+      ${lead ? `<div class="lead">${esc(lead)}</div>` : ""}
+      <h1 class="giant" style="font-size:${giant}px;margin-top:4px">${esc(key)}</h1>
+    </div>
+    <img data-m data-minbottom="${Math.round(c.H * 0.04)}" class="orbi" src="${orbi(pose)}" style="height:${Math.round(c.H * 0.3)}px;left:${Math.round(c.W * (c.i % 2 ? 0.56 : 0.14))}px;bottom:${Math.round(c.H * 0.09)}px">
+    <div class="front"></div>
+    ${body ? `<div data-txt class="note" style="position:absolute;${c.i % 2 ? "left:70px" : "right:70px"};width:${Math.round(c.W * 0.44)}px;bottom:${Math.round(c.H * 0.2)}px">${body}${scribble}</div>` : ""}
+    <span class="cornerb" style="left:56px;bottom:52px">#SaturnStudio</span><span class="cornerb" style="right:56px;bottom:52px">#AstuceIA</span>`;
+  return doc(css, inner, c);
+}
+
+/* ======================= 10. CONVERSATION — la slide devient un échange avec Orbi ======================= */
+function conversation(s: Slide, c: Ctx): string {
+  const r = role(c);
+  const logo = logoDataUriSync("black");
+  const title = esc(glue(s.title));
+  const body = esc(s.body ?? "");
+  const winTop = Math.round(c.H * 0.2);
+  const css = `.s{background:radial-gradient(rgba(76,29,149,.09) 1.6px,transparent 1.6px) 0 0/28px 28px,linear-gradient(180deg,#F1EFF7,#E7E4F0);color:#141414;font-family:Inter,sans-serif}
+  .meta{position:absolute;top:56px;left:64px;right:64px;display:flex;justify-content:space-between;align-items:center;font:500 24px/1 Inter;color:#55525E}
+  .lg{height:34px;width:auto}
+  .head{position:absolute;left:64px;right:64px;top:${Math.round(c.H * 0.1)}px;font:800 30px/1.2 Archivo,sans-serif;letter-spacing:-.01em}
+  .win{position:absolute;left:52px;right:52px;top:${winTop}px;bottom:${Math.round(c.H * 0.1)}px;border-radius:36px;background:#fff;box-shadow:0 40px 80px rgba(40,20,90,.18);display:flex;flex-direction:column;overflow:hidden}
+  .bar{display:flex;align-items:center;gap:12px;padding:22px 28px;border-bottom:1px solid #EEE;font:700 22px/1 Inter}
+  .dot{width:14px;height:14px;border-radius:50%}
+  .on{margin-left:auto;display:flex;align-items:center;gap:8px;font:500 18px/1 Inter;color:#16A34A}.on i{width:10px;height:10px;border-radius:50%;background:#22C55E}
+  .chat{flex:1;display:flex;flex-direction:column;justify-content:center;gap:34px;padding:34px 30px;overflow:hidden}
+  .me{align-self:flex-end;max-width:84%;background:#141414;color:#fff;border-radius:30px 30px 8px 30px;padding:26px 30px}
+  .me h2{font:800 66px/1.06 Archivo,sans-serif;letter-spacing:-.03em}
+  .bot{display:flex;gap:16px;align-items:flex-end;max-width:92%}
+  .av{flex:none;width:64px;height:64px;border-radius:50%;background:#0C0B12 center 12%/150% auto no-repeat;border:3px solid ${VIOLET}}
+  .bub{background:#F2F0F8;border-radius:30px 30px 30px 8px;padding:24px 28px}
+  .bub p{font-size:40px;line-height:1.38;color:#2A2733}
+  .typing{display:flex;gap:8px;padding:22px 26px}.typing i{width:12px;height:12px;border-radius:50%;background:#A78BFA}
+  .chips{display:flex;gap:12px;flex-wrap:wrap;padding:0 30px 18px}
+  .chip{padding:12px 18px;border-radius:999px;border:2px solid #E4E0F0;font:600 20px/1 Inter;color:#4C1D95}
+  .input{display:flex;align-items:center;gap:14px;margin:0 22px 22px;padding:16px 16px 16px 24px;border-radius:22px;background:#F6F5FA;font:500 22px/1 Inter;color:#9A96A8}
+  .send{margin-left:auto;width:56px;height:56px;border-radius:16px;background:${VIOLET};color:#fff;display:flex;align-items:center;justify-content:center;font:700 26px/1 Inter}
+  .orbi{position:absolute;filter:drop-shadow(0 20px 30px rgba(40,20,90,.3))}`;
+  const typing = `<div class="typing"><i></i><i style="opacity:.7"></i><i style="opacity:.4"></i></div>`;
+  const chips = r === "end" ? ["Réserver un appel", "Voir nos agents"] : r === "cover" ? ["Montre-moi", "Swipe →"] : ["Suivant →", "Enregistrer"];
+  const inner = `<div class="meta"><img src="${logo}" class="lg"></div>
+    <div data-txt class="head">${r === "cover" ? "On a posé la question à Orbi." : r === "end" ? "Et maintenant ?" : `Orbi répond · ${pad(c.i)}`}</div>
+    <div class="win">
+      <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span>&nbsp;Orbi — Saturn Studio<span class="on"><i></i>en ligne${c.single ? "" : ` · ${c.i + 1}/${c.total}`}</span></div>
+      <div data-txt data-fitbox class="chat">
+        <div class="me"><h2>${title}</h2></div>
+        <div class="bot"><span class="av" style="background-image:url(${orbi("base")})"></span><div class="bub">${body ? `<p>${body}</p>` : typing}</div></div>
+      </div>
+      <div class="chips">${chips.map((x) => `<span class="chip">${x}</span>`).join("")}</div>
+      <div class="input">Écris à Orbi…<span class="send">↑</span></div>
+    </div>
+    <img class="orbi" src="${orbi(r === "end" ? "celebrate" : "peek")}" style="height:${Math.round(c.H * 0.2)}px;right:30px;top:${winTop - Math.round(c.H * 0.16)}px">`;
+  return doc(css, inner, c);
+}
+
+const RENDER: Record<Direction, (s: Slide, c: Ctx) => string> = {
+  vanguard, orbit: orbitStory, signal, grille, atelier, cinema, brasier, studio, "plein-air": pleinAir, conversation,
+};
 
 export function directionSlideHTML(d: Direction, s: Slide, c: Ctx): string {
   return RENDER[d](s, c);
