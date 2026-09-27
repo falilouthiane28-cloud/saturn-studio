@@ -175,7 +175,10 @@ async function generatePoster(markdown: string, ratio: CarouselRatio, slug?: str
           notes.push(`Visuels ${engine} indisponibles (${e instanceof Error ? e.message.slice(0, 140) : "erreur"}) : motif graphique utilisé.`);
         }
       }
-      const html = renderPosterSlideHTML(slide, { ratio, index: i, total: deck.slides.length, brand: "Saturn Studio", heroDataUri });
+      // Le fond de la slide suit celui du visuel (le modèle ne respecte pas toujours
+      // « fond blanc / fond noir ») : on mesure la luminosité des coins de l'image.
+      const dark = heroDataUri ? await cornersAreDark(page, heroDataUri) : undefined;
+      const html = renderPosterSlideHTML(slide, { ratio, index: i, total: deck.slides.length, brand: "Saturn Studio", heroDataUri, dark });
       await page.setContent(html, { waitUntil: "load", timeout: 30000 });
       await Promise.race([
         page.evaluate(() => (document as Document & { fonts: FontFaceSet }).fonts.ready.then(() => true)),
@@ -190,5 +193,35 @@ async function generatePoster(markdown: string, ratio: CarouselRatio, slug?: str
     return { slides: generated, total: generated.length, title: deck.title, ratio, style: "poster", notes };
   } finally {
     await browser.close();
+  }
+}
+
+/** Luminosité moyenne des 4 coins d'une image (< 50 % → fond sombre). */
+async function cornersAreDark(page: import("puppeteer").Page, dataUri: string): Promise<boolean | undefined> {
+  try {
+    await page.setContent("<html><body></body></html>");
+    return await page.evaluate(async (src: string) => {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const ctx = c.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      const s = Math.max(4, Math.round(c.width * 0.06));
+      let sum = 0;
+      let n = 0;
+      for (const [x, y] of [[0, 0], [c.width - s, 0], [0, c.height - s], [c.width - s, c.height - s]]) {
+        const d = ctx.getImageData(x, y, s, s).data;
+        for (let k = 0; k < d.length; k += 4) {
+          sum += 0.2126 * d[k] + 0.7152 * d[k + 1] + 0.0722 * d[k + 2];
+          n++;
+        }
+      }
+      return sum / n < 128;
+    }, dataUri);
+  } catch {
+    return undefined; // mesure impossible : alternance par défaut
   }
 }

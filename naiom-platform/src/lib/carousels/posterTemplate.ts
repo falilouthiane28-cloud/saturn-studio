@@ -111,10 +111,11 @@ function headlineLines(raw: string): { html: string; len: number }[] {
 
 export function renderPosterSlideHTML(
   slide: PosterSlide,
-  o: { ratio: CarouselRatio; index: number; total: number; brand: string; handle?: string; heroDataUri?: string }
+  o: { ratio: CarouselRatio; index: number; total: number; brand: string; handle?: string; heroDataUri?: string; dark?: boolean }
 ): string {
   const { w, h } = DIM[o.ratio];
-  const dark = o.index % 2 === 0;
+  // Alternance sombre/clair, sauf si le visuel impose son fond (cf. generate.ts).
+  const dark = o.dark ?? o.index % 2 === 0;
   const lines = headlineLines(slide.headline.toUpperCase().replace(/\*\*(.+?)\*\*/g, "**$1**"));
   const longest = Math.max(...lines.map((l) => l.len), 4);
   const fontSize = Math.round(Math.min(o.ratio === "1:1" ? 150 : 176, 960 / (longest * 0.47)));
@@ -160,7 +161,8 @@ body{position:relative;font-family:Inter,sans-serif;
 .kicker{font-family:'JetBrains Mono';font-size:22px;letter-spacing:.2em;text-transform:uppercase;color:${dark ? ACCENT_SOFT : ACCENT};margin-bottom:18px}
 .hero{position:relative;width:${Math.round(w * 0.78)}px;flex:1 1 auto;min-height:${Math.round(heroH * 0.45)}px;max-height:${heroH}px;display:grid;place-items:center}
 .hero-img{max-width:100%;max-height:100%;object-fit:contain;mix-blend-mode:${dark ? "screen" : "multiply"};
-  -webkit-mask-image:linear-gradient(to bottom,#000 70%,transparent)}
+  /* Fondu radial : les bords du rectangle généré disparaissent, quel que soit son fond. */
+  -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 58%,transparent 100%)}
 .motif{position:relative;width:100%;height:100%}
 .band{position:absolute;border:3px solid var(--ink);overflow:hidden}
 .band i{position:absolute;inset:8px;background:
