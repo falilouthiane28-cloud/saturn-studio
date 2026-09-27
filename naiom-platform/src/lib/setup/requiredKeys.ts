@@ -58,7 +58,7 @@ const BY_AGENT: Record<string, KeySpec[]> = {
   proposition: [FIREFLIES],
   // gmail : OAuth Google (avancé) — géré dans l'app via bouton "Connecter Google"
   // ecommerce : connexion Arcads directement dans l'app
-  // designer : Higgsfield en CLI (higgsfield auth login) — aucune clé .env
+  // designer : Higgsfield via l'API REST (HIGGSFIELD_API_KEY sur le serveur)
 };
 
 export function keysFor(slug: string | null): KeySpec[] {

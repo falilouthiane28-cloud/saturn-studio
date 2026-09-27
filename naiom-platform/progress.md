@@ -5,6 +5,7 @@
 - ✅ Le **fond de la slide suit celui du visuel** (luminosité des coins mesurée) et les bords du visuel sont en fondu radial : plus de rectangle visible.
 - ✅ **Bug corrigé (tous les agents)** : Léa affirmait « fichier enregistré dans content/… » sans l'écrire (consigne de sa fiche pensée pour Claude Code) → le carrousel était perdu. Le prompt du chat interdit désormais d'annoncer un fichier et impose le livrable complet dans la réponse.
 - ✅ Vérifié en prod : la direction artistique « Poster » de Léa est bien chargée dans le conteneur.
+- ✅ **« Higgsfield non connecté » corrigé** : le Creative Studio et les visuels de posts utilisaient le CLI Higgsfield (absent du conteneur). Réécrits sur l'API REST (`lib/integrations/higgsfield.ts`, mêmes fonctions) ; édition d'après les miniatures `public/templates` avec `alibaba/qwen-image-3/edit` (le modèle `nano_banana_pro` n'existe pas dans l'API). Testé : visuel « 5 skills à installer sur Claude » généré au style du template Type 2.
 
 ## Style visuel de Léa + decks PDF (26 sept. 2026) ✅
 - ✅ **Carrousels « Poster »** (défaut) : titres massifs Anton, un mot en accent (`**mot**`) ou en pastille (`==mot==`), visuel héros Gemini par slide (`> visuel:`), noir/blanc + violet, alternance sombre/clair, mot fantôme, repères de recadrage, grain. Sans Gemini : motifs graphiques de repli (bandes tramées, sphère + orbite, cadres de sélection). Sélecteur Poster / Éditorial dans le Studio.
