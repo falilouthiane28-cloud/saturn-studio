@@ -19,6 +19,16 @@ const MODEL = "nano_banana_pro";
  */
 export function resolveTemplateSlides(refId?: string | null): string[] {
   if (!refId) return [];
+  // Miniatures de l'app (public/templates) : présentes partout, y compris en prod,
+  // et accessibles publiquement — Higgsfield doit pouvoir les télécharger.
+  const pub = path.join(process.cwd(), "public", "templates");
+  const direct = refId.startsWith("li-")
+    ? path.join(pub, "li", `${refId.slice(3)}.png`)
+    : refId.startsWith("ig-type")
+      ? path.join(pub, "ig", `type${refId.replace("ig-type", "")}.png`)
+      : null;
+  if (direct && fs.existsSync(direct)) return [direct];
+  // Ancien dossier de templates (captures multi-slides), s'il existe encore.
   if (refId.startsWith("li-")) {
     const n = refId.slice(3);
     const p = path.join(TEMPLATES_DIR, "Template Linkedin ", `${n}.png`);
@@ -27,6 +37,7 @@ export function resolveTemplateSlides(refId?: string | null): string[] {
   if (refId.startsWith("ig-type")) {
     const num = refId.replace("ig-type", "");
     const base = path.join(TEMPLATES_DIR, "Template instagram");
+    if (!fs.existsSync(base)) return [];
     const dir = fs.readdirSync(base).find((d) => d.replace(/\s+/g, "") === `Type${num}`);
     if (!dir) return [];
     const full = path.join(base, dir);
@@ -38,6 +49,8 @@ export function resolveTemplateSlides(refId?: string | null): string[] {
 /** Photo de Fallou (référence visage) pour les templates LinkedIn/Twitter. */
 export function facePath(): string | null {
   const dir = path.join(TEMPLATES_DIR, "Template instagram", "Photo de moi ");
+  // La référence visage doit être une URL publique : hors de public/, on ne l'envoie pas.
+  if (!dir.startsWith(path.join(process.cwd(), "public"))) return null;
   try {
     const f = fs.readdirSync(dir).find((x) => /\.(jpe?g|png)$/i.test(x));
     return f ? path.join(dir, f) : null;

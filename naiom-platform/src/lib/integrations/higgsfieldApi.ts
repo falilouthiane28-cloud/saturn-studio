@@ -1,16 +1,16 @@
 /**
  * Higgsfield — API REST (platform.higgsfield.ai), pour les visuels héros de Léa.
  * Clé « id:secret » dans HIGGSFIELD_API_KEY (tableau de bord Higgsfield → API keys).
- * À ne pas confondre avec lib/integrations/higgsfield.ts (CLI + OAuth, agent Mia).
+ * Base commune : lib/integrations/higgsfield.ts s'appuie aussi sur ce client (jobs asynchrones).
  */
-const BASE = "https://platform.higgsfield.ai";
+export const BASE = "https://platform.higgsfield.ai";
 const MODEL = process.env.HIGGSFIELD_IMAGE_MODEL ?? "higgsfield-ai/soul/standard";
 
 export function isHiggsfieldApiConfigured(): boolean {
   return /^[^:\s]+:[^:\s]+$/.test(process.env.HIGGSFIELD_API_KEY ?? "");
 }
 
-async function call<T>(url: string, init?: RequestInit): Promise<T> {
+export async function call<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,
     headers: { Authorization: `Key ${process.env.HIGGSFIELD_API_KEY}`, "Content-Type": "application/json", ...(init?.headers ?? {}) },
@@ -25,7 +25,7 @@ async function call<T>(url: string, init?: RequestInit): Promise<T> {
   return JSON.parse(text) as T;
 }
 
-type Status = {
+export type Status = {
   status?: string;
   images?: { url?: string }[];
   image?: { url?: string };
@@ -33,7 +33,7 @@ type Status = {
   output?: string | string[];
 };
 
-function imageUrlOf(s: Status): string | undefined {
+export function imageUrlOf(s: Status): string | undefined {
   const out = Array.isArray(s.output) ? s.output[0] : s.output;
   return s.images?.[0]?.url ?? s.image?.url ?? s.result?.url ?? out;
 }

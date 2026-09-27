@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   try {
     const { id } = (await req.json()) as { id?: string };
     if (!id) return Response.json({ error: "id requis" }, { status: 400 });
-    if (!isHiggsfieldConfigured()) return Response.json({ error: "Higgsfield non connecté (higgsfield auth login)." }, { status: 412 });
+    if (!isHiggsfieldConfigured()) return Response.json({ error: "Higgsfield non configuré : HIGGSFIELD_API_KEY absente sur le serveur." }, { status: 412 });
     const post = await getPost(id);
     if (!post) return Response.json({ error: "Post introuvable" }, { status: 404 });
 
