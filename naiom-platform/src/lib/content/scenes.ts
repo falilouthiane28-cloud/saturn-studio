@@ -25,7 +25,7 @@ const ratioFor = (model: string, platform: Platform, single: boolean) =>
 const SCENE_DIR = path.join(process.cwd(), "public", "content-out");
 
 /** Verrou de personnage : Orbi identique à la référence, et surtout SANS jambes (il flotte). */
-export const CHARACTER = `CHARACTER (must match the reference image exactly): "Orbi", a small cute hovering robot drone. Glossy white faceted porcelain shell; a big round head with a dark glass visor showing ONE glowing violet ring eye shaped like planet Saturn's ring; two short pointed fins on top of the head; a small rounded body under the head; two long thin curved blade-like ARMS attached at the sides of the body; a small lime-green thruster glow under the body.
+export const CHARACTER = `CHARACTER (must match the reference images exactly — both show the same robot, the second one waving with one blade arm raised): "Orbi", a small cute hovering robot drone. Glossy white faceted porcelain shell; a big round head with a dark glass visor showing ONE glowing violet ring eye shaped like planet Saturn's ring; two short pointed fins on top of the head; a small rounded body under the head; two long thin curved blade-like ARMS attached at the sides of the body; a small lime-green thruster glow under the body.
 ANATOMY RULES (critical): Orbi has NO legs, NO feet, NO knees, NO shoes, NO hands with fingers. It never stands, sits on legs or walks: it always FLOATS, hovering a little above any surface, with the lime-green glow underneath. Its two long blades are ARMS, used like arms (holding, pointing, waving), never as legs. Only ONE Orbi in the image.`;
 
 /** Style propre à chaque direction à scènes (ambiance, lumière, cadrage, place pour le texte). */
@@ -36,10 +36,14 @@ const STYLE: Record<string, string> = {
   vitrine: "LOOK: black-and-white monochrome still life, architectural studio lighting, deep contrast, glossy sculptural materials (marble, chrome, glass), minimal luxury gallery mood, 85mm lens. COMPOSITION: subject centered in the right half of the frame, generous negative space.",
 };
 
-function referenceUrl(): string {
+/**
+ * Références d'Orbi envoyées au modèle. Seule, la vue de face (lames pendantes) est lue comme
+ * « deux jambes » ; la pose où il salue, bras levé, montre que les lames sont des bras.
+ */
+function referenceUrls(): string[] {
   const base = (process.env.PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
   if (!base) throw new Error("PUBLIC_SITE_URL absente : Higgsfield ne peut pas télécharger la référence d'Orbi.");
-  return `${base}/brand/mascot/orbi-base.png`;
+  return ["orbi-base.png", "orbi-wave.png"].map((f) => `${base}/brand/mascot/${f}`);
 }
 
 /** Prompt complet : personnage verrouillé + scène de Léa + style de la direction + correctif éventuel du contrôle qualité. */
@@ -62,7 +66,7 @@ export async function createSceneJob(
   const model = SCENE_MODELS[(opts.attempt ?? 0) % SCENE_MODELS.length];
   const r = await call<{ request_id?: string }>(`${BASE}/${model}`, {
     method: "POST",
-    body: JSON.stringify({ prompt: scenePrompt(d, s, opts), image_urls: [referenceUrl()], aspect_ratio: ratioFor(model, platform, single), resolution: "2k" }),
+    body: JSON.stringify({ prompt: scenePrompt(d, s, opts), image_urls: referenceUrls(), aspect_ratio: ratioFor(model, platform, single), resolution: "2k" }),
   });
   if (!r.request_id) throw new Error("Higgsfield : aucune requête créée.");
   return r.request_id;
