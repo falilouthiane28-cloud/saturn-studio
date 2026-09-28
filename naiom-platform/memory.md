@@ -19,14 +19,14 @@ Règles et contexte persistants à respecter avant toute intervention.
 - Mascottes 3D plein corps (décor ciel dégradé), pas les anciennes photos portrait ni les Funko de `public/avatars/`.
 - **Recadrer à la source, pas en CSS** (ratios très différents : Emma 0.56, Fallou 0.75, autres 1.00). Avatar = tête+épaules dérivé de la boîte englobante réelle ; bannière/figure = **dégradé tiré des bords du décor** + figurine entière posée **en fondu** (jamais l'image entière agrandie en fond : fantôme géant du personnage ; jamais découper une figurine). Vérifier sur planche-contact avant de livrer.
 - Typo : Instrument Serif (display) + Inter/Archivo (UI).
-- **Style « Poster »** (carrousels de Léa + decks PDF) : Anton capitales, un seul mot en accent violet (`**mot**`) ou pastille (`==mot==`), noir/blanc + violet, visuel héros Gemini sur fond uni fusionné (jamais de texte dans l'image), motifs de repli sans Gemini. Decks : slides de données toujours en clair (graphiques à l'encre sombre).
+- **Style « Poster »** (carrousels de Fatou + decks PDF) : Anton capitales, un seul mot en accent violet (`**mot**`) ou pastille (`==mot==`), noir/blanc + violet, visuel héros Gemini sur fond uni fusionné (jamais de texte dans l'image), motifs de repli sans Gemini. Decks : slides de données toujours en clair (graphiques à l'encre sombre).
 - **PDF : jamais de grain SVG, de `mix-blend-mode` ni de `mask-image`** → rastérisation (fichier ×25, texte non sélectionnable). Réservé aux PNG.
 
 ## Pièges techniques (rappel)
 - En prod, Next ne sert pas les fichiers ajoutés à `public/` après le build → passer par la route `/media`.
 - Puppeteer en Docker : Chromium système (`PUPPETEER_EXECUTABLE_PATH`), sinon « Could not find Chrome ».
 - Un `@import` CSS placé après d'autres règles est ignoré → charger les polices par `<link>`.
-- Regex de bloc de code : exiger la langue (```markdown), le livrable de Léa contient aussi un ```yaml.
+- Regex de bloc de code : exiger la langue (```markdown), le livrable de Fatou contient aussi un ```yaml.
 - Turbopack : 500 fantômes → purge `.next` + `node_modules/.cache`, un seul serveur, onglet neuf.
 - `next/font/google` peut casser après purge partielle → purge complète.
 - `.env.local` : une seule ligne par clé (une clé masquée « •••• » collée en double casse le chat).

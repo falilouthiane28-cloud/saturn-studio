@@ -1,5 +1,5 @@
 /**
- * Store JSON des posts créés par Léa (agent contenu).
+ * Store JSON des posts créés par Fatou (agent contenu).
  * Fichier : content/store.json à la racine du repo.
  * Persiste les générations (on garde la session précédente) + programmation.
  */
@@ -7,6 +7,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { REPO_ROOT } from "@/lib/paths";
 import type { ContentResult, Platform, Format } from "./generate";
+import type { NinaBrief } from "./nina";
 
 const DIR = path.join(REPO_ROOT, "content");
 const STORE = path.join(DIR, "store.json");
@@ -30,7 +31,8 @@ export interface ContentPost {
   template?: string; // nom DA (aperçu texte)
   refId?: string; // direction Saturn choisie (da-vanguard, da-signal…)
   result: ContentResult;
-  scenes?: string[]; // direction artistique de Léa, une scène par slide (directions à scènes)
+  scenes?: string[]; // direction artistique de Fatou, une scène par slide (directions à scènes)
+  nina?: NinaBrief; // brief de Nina (veille) quand le sujet est technique
   visuals?: { jobs: SlideJob[]; images: (string | null)[]; done: boolean; scenes?: (string | null)[]; note?: string };
   status: "draft" | "scheduled" | "posted";
   schedule?: { at: string } | null;

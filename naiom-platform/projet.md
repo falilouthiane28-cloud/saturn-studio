@@ -23,7 +23,7 @@ Définis dans `src/lib/agents.ts` → `const AGENTS`. **Un agent n'existe que s'
 | `fireflies` | Fallou (chef d'équipe) | Analyste de calls |
 | `prospection` | Awa | Agent prospection |
 | `proposition` | Basse | Proposition commerciale |
-| `createur-contenu` | Léa | Créateur de contenu |
+| `createur-contenu` | Fatou | Créateur de contenu |
 | `veille` | Nina | Veille tendances |
 | `ecommerce` | Emma | Agente e-commerce |
 

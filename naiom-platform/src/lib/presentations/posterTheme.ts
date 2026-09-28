@@ -1,5 +1,5 @@
 /**
- * Thème « Poster » des decks PDF — même langage visuel que les carrousels de Léa.
+ * Thème « Poster » des decks PDF — même langage visuel que les carrousels de Fatou.
  *
  * Posé PAR-DESSUS le template existant (aucun renderer réécrit) :
  *  - slides d'affirmation (titre, contenu, chiffre, citation, sommaire, fin) en

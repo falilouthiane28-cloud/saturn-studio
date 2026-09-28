@@ -69,7 +69,7 @@ async function getIntegrations(): Promise<Integration[]> {
     {
       id: "anthropic",
       title: "Anthropic (Claude)",
-      agent: "Emma · Léa · Nina · Awa · Fallou · Basse",
+      agent: "Emma · Fatou · Nina · Awa · Fallou · Basse",
       icon: "Cpu",
       envVar: "ANTHROPIC_API_KEY",
       configured: Boolean(process.env.ANTHROPIC_API_KEY),
@@ -182,7 +182,7 @@ async function getIntegrations(): Promise<Integration[]> {
     {
       id: "instagram",
       title: "Instagram",
-      agent: "Léa (posts) · Emma (produits) · Nina (veille, via Apify)",
+      agent: "Fatou (posts) · Emma (produits) · Nina (veille, via Apify)",
       icon: "Camera",
       envVar: "INSTAGRAM_APP_ID + INSTAGRAM_APP_SECRET",
       configured: isInstagramConfigured() && igStatus.connected,
@@ -204,7 +204,7 @@ async function getIntegrations(): Promise<Integration[]> {
     {
       id: "linkedin",
       title: "LinkedIn",
-      agent: "Léa (posts) · Emma (produits)",
+      agent: "Fatou (posts) · Emma (produits)",
       icon: "Briefcase",
       envVar: "LINKEDIN_CLIENT_ID + LINKEDIN_CLIENT_SECRET",
       configured: isLinkedInConfigured() && liStatus.connected,
@@ -220,7 +220,7 @@ async function getIntegrations(): Promise<Integration[]> {
       ],
       notes: liStatus.expired
         ? "La connexion a expiré (60 jours) : cliquez « Reconnecter »."
-        : "Léa et Emma rédigent le post ; il n'est publié qu'après votre clic « Approuver » dans le chat. La connexion dure 60 jours.",
+        : "Fatou et Emma rédigent le post ; il n'est publié qu'après votre clic « Approuver » dans le chat. La connexion dure 60 jours.",
     },
     {
       id: "tiktok",
@@ -278,7 +278,7 @@ export default async function SettingsPage({
           {sp.instagram === "connected" && (
             <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
               <Icon name="CheckCircle" size={18} className="text-emerald-700 mt-0.5 shrink-0" />
-              <p className="font-semibold text-emerald-900">Instagram connecté : Léa et Emma peuvent proposer des publications.</p>
+              <p className="font-semibold text-emerald-900">Instagram connecté : Fatou et Emma peuvent proposer des publications.</p>
             </div>
           )}
           {sp.instagram_error && (
@@ -293,7 +293,7 @@ export default async function SettingsPage({
           {sp.linkedin === "connected" && (
             <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
               <Icon name="CheckCircle" size={18} className="text-emerald-700 mt-0.5 shrink-0" />
-              <p className="font-semibold text-emerald-900">LinkedIn connecté : Léa et Emma peuvent proposer des publications.</p>
+              <p className="font-semibold text-emerald-900">LinkedIn connecté : Fatou et Emma peuvent proposer des publications.</p>
             </div>
           )}
           {sp.linkedin_error && (

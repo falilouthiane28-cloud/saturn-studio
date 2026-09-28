@@ -41,7 +41,7 @@ export function CarouselSlidesPanel({
   const router = useRouter();
   const detection = useMemo(() => detectCarousel(markdown), [markdown]);
   const [ratio, setRatio] = useState<Ratio>("4:5");
-  // « Poster » = signature visuelle de Léa ; « Éditorial » = ancien style magazine.
+  // « Poster » = signature visuelle de Fatou ; « Éditorial » = ancien style magazine.
   const [style, setStyle] = useState<"poster" | "editorial">("poster");
   const [notes, setNotes] = useState<string[]>([]);
   const [state, setState] = useState<GenState>({ status: "idle" });

@@ -16,13 +16,25 @@ interface ContentPost {
   id: string; platform: Platform; format: Format; idea: string; template?: string; refId?: string;
   result: Result; status: "draft" | "scheduled" | "posted"; schedule?: { at: string } | null; createdAt: string;
   visuals?: { jobs: { index: number; jobId: string }[]; images: (string | null)[]; done: boolean };
+  nina?: { level: number; audience: string };
+}
+
+/** Badge : Nina (veille) a renforcé ce post parce que le sujet est technique. */
+function NinaBadge({ nina }: { nina?: { level: number; audience: string } | null }) {
+  if (!nina) return null;
+  return (
+    <div className="flex items-start gap-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-bg)] p-2.5 text-[11px] text-[var(--color-muted)]">
+      <img src="/agents/veille-avatar-256.webp" alt="" className="h-7 w-7 flex-none rounded-full object-cover" />
+      <span><b className="text-[var(--color-ink)]">Nina a renforcé ce post</b> — sujet technique ({nina.level}/10), vulgarisé pour : {nina.audience}</span>
+    </div>
+  );
 }
 
 /* ============ style de repli de l'aperçu (avant que les visuels soient rendus) ============ */
 interface Tmpl { bg: string; fg: string; accent: string; sub: string; font: string }
 const PREVIEW_TMPL: Tmpl = { bg: "#ffffff", fg: "#141414", accent: "var(--color-primary)", sub: "#6b7280", font: "'Archivo',sans-serif" };
 
-// Directions Saturn : les 14 modèles de Léa, avec Orbi (mascotte) et le logo intégrés.
+// Directions Saturn : les 14 modèles de Fatou, avec Orbi (mascotte) et le logo intégrés.
 // `ai` : Scènes Orbi — chaque slide est une scène générée par Higgsfield (≈1 à 2 min, crédits).
 const DIRECTIONS = ([
   { id: "da-bureau", name: "Bureau", hint: "Scène IA", ai: true },
@@ -80,7 +92,7 @@ export function ContentStudio() {
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black tracking-tight text-[var(--color-ink)]">Studio contenu — Léa</h2>
+          <h2 className="text-xl font-black tracking-tight text-[var(--color-ink)]">Studio contenu — Fatou</h2>
           <p className="text-[13px] text-[var(--color-muted)]">Crée du contenu adapté à chaque réseau et visualise le rendu final comme sur la plateforme.</p>
         </div>
         <div className="flex rounded-xl border border-[var(--color-line)] p-0.5 text-[12px] font-bold">
@@ -127,6 +139,7 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
   const isAi = !!DIRECTIONS.find((d) => d.id === refTpl)?.ai;
   const [res, setRes] = useState<Result | null>(saved?.result ?? null);
   const [currentId, setCurrentId] = useState<string | null>(saved?.id ?? null);
+  const [nina, setNina] = useState<{ level: number; audience: string } | null>(saved?.nina ?? null);
   const [err, setErr] = useState<string | null>(null);
   const [sched, setSched] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -163,7 +176,7 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? "Génération impossible");
-      setRes(j); setCurrentId(j.id);
+      setRes(j); setCurrentId(j.id); setNina(j.nina ?? null);
       const slideCount = (j.slides?.length as number) || (j.headline ? 1 : 0);
       if (showTemplates && slideCount > 0) {
         await runVisuals(j.id, slideCount);
@@ -226,11 +239,11 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
           className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold text-white transition hover:opacity-90 disabled:opacity-40"
           style={{ background: PLAT[platform].color }}>
           <Icon name={loading ? "Loader" : "Sparkles"} size={15} className={loading ? "animate-spin" : ""} />
-          {phase === "text" ? "Léa rédige le contenu…"
+          {phase === "text" ? "Nina analyse le sujet, Fatou rédige…"
             : phase === "visuals" ? `${isAi ? "Higgsfield met Orbi en scène" : "Mise en image des slides"}… ${progress ? `(${progress.done}/${progress.total})` : ""}`
             : res ? "Regénérer" : "Générer"}
         </button>
-        {phase === "visuals" && <div className="text-[11px] text-[var(--color-muted)]">{isAi ? "Une scène générée par slide, en parallèle (≈1 à 2 min). Les slides apparaissent au fil de l'eau." : "Léa met chaque slide en page avec Orbi (quelques secondes)."}</div>}
+        {phase === "visuals" && <div className="text-[11px] text-[var(--color-muted)]">{isAi ? "Une scène générée par slide, en parallèle (≈1 à 2 min). Les slides apparaissent au fil de l'eau." : "Fatou met chaque slide en page avec Orbi (quelques secondes)."}</div>}
         {showTemplates && isAi && phase === "idle" && <div className="text-[11px] text-[var(--color-muted)]">Modèle IA : une scène Higgsfield par slide (consomme des crédits).</div>}
 
         {res && currentId && !loading && (
@@ -251,6 +264,7 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
           </div>
         )}
         {res && saved?.id === currentId && !loading && <div className="text-[11px] font-semibold text-emerald-600">✓ Enregistré (repris de ta session)</div>}
+        {res && <NinaBadge nina={nina} />}
         {err && <div className="rounded-lg border border-red-300 bg-red-50 p-2.5 text-[12px] text-red-600">{err}</div>}
         {res && <CaptionBlock res={res} />}
       </div>
@@ -370,6 +384,7 @@ function PostDetailModal({ post, onClose, onChange }: { post: ContentPost; onClo
             : <TwitterPreview res={r} images={post.visuals?.images} />}
         </div>
         {/* puis le texte */}
+        {post.nina && <div className="mt-3"><NinaBadge nina={post.nina} /></div>}
         <div className="mt-3">
           <div className="text-[10px] font-black uppercase tracking-[0.1em] text-[var(--color-muted)]">Idée</div>
           <p className="text-[13px] text-[var(--color-ink)]">{post.idea}</p>

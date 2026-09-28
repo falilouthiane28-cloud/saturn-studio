@@ -1,5 +1,5 @@
 /**
- * Template carrousel « POSTER » — la signature visuelle de Léa.
+ * Template carrousel « POSTER » — la signature visuelle de Fatou.
  *
  * Principes (tirés des planches de référence, sans les copier) :
  *  1. Titre massif en capitales, grotesque condensée, interlignage serré ;
@@ -42,7 +42,7 @@ function esc(s: string): string {
 }
 
 /**
- * Format attendu (écrit par Léa) :
+ * Format attendu (écrit par Fatou) :
  *   # Titre du carrousel
  *   ## Les agents IA **travaillent** la nuit
  *   > sur-titre: Saturn Studio
@@ -56,7 +56,7 @@ export function parsePosterMarkdown(md: string): PosterDeck {
   const title = src.match(/^#\s+(.+)$/m)?.[1].trim() ?? "Carrousel";
   const slides: PosterSlide[] = [];
   // Chaque titre (# ou ##) ouvre un bloc. Un « # » sans contenu n'est que le titre
-  // interne ; suivi d'un visuel ou d'un texte, c'est une vraie slide (Léa le fait parfois).
+  // interne ; suivi d'un visuel ou d'un texte, c'est une vraie slide (Fatou le fait parfois).
   const blocks = src
     .split(/^(?=#{1,2}\s)/m)
     .filter((b) => /^#{1,2}\s/.test(b))

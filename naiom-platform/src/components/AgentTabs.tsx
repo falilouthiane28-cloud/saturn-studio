@@ -24,7 +24,7 @@ interface AgentTabsProps {
   proposalPanel?: React.ReactNode; // PropositionStudio — uniquement pour Basse (proposition)
   comptaPanel?: React.ReactNode; // ComptaStudio — uniquement pour Chloé (comptabilite)
   creativePanel?: React.ReactNode; // CreativeStudio — uniquement pour Mia (designer / Creative Strategist)
-  contentPanel?: React.ReactNode; // ContentStudio — uniquement pour Léa (createur-contenu)
+  contentPanel?: React.ReactNode; // ContentStudio — uniquement pour Fatou (createur-contenu)
   /**
    * Onglet ouvert au premier rendu, issu de `?tab=` et résolu côté serveur.
    * Une valeur inconnue — ou un onglet inexistant pour cet agent — retombe

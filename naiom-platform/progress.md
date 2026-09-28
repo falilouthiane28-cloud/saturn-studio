@@ -2,7 +2,7 @@
 
 ## 📍 Où on en est (27 sept. 2026)
 - **En ligne** : https://209-74-71-111.sslip.io (VPS Spaceship, Docker, Caddy HTTPS, page /login).
-- **Fait** : 6 agents avec connecteurs (YouTube, Instagram/TikTok via Apify, Gmail, Drive, Fireflies) ; actions d'écriture sur approbation ; style « Poster » (carrousels de Léa + decks PDF) ; visuels Higgsfield ; **logo Saturn Studio sur toutes les créations**.
+- **Fait** : 6 agents avec connecteurs (YouTube, Instagram/TikTok via Apify, Gmail, Drive, Fireflies) ; actions d'écriture sur approbation ; style « Poster » (carrousels de Fatou + decks PDF) ; visuels Higgsfield ; **logo Saturn Studio sur toutes les créations**.
 - **En attente de l'utilisateur** : Client ID/Secret LinkedIn ; URI Google (`/api/integrations/google/callback`) dans Google Cloud ; Instagram bloqué (compte Facebook verrouillé par Meta).
 - **Prochaine étape** : publication LinkedIn réelle (dès réception des clés), puis TikTok / X.
 
@@ -13,11 +13,11 @@
 ## Visuels Higgsfield + fiabilité du chat (27 sept. 2026) ✅
 - ✅ **Visuels héros via Higgsfield** (API REST, `HIGGSFIELD_API_KEY` « id:secret », modèle Soul 720p) ; Gemini en repli. Testé en prod : carrousel de 4 slides avec 3 visuels en ~60 s.
 - ✅ Le **fond de la slide suit celui du visuel** (luminosité des coins mesurée) et les bords du visuel sont en fondu radial : plus de rectangle visible.
-- ✅ **Bug corrigé (tous les agents)** : Léa affirmait « fichier enregistré dans content/… » sans l'écrire (consigne de sa fiche pensée pour Claude Code) → le carrousel était perdu. Le prompt du chat interdit désormais d'annoncer un fichier et impose le livrable complet dans la réponse.
-- ✅ Vérifié en prod : la direction artistique « Poster » de Léa est bien chargée dans le conteneur.
+- ✅ **Bug corrigé (tous les agents)** : Fatou affirmait « fichier enregistré dans content/… » sans l'écrire (consigne de sa fiche pensée pour Claude Code) → le carrousel était perdu. Le prompt du chat interdit désormais d'annoncer un fichier et impose le livrable complet dans la réponse.
+- ✅ Vérifié en prod : la direction artistique « Poster » de Fatou est bien chargée dans le conteneur.
 - ✅ **« Higgsfield non connecté » corrigé** : le Creative Studio et les visuels de posts utilisaient le CLI Higgsfield (absent du conteneur). Réécrits sur l'API REST (`lib/integrations/higgsfield.ts`, mêmes fonctions) ; édition d'après les miniatures `public/templates` avec `alibaba/qwen-image-3/edit` (le modèle `nano_banana_pro` n'existe pas dans l'API). Testé : visuel « 5 skills à installer sur Claude » généré au style du template Type 2.
 
-## Style visuel de Léa + decks PDF (26 sept. 2026) ✅
+## Style visuel de Fatou + decks PDF (26 sept. 2026) ✅
 - ✅ **Carrousels « Poster »** (défaut) : titres massifs Anton, un mot en accent (`**mot**`) ou en pastille (`==mot==`), visuel héros Gemini par slide (`> visuel:`), noir/blanc + violet, alternance sombre/clair, mot fantôme, repères de recadrage, grain. Sans Gemini : motifs graphiques de repli (bandes tramées, sphère + orbite, cadres de sélection). Sélecteur Poster / Éditorial dans le Studio.
 - ✅ **Decks PDF** : même langage par défaut (`theme: "classic"` pour l'ancien). Slides d'affirmation sombres, slides de données claires. Sans grain ni masques → PDF léger (≈ 260 Ko pour 4 slides au lieu de 7,4 Mo) et texte sélectionnable.
 - ✅ Direction artistique écrite dans `.claude/agents/createur-contenu.md` ; planche de référence dans `clients/votre-marque/references/lea-poster-violet.jpg`.
@@ -29,7 +29,7 @@
 - ✅ **Swap 2 Go** sur le VPS (RAM 2 Go saturée pendant les builds : 24 min → 28 s).
 
 ## Publication sur les réseaux (26 sept. 2026) — étape 2 en cours
-- ✅ **LinkedIn** : OAuth (state anti-CSRF), outil `linkedin_publier` (Léa, Emma) sur approbation, bouton « Connecter LinkedIn ». Chemin « Approuver » testé (échec propre sans connexion). 🔜 En attente du Client ID / Secret de l'utilisateur.
+- ✅ **LinkedIn** : OAuth (state anti-CSRF), outil `linkedin_publier` (Fatou, Emma) sur approbation, bouton « Connecter LinkedIn ». Chemin « Approuver » testé (échec propre sans connexion). 🔜 En attente du Client ID / Secret de l'utilisateur.
 - ✅ **Instagram** : « Instagram API with Instagram Login » (pas de Page Facebook), outil `instagram_publier` (image ou Reel) sur approbation, jeton 60 j prolongé automatiquement. 🔜 Bloqué : le compte Facebook de l'utilisateur est verrouillé par Meta (appareil non reconnu). Alternative proposée : hub de publication (Ayrshare, Buffer, PostEverywhere).
 - 🔜 TikTok et X : non commencés (TikTok = Content Posting API ; X = API payante ; ou hub).
 
@@ -37,7 +37,7 @@
 - ✅ Couche d'outils côté serveur (`src/lib/tools/`), permissions par agent, journal des appels.
 - ✅ Outils : YouTube (ma chaîne, recherche), Instagram (reels par hashtag / par compte, via Apify), TikTok (tendances via Apify), Gmail (boîte, **envoi sur approbation**), Drive, Fireflies.
 - ✅ Carte d'approbation dans le chat pour toute action d'écriture ; testé : refus → email jamais envoyé (vérifié dans le journal).
-- ✅ Testé sur comptes réels : Léa (vrais chiffres YouTube), Nina (top TikTok #skincareroutine, 42 s).
+- ✅ Testé sur comptes réels : Fatou (vrais chiffres YouTube), Nina (top TikTok #skincareroutine, 42 s).
 - ⚠️ `TIKTOK_ACCESS_TOKEN` refusé par l'API officielle TikTok (`access_token_invalid`) → publication TikTok impossible en l'état.
 - ➡️ Étape 2 (publication) : voir « Publication sur les réseaux » ci-dessus.
 

@@ -613,7 +613,7 @@ function conversation(s: Slide, c: Ctx): string {
 
 /* =====================================================================
  * SCÈNES ORBI — le fond de chaque slide est une scène générée par Higgsfield
- * (Orbi mis en scène d'après la direction artistique de Léa), la typographie et
+ * (Orbi mis en scène d'après la direction artistique de Fatou), la typographie et
  * l'interface sont posées par-dessus en HTML. Sans scène (échec, crédits), un
  * fond de repli dans l'esprit de la direction est utilisé.
  * ===================================================================== */

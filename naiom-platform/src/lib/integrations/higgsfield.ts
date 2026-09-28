@@ -1,5 +1,5 @@
 /**
- * Higgsfield — jobs d'images asynchrones (Creative Studio de Mia, visuels de posts de Léa).
+ * Higgsfield — jobs d'images asynchrones (Creative Studio de Mia, visuels de posts de Fatou).
  *
  * Passe par l'API REST (platform.higgsfield.ai, clé HIGGSFIELD_API_KEY) et non
  * plus par le CLI + OAuth : le CLI n'existe pas dans le conteneur de production.

@@ -1,6 +1,6 @@
 /**
  * Scènes Orbi : une image Higgsfield par slide, où Orbi est mis en scène d'après la
- * direction artistique écrite par Léa (slide.scene). Les jobs sont lancés en parallèle ;
+ * direction artistique écrite par Fatou (slide.scene). Les jobs sont lancés en parallèle ;
  * chaque scène terminée passe un contrôle qualité (vision Claude) avant d'être composée.
  */
 import fs from "node:fs/promises";
@@ -16,7 +16,9 @@ import type { Direction } from "./directions";
  * Modèles d'édition à référence, par ordre de préférence (HIGGSFIELD_SCENE_MODELS, séparés
  * par des virgules). Une relance passe au modèle suivant : utile quand l'un est indisponible.
  */
-const SCENE_MODELS = (process.env.HIGGSFIELD_SCENE_MODELS ?? process.env.HIGGSFIELD_EDIT_MODEL ?? "alibaba/qwen-image-3/edit")
+// Comparatif du 28 sept. 2026 : GPT Image 2.5 (Flare puis Sunburst) garde Orbi fidèle et sans jambes ;
+// Qwen était indisponible et plantait Orbi sur des « jambes ».
+const SCENE_MODELS = (process.env.HIGGSFIELD_SCENE_MODELS ?? "marketing-studio/image/flare,marketing-studio/image/sunburst,xai/grok-imagine-image-2.0")
   .split(",").map((x) => x.trim()).filter(Boolean);
 /** Qwen n'accepte pas le 4:5 (on recadre ensuite) ; les autres modèles le gèrent nativement. */
 const ratioFor = (model: string, platform: Platform, single: boolean) =>
@@ -46,7 +48,7 @@ function referenceUrls(): string[] {
   return ["orbi-base.png", "orbi-wave.png"].map((f) => `${base}/brand/mascot/${f}`);
 }
 
-/** Prompt complet : personnage verrouillé + scène de Léa + style de la direction + correctif éventuel du contrôle qualité. */
+/** Prompt complet : personnage verrouillé + scène de Fatou + style de la direction + correctif éventuel du contrôle qualité. */
 export function scenePrompt(d: Direction, s: Slide, opts: { fallback?: boolean; fix?: string } = {}): string {
   const action = opts.fallback || !s.scene
     ? `Orbi floats in a simple, elegant setting that evokes the idea: "${s.title}".`

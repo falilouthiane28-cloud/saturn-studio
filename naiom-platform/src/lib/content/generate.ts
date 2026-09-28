@@ -1,5 +1,5 @@
 /**
- * Génération de contenu structuré par plateforme (agent Léa — createur-contenu).
+ * Génération de contenu structuré par plateforme (agent Fatou — createur-contenu).
  * Instagram / LinkedIn / Twitter(X). Claude renvoie un JSON adapté au réseau,
  * ensuite affiché dans un aperçu qui imite le rendu réel du réseau.
  */
@@ -92,17 +92,18 @@ export async function generateContent(
   platform: Platform,
   format: Format,
   idea: string,
-  template?: string
+  template?: string,
+  ninaBrief?: string // brief de Nina (veille) sur les sujets techniques
 ): Promise<ContentResult> {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY absente dans .env.local.");
-  const system = `Tu es Léa, copywriter senior chez Saturn Studio. Tu écris du contenu réseaux sociaux qui performe.
+  const system = `Tu es Fatou, copywriter senior chez Saturn Studio. Tu écris du contenu réseaux sociaux qui performe.
 ${VOICE}
 Tu réponds UNIQUEMENT avec un objet JSON valide conforme au format demandé (aucun texte autour, pas de bloc markdown).`;
   const prompt = `Plateforme : ${platform}
 ${instructions(platform, format, template)}
 
 IDÉE / SUJET : ${idea}
-
+${ninaBrief ? `\n${ninaBrief}\nAppuie-toi sur ce brief : prends ou adapte l'un de ses hooks, glisse au moins une de ses analogies, traduis tout le jargon.\n` : ""}
 Rends le JSON maintenant.`;
 
   const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -131,7 +132,7 @@ Rends le JSON maintenant.`;
   };
 }
 
-/* ============ direction artistique des scènes (Léa, directrice artistique) ============ */
+/* ============ direction artistique des scènes (Fatou, directrice artistique) ============ */
 const SCENE_BRIEF: Record<string, string> = {
   bureau: "Orbi dans un espace de travail pastel (bureau, open space, salle de réunion, café) : situations de travail concrètes et un peu drôles.",
   respira: "Orbi dans des lieux réels chaleureux et cinématographiques (jardin, parc, toit au coucher du soleil, rue de Dakar, plage) : ambiance Pixar, respiration, émotion.",
@@ -140,14 +141,15 @@ const SCENE_BRIEF: Record<string, string> = {
 };
 
 /**
- * Pour chaque slide, Léa écrit la scène qu'Higgsfield va générer : une métaphore visuelle
+ * Pour chaque slide, Fatou écrit la scène qu'Higgsfield va générer : une métaphore visuelle
  * concrète du message, dans un univers cohérent d'une slide à l'autre. Les scènes sont
  * rédigées en anglais (meilleurs résultats du modèle d'images) et ne contiennent aucun texte.
  */
-export async function artDirect(slides: Slide[], idea: string, direction: string): Promise<Slide[]> {
+export async function artDirect(slides: Slide[], idea: string, direction: string, analogies: string[] = []): Promise<Slide[]> {
   if (!process.env.ANTHROPIC_API_KEY || !slides.length) return slides;
-  const system = `Tu es Léa, directrice artistique de Saturn Studio et experte du prompt d'image (Higgsfield, GPT Image, Nano Banana, Qwen). Ton style : 3D premium, lumière de cinéma, humour visuel, une idée forte par image. La mascotte s'appelle Orbi : petit robot drone blanc porcelaine, tête ronde, visière noire avec UN œil-anneau de Saturne violet, deux petites oreilles pointues, deux longs bras en lames, lueur verte sous le corps. Orbi n'a NI jambes NI pieds : il FLOTTE toujours. Tu réponds UNIQUEMENT avec un JSON valide.`;
-  const prompt = `Carrousel sur : « ${idea} ». Univers visuel imposé : ${SCENE_BRIEF[direction] ?? "scènes 3D premium"}
+  const system = `Tu es Fatou, directrice artistique de Saturn Studio et experte du prompt d'image (Higgsfield, GPT Image, Nano Banana, Qwen). Ton style : 3D premium, lumière de cinéma, humour visuel, une idée forte par image. La mascotte s'appelle Orbi : petit robot drone blanc porcelaine, tête ronde, visière noire avec UN œil-anneau de Saturne violet, deux petites oreilles pointues, deux longs bras en lames, lueur verte sous le corps. Orbi n'a NI jambes NI pieds : il FLOTTE toujours. Tu réponds UNIQUEMENT avec un JSON valide.`;
+  const prompt = `Carrousel sur : « ${idea} ». Univers visuel imposé : ${SCENE_BRIEF[direction] ?? "scènes 3D premium"}${analogies.length ? `
+Analogies proposées par Nina (veille) : ${analogies.join(" | ")} — transforme-les en métaphores visuelles quand elles servent la slide.` : ""}
 
 Slides :
 ${slides.map((x, i) => `${i + 1}. ${x.title} — ${x.body}`).join("\n")}

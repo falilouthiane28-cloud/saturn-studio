@@ -250,7 +250,7 @@ export default function LivePage() {
                       { t: "- Fallou   → analyse de calls, plan d'action" },
                       { t: "- Awa      → prospection, prise de contact" },
                       { t: "- Basse    → propositions commerciales" },
-                      { t: "- Léa      → posts, scripts, emails" },
+                      { t: "- Fatou      → posts, scripts, emails" },
                       { t: "- … 6 employés IA au total", c: "dim" },
                       { t: "" },
                       { t: "## Règles absolues", c: "head" },
@@ -861,7 +861,7 @@ export default function LivePage() {
                 </g>
                 <g className="lv-night" style={{ ["--d" as string]: "1.2s" }}>
                   <AgentPic slug="createur-contenu" x={140} y={186} size={48} />
-                  <text x="205" y="222">→ 3 posts LinkedIn <tspan fill="#7BE3A9">✓</tspan> <tspan fill="#B7AEE8" fontSize="19">Léa</tspan></text>
+                  <text x="205" y="222">→ 3 posts LinkedIn <tspan fill="#7BE3A9">✓</tspan> <tspan fill="#B7AEE8" fontSize="19">Fatou</tspan></text>
                 </g>
                 <g className="lv-night" style={{ ["--d" as string]: "2.4s" }}>
                   <AgentPic slug="veille" x={140} y={248} size={48} />

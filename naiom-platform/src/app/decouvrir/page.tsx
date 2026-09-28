@@ -13,7 +13,7 @@ import { BrainGate } from "./BrainGate";
 
 // Agents offerts gratuitement à une date (les autres → rejoindre brAIn)
 const RELEASE: Record<string, string> = {
-  "createur-contenu": "13 septembre", // Léa
+  "createur-contenu": "13 septembre", // Fatou
   ecommerce: "13 septembre",           // Emma
   prospection: "14 septembre",         // Awa
   fireflies: "14 septembre",           // Fallou

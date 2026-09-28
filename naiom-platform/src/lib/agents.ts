@@ -46,7 +46,7 @@ const AGENTS = [
   },
   {
     slug: "createur-contenu",
-    name: "Léa",
+    name: "Fatou",
     role: "Créateur de contenu",
     icon: "PenLine",
     accent: "nude",

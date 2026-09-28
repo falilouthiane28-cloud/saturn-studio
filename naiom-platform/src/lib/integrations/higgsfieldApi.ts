@@ -1,5 +1,5 @@
 /**
- * Higgsfield — API REST (platform.higgsfield.ai), pour les visuels héros de Léa.
+ * Higgsfield — API REST (platform.higgsfield.ai), pour les visuels héros de Fatou.
  * Clé « id:secret » dans HIGGSFIELD_API_KEY (tableau de bord Higgsfield → API keys).
  * Base commune : lib/integrations/higgsfield.ts s'appuie aussi sur ce client (jobs asynchrones).
  */

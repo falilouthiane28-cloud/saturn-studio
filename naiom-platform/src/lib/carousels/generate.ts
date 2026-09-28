@@ -136,7 +136,7 @@ function slugifyTitle(title: string): string {
   );
 }
 
-/** Style « Poster » (signature de Léa) : texte HTML + visuel héros Gemini optionnel. */
+/** Style « Poster » (signature de Fatou) : texte HTML + visuel héros Gemini optionnel. */
 async function generatePoster(markdown: string, ratio: CarouselRatio, slug?: string): Promise<GenerateCarouselResult> {
   const deck = parsePosterMarkdown(markdown);
   if (!deck.slides.length) throw new Error("Aucune slide : chaque slide commence par « ## Titre ».");

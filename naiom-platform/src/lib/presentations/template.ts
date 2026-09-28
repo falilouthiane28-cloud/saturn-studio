@@ -1347,7 +1347,7 @@ body {
 .thanks-resources div { line-height: 1.8; }
 `;
 
-/** « poster » = langage visuel de Léa (par défaut) ; « classic » = ancien style dégradés. */
+/** « poster » = langage visuel de Fatou (par défaut) ; « classic » = ancien style dégradés. */
 export type DeckTheme = "poster" | "classic";
 
 export function renderPresentationHTML(p: Presentation, opts: { theme?: DeckTheme } = {}): string {

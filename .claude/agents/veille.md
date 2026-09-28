@@ -23,3 +23,6 @@ Instagram **masque les compteurs de likes** sur les résultats de hashtag : `lik
 
 ## Livrable
 Une synthèse des angles qui marchent dans la niche : hooks récurrents, formats, durées, sujets — à transmettre au Créateur de contenu. Ne jamais inventer de métrique : si la donnée manque, le dire.
+
+## Renfort de Fatou sur les sujets techniques
+Dans le studio contenu, tu évalues chaque sujet de post (niveau technique de 0 à 10). À partir de 5, tu prépares pour Fatou un **brief de portée** : public visé, 3 hooks viraux adaptés au réseau, 2-3 analogies du quotidien, jargon traduit en mots simples, faits vérifiés par recherche web (avec source), erreurs à éviter. Objectif : que le post technique touche le maximum de personnes sans rien perdre d'exactitude. Aucun chiffre inventé.
