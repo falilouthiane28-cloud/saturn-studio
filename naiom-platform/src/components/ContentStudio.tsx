@@ -147,6 +147,7 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
       const pr = await fetch(`/api/content/visuals?id=${id}`, { cache: "no-store" });
       const pj = await pr.json();
       if (Array.isArray(pj.images)) { setSlideImages(pj.images); setProgress({ done: pj.images.filter((x: string | null) => x).length, total: pj.images.length }); }
+      if (pj.note) setErr(pj.note);
       if (pj.done) break;
     }
     onSaved();
@@ -470,7 +471,15 @@ function Carousel({ slides, tmpl, rounded = true, images, ratio = "1/1" }: { sli
   return (
     <div className="relative w-full" style={{ aspectRatio: ratio }}>
       <div className={cn("h-full w-full overflow-hidden", rounded && "rounded-lg")}>
-        {img ? <img src={img} alt={`slide ${i + 1}`} className="h-full w-full object-cover" /> : <SlideCard slide={slides[i]} i={i} total={total} tmpl={tmpl} />}
+        {img ? <img src={img} alt={`slide ${i + 1}`} className="h-full w-full object-cover" />
+          : images?.length ? (
+            // Visuels en cours de création : on n'affiche pas une version texte trompeuse.
+            <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-[#141221] text-center text-white">
+              <img src="/brand/mascot/orbi-fly-cut.png" alt="" className="h-24 w-auto animate-pulse" />
+              <div className="text-[13px] font-bold">Orbi en tournage…</div>
+              <div className="px-6 text-[11px] text-white/60">Slide {i + 1}/{total} — elle apparaîtra dès que sa scène est prête.</div>
+            </div>
+          ) : <SlideCard slide={slides[i]} i={i} total={total} tmpl={tmpl} />}
       </div>
       {i > 0 && <NavBtn dir="left" onClick={() => setI(i - 1)} />}
       {i < total - 1 && <NavBtn dir="right" onClick={() => setI(i + 1)} />}

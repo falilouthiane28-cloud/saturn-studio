@@ -40,7 +40,7 @@ export async function GET(req: Request) {
   try {
     const post = await advanceScenes(id);
     if (!post?.visuals) return Response.json({ error: "Aucune génération en cours." }, { status: 404 });
-    return Response.json({ images: post.visuals.images, done: post.visuals.done });
+    return Response.json({ images: post.visuals.images, done: post.visuals.done, note: post.visuals.note });
   } catch (err) {
     const post = await getPost(id);
     return Response.json({ images: post?.visuals?.images ?? [], done: false, note: err instanceof Error ? err.message : "Erreur" });

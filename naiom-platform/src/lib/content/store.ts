@@ -18,6 +18,9 @@ export interface SlideJob {
   tries?: number;
   state?: "waiting" | "pending" | "done" | "failed"; // waiting = file Higgsfield pleine, à soumettre
   at?: number; // soumission (ms), pour le délai maximal
+  qc?: number; // régénérations demandées par le contrôle qualité
+  lastFix?: string; // dernier correctif du contrôle qualité (réinjecté dans le prompt)
+  error?: "credits";
 }
 export interface ContentPost {
   id: string;
@@ -28,7 +31,7 @@ export interface ContentPost {
   refId?: string; // direction Saturn choisie (da-vanguard, da-signal…)
   result: ContentResult;
   scenes?: string[]; // direction artistique de Léa, une scène par slide (directions à scènes)
-  visuals?: { jobs: SlideJob[]; images: (string | null)[]; done: boolean; scenes?: (string | null)[] };
+  visuals?: { jobs: SlideJob[]; images: (string | null)[]; done: boolean; scenes?: (string | null)[]; note?: string };
   status: "draft" | "scheduled" | "posted";
   schedule?: { at: string } | null;
   createdAt: string;

@@ -146,17 +146,22 @@ const SCENE_BRIEF: Record<string, string> = {
  */
 export async function artDirect(slides: Slide[], idea: string, direction: string): Promise<Slide[]> {
   if (!process.env.ANTHROPIC_API_KEY || !slides.length) return slides;
-  const system = `Tu es Léa, directrice artistique de Saturn Studio : ton style mêle 3D premium, lumière cinématographique et humour visuel. La mascotte s'appelle Orbi (petit robot blanc, œil-anneau violet). Tu réponds UNIQUEMENT avec un JSON valide.`;
+  const system = `Tu es Léa, directrice artistique de Saturn Studio et experte du prompt d'image (Higgsfield, GPT Image, Nano Banana, Qwen). Ton style : 3D premium, lumière de cinéma, humour visuel, une idée forte par image. La mascotte s'appelle Orbi : petit robot drone blanc porcelaine, tête ronde, visière noire avec UN œil-anneau de Saturne violet, deux petites oreilles pointues, deux longs bras en lames, lueur verte sous le corps. Orbi n'a NI jambes NI pieds : il FLOTTE toujours. Tu réponds UNIQUEMENT avec un JSON valide.`;
   const prompt = `Carrousel sur : « ${idea} ». Univers visuel imposé : ${SCENE_BRIEF[direction] ?? "scènes 3D premium"}
 
 Slides :
 ${slides.map((x, i) => `${i + 1}. ${x.title} — ${x.body}`).join("\n")}
 
-Pour CHAQUE slide, écris en ANGLAIS une scène (1 à 2 phrases, 45 mots max) : ce que fait "the robot", où, avec quels objets, quel cadrage. Une métaphore visuelle concrète et surprenante du message de la slide, pas une illustration littérale ennuyeuse. Varie les cadrages d'une slide à l'autre mais garde le même univers. Jamais de texte, lettres, écrans lisibles ni logos dans la scène. Pas d'autres personnages que des silhouettes floues à l'arrière-plan.
+Pour CHAQUE slide, écris en ANGLAIS un prompt de scène de 40 à 70 mots, structuré ainsi, dans cet ordre :
+1. ACTION : ce que fait "Orbi" (toujours en vol stationnaire, bras-lames expressifs) — une métaphore visuelle concrète, surprenante et un peu drôle du message de la slide, jamais une illustration littérale (pas d'écran d'ordinateur qui « montre » l'idée).
+2. DÉCOR ET ACCESSOIRES : lieu précis, 2 ou 3 objets signifiants maximum, matières (porcelaine, verre, chrome, papier, velours…).
+3. CADRAGE : échelle de plan (plan large, plan moyen, gros plan), angle (contre-plongée, plongée, hauteur d'œil), focale (24mm, 35mm, 50mm, 85mm).
+4. LUMIÈRE ET PALETTE : type de lumière (golden hour, néon, softbox, contre-jour), 2 ou 3 couleurs dominantes cohérentes avec l'univers imposé.
+Règles : un seul point focal par image ; varie échelle de plan et angle d'une slide à l'autre (storyboard) mais garde le même lieu et la même lumière sur tout le carrousel ; un seul Orbi ; aucun humain net (silhouettes floues à l'arrière-plan tolérées) ; aucun texte, chiffre, lettre, écran lisible ni logo ; ne jamais écrire « legs », « feet », « standing », « walking » ou « sitting » pour Orbi (écris « hovering », « floating », « perched in mid-air »).
 Réponds : {"scenes":["...", "..."]} avec exactement ${slides.length} éléments.`;
   try {
     const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const { text } = await generateText({ model: anthropic("claude-sonnet-5"), maxOutputTokens: 1500, system, prompt });
+    const { text } = await generateText({ model: anthropic("claude-sonnet-5"), maxOutputTokens: 3000, system, prompt });
     const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
     const j = JSON.parse(escapeCtrlInStrings(cleaned)) as { scenes?: unknown[] };
     const scenes = Array.isArray(j.scenes) ? j.scenes.map(String) : [];
