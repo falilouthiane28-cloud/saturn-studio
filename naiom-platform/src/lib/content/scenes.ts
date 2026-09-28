@@ -57,8 +57,9 @@ export async function pollSceneJob(jobId: string, postId: string, index: number)
   if (st === "completed" || st === "succeeded") {
     const url = imageUrlOf(s);
     if (!url) return { state: "failed" };
+    // Téléchargement raté = incident réseau passager : on réessaiera au prochain passage.
     const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return { state: "failed" };
+    if (!res.ok) throw new Error(`Téléchargement de la scène impossible (${res.status}).`);
     await fs.mkdir(SCENE_DIR, { recursive: true });
     const file = path.join(SCENE_DIR, `${postId}-scene-${index}.png`);
     await fs.writeFile(file, Buffer.from(await res.arrayBuffer()));

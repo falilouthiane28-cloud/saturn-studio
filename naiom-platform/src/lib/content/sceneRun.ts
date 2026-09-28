@@ -8,8 +8,11 @@ import { composeDirection, directionOf, slidesOf, type Direction } from "./direc
 import { createSceneJob, pollSceneJob } from "./scenes";
 import type { Slide } from "./generate";
 
-/** Au-delà, une scène toujours en cours est abandonnée au profit du fond de repli. */
-const SCENE_TIMEOUT_MS = 10 * 60 * 1000;
+/**
+ * Au-delà, une scène toujours en cours est abandonnée au profit du fond de repli.
+ * Large : quand la file Higgsfield du compte est chargée, une scène peut attendre 15 min et réussir.
+ */
+const SCENE_TIMEOUT_MS = 25 * 60 * 1000;
 
 export const slidesWithScenes = (post: ContentPost): Slide[] =>
   slidesOf(post.result).map((s, i) => ({ ...s, scene: post.scenes?.[i] ?? s.scene }));
