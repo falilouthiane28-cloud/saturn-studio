@@ -5,6 +5,7 @@ import sharp from "sharp";
 import { getPost, updatePost } from "@/lib/content/store";
 import { composeDirection, directionOf, slidesOf } from "@/lib/content/directions";
 import { zipStore } from "@/lib/zip";
+import { advanceScenes } from "@/lib/content/sceneRun";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -28,7 +29,8 @@ export async function POST(req: Request) {
   try {
     const { id, format = "pdf" } = (await req.json()) as { id?: string; format?: "pdf" | "zip" };
     if (!id) return Response.json({ error: "id requis" }, { status: 400 });
-    const post = await getPost(id);
+    // Fait avancer d'éventuelles scènes en cours (onglet du studio fermé pendant la génération).
+    const post = (await advanceScenes(id)) ?? (await getPost(id));
     if (!post) return Response.json({ error: "Post introuvable" }, { status: 404 });
 
     if (post.visuals && !post.visuals.done)

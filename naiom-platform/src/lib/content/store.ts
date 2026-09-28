@@ -12,7 +12,13 @@ const DIR = path.join(REPO_ROOT, "content");
 const STORE = path.join(DIR, "store.json");
 
 /** Job Higgsfield d'une scène Orbi (une par slide). */
-export interface SlideJob { index: number; jobId: string; tries?: number; state?: "pending" | "done" | "failed" }
+export interface SlideJob {
+  index: number;
+  jobId: string;
+  tries?: number;
+  state?: "waiting" | "pending" | "done" | "failed"; // waiting = file Higgsfield pleine, à soumettre
+  at?: number; // soumission (ms), pour le délai maximal
+}
 export interface ContentPost {
   id: string;
   platform: Platform;

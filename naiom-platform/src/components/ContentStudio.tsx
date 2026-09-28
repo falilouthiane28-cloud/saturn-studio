@@ -142,7 +142,7 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
     const r = await fetch("/api/content/visuals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error ?? "Génération visuels impossible");
-    for (let k = 0; k < 120; k++) {
+    for (let k = 0; k < 240; k++) {
       await new Promise((res) => setTimeout(res, j.scenes ? 5000 : 500));
       const pr = await fetch(`/api/content/visuals?id=${id}`, { cache: "no-store" });
       const pj = await pr.json();
