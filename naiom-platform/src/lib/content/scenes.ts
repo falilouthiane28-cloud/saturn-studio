@@ -20,9 +20,8 @@ import type { Direction } from "./directions";
 // Qwen était indisponible et plantait Orbi sur des « jambes ».
 const SCENE_MODELS = (process.env.HIGGSFIELD_SCENE_MODELS ?? "marketing-studio/image/flare,marketing-studio/image/sunburst,xai/grok-imagine-image-2.0")
   .split(",").map((x) => x.trim()).filter(Boolean);
-/** Qwen n'accepte pas le 4:5 (on recadre ensuite) ; les autres modèles le gèrent nativement. */
-const ratioFor = (model: string, platform: Platform, single: boolean) =>
-  platform === "instagram" || !single ? (/qwen/.test(model) ? "3:4" : "4:5") : "1:1";
+/** L'API n'accepte pas le 4:5 : on génère en 3:4, recadré en 4:5 à la composition. */
+const ratioFor = (platform: Platform, single: boolean) => (platform === "instagram" || !single ? "3:4" : "1:1");
 
 const SCENE_DIR = path.join(process.cwd(), "public", "content-out");
 
@@ -68,7 +67,7 @@ export async function createSceneJob(
   const model = SCENE_MODELS[(opts.attempt ?? 0) % SCENE_MODELS.length];
   const r = await call<{ request_id?: string }>(`${BASE}/${model}`, {
     method: "POST",
-    body: JSON.stringify({ prompt: scenePrompt(d, s, opts), image_urls: referenceUrls(), aspect_ratio: ratioFor(model, platform, single), resolution: "2k" }),
+    body: JSON.stringify({ prompt: scenePrompt(d, s, opts), image_urls: referenceUrls(), aspect_ratio: ratioFor(platform, single), resolution: "2k" }),
   });
   if (!r.request_id) throw new Error("Higgsfield : aucune requête créée.");
   return r.request_id;
