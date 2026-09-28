@@ -31,6 +31,8 @@ export async function POST(req: Request) {
     const post = await getPost(id);
     if (!post) return Response.json({ error: "Post introuvable" }, { status: 404 });
 
+    if (post.visuals && !post.visuals.done)
+      return Response.json({ error: "Les scènes d'Orbi sont encore en cours de création : réessaie dans une minute." }, { status: 409 });
     let images = (post.visuals?.images ?? []).filter((x): x is string => !!x);
     if (!images.length) {
       const slides = slidesOf(post.result);

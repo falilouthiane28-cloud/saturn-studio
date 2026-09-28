@@ -14,7 +14,7 @@ export type Format =
   | "tweet" // Twitter simple
   | "thread"; // Twitter thread
 
-export interface Slide { title: string; body: string }
+export interface Slide { title: string; body: string; scene?: string /* direction artistique de la scène (anglais) */ }
 
 export interface ContentResult {
   platform: Platform;
@@ -129,4 +129,40 @@ Rends le JSON maintenant.`;
     body: j.body,
     tweets: j.tweets,
   };
+}
+
+/* ============ direction artistique des scènes (Léa, directrice artistique) ============ */
+const SCENE_BRIEF: Record<string, string> = {
+  bureau: "Orbi dans un espace de travail pastel (bureau, open space, salle de réunion, café) : situations de travail concrètes et un peu drôles.",
+  respira: "Orbi dans des lieux réels chaleureux et cinématographiques (jardin, parc, toit au coucher du soleil, rue de Dakar, plage) : ambiance Pixar, respiration, émotion.",
+  heros: "Orbi en héros, en contre-plongée face à un ciel bleu : poses iconiques, gestes forts, un objet symbolique tenu vers la caméra.",
+  vitrine: "Orbi en sculpture monochrome noir et blanc, mis en scène avec des objets symboliques (architecture, écrans, formes géométriques) : nature morte premium.",
+};
+
+/**
+ * Pour chaque slide, Léa écrit la scène qu'Higgsfield va générer : une métaphore visuelle
+ * concrète du message, dans un univers cohérent d'une slide à l'autre. Les scènes sont
+ * rédigées en anglais (meilleurs résultats du modèle d'images) et ne contiennent aucun texte.
+ */
+export async function artDirect(slides: Slide[], idea: string, direction: string): Promise<Slide[]> {
+  if (!process.env.ANTHROPIC_API_KEY || !slides.length) return slides;
+  const system = `Tu es Léa, directrice artistique de Saturn Studio : ton style mêle 3D premium, lumière cinématographique et humour visuel. La mascotte s'appelle Orbi (petit robot blanc, œil-anneau violet). Tu réponds UNIQUEMENT avec un JSON valide.`;
+  const prompt = `Carrousel sur : « ${idea} ». Univers visuel imposé : ${SCENE_BRIEF[direction] ?? "scènes 3D premium"}
+
+Slides :
+${slides.map((x, i) => `${i + 1}. ${x.title} — ${x.body}`).join("\n")}
+
+Pour CHAQUE slide, écris en ANGLAIS une scène (1 à 2 phrases, 45 mots max) : ce que fait "the robot", où, avec quels objets, quel cadrage. Une métaphore visuelle concrète et surprenante du message de la slide, pas une illustration littérale ennuyeuse. Varie les cadrages d'une slide à l'autre mais garde le même univers. Jamais de texte, lettres, écrans lisibles ni logos dans la scène. Pas d'autres personnages que des silhouettes floues à l'arrière-plan.
+Réponds : {"scenes":["...", "..."]} avec exactement ${slides.length} éléments.`;
+  try {
+    const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const { text } = await generateText({ model: anthropic("claude-sonnet-5"), maxOutputTokens: 1500, system, prompt });
+    const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+    const j = JSON.parse(escapeCtrlInStrings(cleaned)) as { scenes?: unknown[] };
+    const scenes = Array.isArray(j.scenes) ? j.scenes.map(String) : [];
+    return slides.map((x, i) => (scenes[i] ? { ...x, scene: scenes[i] } : x));
+  } catch {
+    // Sans direction artistique, chaque scène retombe sur un décor dérivé du titre.
+    return slides;
+  }
 }

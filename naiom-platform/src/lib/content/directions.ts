@@ -1,5 +1,5 @@
 /**
- * Les 10 directions artistiques Saturn, rendues en HTML → PNG.
+ * Les 14 directions artistiques Saturn (dont 4 « Scènes Orbi » générées par Higgsfield), rendues en HTML → PNG.
  * Texte rendu par le navigateur (100 % fidèle, aucune faute d'IA) ; la mascotte Orbi
  * (poses générées sur Higgsfield puis détourées, cf. scripts/build_mascot.mjs) et le logo
  * font partie de la composition — jamais collés après coup.
@@ -8,13 +8,18 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import puppeteer from "puppeteer";
+import sharp from "sharp";
 import { logoDataUriSync } from "../brand/logo";
 import type { Platform, Slide } from "./generate";
 
 export type Direction =
   | "vanguard" | "orbit" | "signal" | "grille" | "atelier"
-  | "cinema" | "brasier" | "studio" | "plein-air" | "conversation";
-export const DIRECTIONS: Direction[] = ["vanguard", "orbit", "signal", "grille", "atelier", "cinema", "brasier", "studio", "plein-air", "conversation"];
+  | "cinema" | "brasier" | "studio" | "plein-air" | "conversation"
+  | "bureau" | "respira" | "heros" | "vitrine";
+export const DIRECTIONS: Direction[] = [
+  "vanguard", "orbit", "signal", "grille", "atelier", "cinema", "brasier", "studio", "plein-air", "conversation",
+  "bureau", "respira", "heros", "vitrine",
+];
 
 /** Slides à mettre en image : carrousel, ou accroche seule d'un post visuel. */
 export function slidesOf(r: { slides?: Slide[]; headline?: string }): Slide[] {
@@ -73,7 +78,7 @@ function fit(text: string, width: number, lines: number, em: number, max: number
   return Math.round(Math.max(min, px));
 }
 
-interface Ctx { i: number; total: number; W: number; H: number; single: boolean }
+interface Ctx { i: number; total: number; W: number; H: number; single: boolean; scene?: string }
 const role = (c: Ctx) => (c.single || c.i === 0 ? "cover" : c.i === c.total - 1 ? "end" : "content");
 
 const FONTS = `<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,800;1,800;1,900&family=Instrument+Serif:ital@0;1&family=Archivo:wght@500;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">`;
@@ -101,6 +106,12 @@ window.__fit = function () {
   txt.forEach(function (t) { [].slice.call(t.querySelectorAll('h1,h2')).forEach(function (h) {
     var k = 0; while (h.scrollWidth > h.clientWidth + 2 && k++ < 30) shrink([h].concat([].slice.call(h.querySelectorAll('.it'))), 0.95);
   }); });
+  // data-maxlines="3" : le titre est réduit jusqu'à tenir sur ce nombre de lignes (mesuré, pas estimé).
+  [].slice.call(document.querySelectorAll('[data-maxlines]')).forEach(function (h) {
+    var max = +h.getAttribute('data-maxlines'), n = 0;
+    function lines() { return Math.round(h.getBoundingClientRect().height / parseFloat(getComputedStyle(h).lineHeight)); }
+    while (lines() > max && n++ < 30) shrink([h], 0.95);
+  });
   [].slice.call(document.querySelectorAll('[data-fitbox]')).forEach(function (b) {
     var n = 0; while (b.scrollHeight > b.clientHeight + 2 && n++ < 24) shrink([].slice.call(b.querySelectorAll('h1,h2,p')), 0.95);
   });
@@ -600,20 +611,221 @@ function conversation(s: Slide, c: Ctx): string {
   return doc(css, inner, c);
 }
 
+/* =====================================================================
+ * SCÈNES ORBI — le fond de chaque slide est une scène générée par Higgsfield
+ * (Orbi mis en scène d'après la direction artistique de Léa), la typographie et
+ * l'interface sont posées par-dessus en HTML. Sans scène (échec, crédits), un
+ * fond de repli dans l'esprit de la direction est utilisé.
+ * ===================================================================== */
+export const SCENE_DIRECTIONS: Direction[] = ["bureau", "respira", "heros", "vitrine"];
+export const isSceneDirection = (d: Direction) => SCENE_DIRECTIONS.includes(d);
+
+const AGENT_SLUGS = ["fireflies", "prospection", "proposition", "createur-contenu", "veille", "ecommerce"];
+const avatarCache = new Map<string, string>();
+function agentAvatar(k: number): string {
+  const slug = AGENT_SLUGS[k % AGENT_SLUGS.length];
+  const hit = avatarCache.get(slug);
+  if (hit !== undefined) return hit;
+  const f = path.join(process.cwd(), "public", "agents", `${slug}-avatar-256.webp`);
+  const uri = fs.existsSync(f) ? `data:image/webp;base64,${fs.readFileSync(f).toString("base64")}` : orbi("base");
+  avatarCache.set(slug, uri);
+  return uri;
+}
+
+const sceneBg = (c: Ctx, fallback: string, extra = "") =>
+  `<div style="position:absolute;inset:0;background:${c.scene ? `url(${c.scene}) center/cover no-repeat` : fallback};${extra}"></div>`;
+
+/** Découpe un corps de texte en bulles courtes (phrases, puis virgules). */
+function bubbles(body: string, max = 3): string[] {
+  const parts = String(body ?? "").split(/(?<=[.!?…])\s+/).map((x) => x.trim()).filter(Boolean);
+  const out: string[] = [];
+  for (const p of parts) {
+    if (p.length <= 70) out.push(p);
+    else out.push(...p.split(/,\s+|\s+:\s+|\s+—\s+/).map((x) => x.trim()).filter(Boolean));
+  }
+  return out.slice(0, max);
+}
+
+const ROUGH = `<svg width="0" height="0" style="position:absolute"><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="7"/><feGaussianBlur stdDeviation=".6"/></filter></svg>`;
+
+/* ======================= 11. BUREAU — Orbi au travail, notifications flottantes ======================= */
+function bureau(s: Slide, c: Ctx): string {
+  const r = role(c);
+  const logo = logoDataUriSync("black");
+  const title = esc(glue(s.title));
+  const notes = bubbles(s.body ?? "");
+  const size = fit(glue(s.title), c.W * 0.62, 4, 0.5, 120, 60);
+  const label = r === "cover" ? "Orbi :" : r === "end" ? "Et maintenant :" : `Étape ${c.i} :`;
+  const pos = [[0.05, 0.6], [0.09, 0.69], [0.05, 0.78]];
+  const css = `.s{background:#F6DAD6;font-family:Inter,sans-serif;color:#141414}
+  .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(246,218,214,.92) 0%,rgba(246,218,214,.55) 30%,rgba(246,218,214,0) 48%)}
+  .lab{font:600 40px/1.1 Archivo,sans-serif;letter-spacing:-.01em}
+  .t{font-family:Archivo,sans-serif;font-weight:500;letter-spacing:-.045em;line-height:.93;color:${VIOLET}}
+  .ed{font:500 26px/1.2 Inter;color:#2B2B2B;margin-top:22px}
+  .pill{position:absolute;top:52px;right:52px;display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:14px;background:rgba(255,255,255,.8);backdrop-filter:blur(10px)}
+  .pill img{height:26px;width:auto}
+  .n{position:absolute;display:flex;align-items:center;gap:14px;max-width:${Math.round(c.W * 0.5)}px;padding:14px 22px 14px 14px;border-radius:14px;background:rgba(255,255,255,.93);box-shadow:0 14px 34px rgba(60,20,30,.18);font:500 27px/1.3 Inter;color:#1C1C1C}
+  .n img{flex:none;width:50px;height:50px;border-radius:50%;object-fit:cover}
+  .arrow{position:absolute;left:50%;bottom:70px;transform:translateX(-50%)}`;
+  const nodes = notes.map((t, k) => `<div class="n" style="left:${Math.round(c.W * pos[k][0])}px;top:${Math.round(c.H * pos[k][1])}px"><img src="${agentAvatar(c.i + k)}">${esc(t)}</div>`).join("");
+  const arrow = r === "end" ? "" : `<svg class="arrow" width="96" height="28" viewBox="0 0 96 28"><path d="M2 14 H90 M76 2 L92 14 L76 26" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const inner = `${sceneBg(c, "linear-gradient(180deg,#F6DAD6,#E9C3C3)")}<div class="scrim"></div>
+    <div class="pill"><img src="${logo}"></div>
+    <div data-txt style="position:absolute;left:64px;width:${Math.round(c.W * 0.64)}px;top:${Math.round(c.H * 0.07)}px">
+      <div class="lab">${label}</div>
+      <h1 class="t" style="font-size:${size}px;margin-top:26px">${title}</h1>
+      ${r === "cover" ? `<div class="ed">(édition Saturn Studio)</div>` : ""}
+    </div>
+    ${nodes}${arrow}`;
+  return doc(css, inner, c);
+}
+
+/* ======================= 12. RESPIRA — scène cinéma, mot néon granuleux, manuscrit ======================= */
+function respira(s: Slide, c: Ctx): string {
+  const r = role(c);
+  const logoW = logoDataUriSync("white");
+  const words = glue(s.title).replace(/[.,:;!?…»\u00a0]+/g, " ").split(/ +/).filter((w) => w.length >= 3);
+  const word = (words[words.length - 1] ?? glue(s.title)).toLowerCase();
+  const giant = fit(word, c.W - 110, 1, 0.43, 340, 120);
+  const body = esc(s.body ?? "");
+  const chapter = r === "cover" ? "Réflexion" : r === "end" ? "À suivre" : `Chapitre ${pad(c.i)}`;
+  const css = `.s{background:#6FA44A;font-family:Inter,sans-serif;color:#fff}
+  .leak{position:absolute;inset:0;background:linear-gradient(112deg,rgba(255,120,40,.45) 0%,rgba(255,120,40,0) 18%),linear-gradient(100deg,rgba(0,0,0,0) 8%,rgba(120,200,255,.18) 11%,rgba(255,240,120,.18) 13%,rgba(0,0,0,0) 16%);mix-blend-mode:screen}
+  .frame{position:absolute;inset:30px;border:2px solid rgba(255,255,255,.75);border-radius:44px}
+  .pills{position:absolute;top:64px;left:66px;right:66px;display:flex;gap:18px}
+  .pl{flex:1;display:flex;align-items:center;justify-content:center;gap:12px;height:62px;border-radius:31px;border:2px solid rgba(255,255,255,.85);background:rgba(255,255,255,.12);backdrop-filter:blur(10px);font:500 24px/1 Inter;letter-spacing:.04em;text-transform:uppercase;text-shadow:0 1px 8px rgba(0,0,0,.3)}
+  .pl img{height:24px;width:auto}.pl b{font-style:italic;font-weight:800;color:#C6FF3D}
+  .g{position:absolute;left:0;right:0;top:${Math.round(c.H * 0.13)}px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;line-height:.82;letter-spacing:-.01em;color:#C6FF3D;filter:url(#rough) drop-shadow(0 0 28px rgba(198,255,61,.55));opacity:.96}
+  .script{font:700 52px/1.02 Caveat,cursive;color:#fff;text-shadow:0 3px 18px rgba(0,0,0,.55);transform:rotate(-7deg)}
+  .under{display:block;margin:6px 0 0 auto}
+  .side{position:absolute;left:44px;top:50%;transform:translateY(-50%) rotate(-90deg);transform-origin:left center;font:700 24px/1 Inter;white-space:nowrap;text-shadow:0 2px 10px rgba(0,0,0,.4)}
+  .card{position:absolute;left:70px;right:${Math.round(c.W * 0.4)}px;bottom:${Math.round(c.H * 0.1)}px;padding:22px 26px;border-radius:24px;background:rgba(10,20,10,.32);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.35);font:500 27px/1.38 Inter}
+  .lg{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);height:34px;width:auto}`;
+  const scribble = `<svg class="under" width="260" height="26" viewBox="0 0 260 26"><path d="M6 16 C60 4, 120 22, 180 10 S 240 8, 254 14" fill="none" stroke="#C6FF3D" stroke-width="5" stroke-linecap="round"/><path d="M40 22 C100 14, 160 24, 230 18" fill="none" stroke="#C6FF3D" stroke-width="3" stroke-linecap="round"/></svg>`;
+  const inner = `${ROUGH}${sceneBg(c, "linear-gradient(180deg,#9FD0F0 0%,#CFE8C0 40%,#6FA44A 62%,#3F6B2A 100%)")}<div class="leak"></div>
+    <div class="frame"></div>
+    <div class="pills"><span class="pl"><img src="${logoW}"></span><span class="pl">${esc(chapter)}&nbsp;<b>Saturn</b></span></div>
+    <h1 data-txt class="g" style="font-size:${giant}px">${esc(word)}</h1>
+    <div data-txt style="position:absolute;right:70px;width:${Math.round(c.W * 0.62)}px;top:${Math.round(c.H * 0.13) + Math.round(giant * 0.86) + 20}px;text-align:right"><div class="script">${esc(glue(s.title))}${scribble}</div></div>
+    <div class="side">@saturn.agency ✓</div>
+    ${body ? `<div data-txt class="card">${body}</div>` : ""}
+    <img class="lg" src="${logoW}">`;
+  return doc(css, inner, c);
+}
+
+/* ======================= 13. HÉROS — contre-plongée, titre géant, pastille et stickers ======================= */
+function heros(s: Slide, c: Ctx): string {
+  const r = role(c);
+  const logoW = logoDataUriSync("white");
+  const [head, tail] = splitTitle(s.title);
+  const body = esc(s.body ?? "");
+  const size = fit(`${head} ${tail}`, c.W - 120, 3, 0.76, 112, 56);
+  const badge = r === "cover" ? "NEW" : r === "end" ? "GO" : pad(c.i);
+  const kick = r === "cover" ? "Tout le monde n'a pas son Orbi…" : r === "end" ? "À toi de jouer…" : `étape ${c.i}…`;
+  const month = new Date().toLocaleDateString("fr-FR", { month: "short" }).replace(".", "").toUpperCase();
+  const meta = (pos: string) => `<div style="position:absolute;${pos};left:64px;right:64px;display:flex;justify-content:space-between;font:800 18px/1 Archivo,sans-serif;letter-spacing:.14em;text-shadow:0 1px 6px rgba(0,0,0,.35)"><span style="color:#FFD23F">${month}©${new Date().getFullYear()}</span><span>@SATURN.AGENCY</span><span>${c.single ? "SATURN" : `${pad(c.i + 1)}/${pad(c.total)}`}</span></div>`;
+  const star = (x: string, y: string, sz: number) => {
+    const pts = Array.from({ length: 32 }, (_, k) => { const a = (k * Math.PI) / 16, rr = k % 2 ? 0.55 : 1; return `${(50 + 50 * rr * Math.cos(a)).toFixed(1)},${(50 + 50 * rr * Math.sin(a)).toFixed(1)}`; }).join(" ");
+    return `<svg style="position:absolute;${x};${y};width:${sz}px;height:${sz}px" viewBox="0 0 100 100"><polygon points="${pts}" fill="#fff"/></svg>`;
+  };
+  const css = `.s{background:#3C8DE0;font-family:Inter,sans-serif;color:#F5F0E6}
+  .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,40,90,.35) 0%,rgba(10,40,90,0) 35%,rgba(0,0,0,0) 70%,rgba(0,0,0,.45) 100%)}
+  .k{font:700 44px/1 Caveat,cursive;color:#FFE45C;text-align:center;text-shadow:0 2px 10px rgba(0,0,0,.35)}
+  .t{font-family:Archivo,sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:-.035em;line-height:.9;text-align:center;text-wrap:balance;text-shadow:0 6px 30px rgba(0,30,80,.35)}
+  .b{display:inline-block;vertical-align:.12em;font-size:.42em;letter-spacing:0;padding:.08em .22em;margin-right:.18em;background:#FFD23F;color:#141414;border:.06em solid #141414;box-shadow:.08em .08em 0 #141414}
+  .card{position:absolute;left:70px;right:70px;bottom:${Math.round(c.H * 0.09)}px;padding:22px 28px;border-radius:22px;background:rgba(0,0,0,.35);backdrop-filter:blur(12px);font:600 28px/1.38 Inter;color:#fff}
+  .lg{position:absolute;left:50%;top:44px;transform:translateX(-50%);height:30px;width:auto;opacity:.95}`;
+  const inner = `${sceneBg(c, "linear-gradient(180deg,#2F7FD8,#8CC4F2)")}<div class="scrim"></div>
+    ${meta("top:52px")}<img class="lg" src="${logoW}" style="top:86px">
+    <div data-txt style="position:absolute;left:60px;right:60px;top:${Math.round(c.H * 0.1)}px">
+      <div class="k">${esc(kick)}</div>
+      <h1 data-maxlines="3" class="t" style="font-size:${size}px;margin-top:16px">${head ? `${esc(head)} ` : ""}<span class="b">${badge}</span>${esc(tail)}</h1>
+    </div>
+    ${star(`right:-60px`, `top:-50px`, 260)}${star(`left:-70px`, `bottom:${Math.round(c.H * 0.2)}px`, 200)}
+    ${body ? `<div data-txt class="card">${body}</div>` : ""}
+    ${meta("bottom:44px")}`;
+  return doc(css, inner, c);
+}
+
+/* ======================= 14. VITRINE — chiffre géant, maquettes d'interface, scène monochrome ======================= */
+function vitrine(s: Slide, c: Ctx): string {
+  const r = role(c);
+  const logo = logoDataUriSync("black");
+  const { before, key, after } = aroundKeyword(s.title);
+  const body = esc(s.body ?? "");
+  const giant = fit(key, c.W - 140, 1, 0.62, 300, 110);
+  const big2 = fit(after, c.W - 140, 2, 0.55, 150, 56);
+  const img = c.scene ? `url(${c.scene}) center/cover` : "radial-gradient(circle at 50% 40%,#555,#0A0A0A)";
+  const words = ["AGENTS IA", "N8N", "CONTENU", "PROSPECTION", "VEILLE", "DESIGN", "AUTOMATISATION"];
+  const dots = c.single ? "" : Array.from({ length: Math.min(c.total, 8) }, (_, k) => `<i style="width:14px;height:14px;border-radius:50%;${k === Math.min(c.i, 7) ? `background:${VIOLET}` : "border:2px solid #9A9A9A"}"></i>`).join("");
+  const globe = `<svg viewBox="0 0 200 200" width="100%" height="100%"><g fill="none" stroke="#111" stroke-width="2"><circle cx="100" cy="100" r="96" fill="#F3F3F1"/><ellipse cx="100" cy="100" rx="40" ry="96"/><ellipse cx="100" cy="100" rx="72" ry="96"/><line x1="100" y1="4" x2="100" y2="196"/><ellipse cx="100" cy="100" rx="96" ry="34"/><ellipse cx="100" cy="100" rx="96" ry="66"/><line x1="4" y1="100" x2="196" y2="100"/></g></svg>`;
+  const winTop = Math.round(c.H * 0.5);
+  const css = `.s{background:#F3F3F1;color:#0E0E0E;font-family:Inter,sans-serif}
+  .aa{position:absolute;right:-30px;top:${Math.round(c.H * 0.2)}px;font:400 420px/1 'Instrument Serif',serif;color:rgba(0,0,0,.05)}
+  .list{position:absolute;left:30px;top:${Math.round(c.H * 0.1)}px;font:600 22px/1.45 Inter;letter-spacing:.06em;color:rgba(0,0,0,.08)}
+  .small{font:700 66px/1 Archivo,sans-serif;letter-spacing:-.03em}
+  .giant{font-family:Archivo,sans-serif;font-weight:900;letter-spacing:-.06em;line-height:.86;color:${VIOLET};white-space:nowrap}
+  .big{font-family:Archivo,sans-serif;font-weight:600;letter-spacing:-.04em;line-height:.95}
+  .dots{position:absolute;right:66px;top:${Math.round(c.H * 0.13)}px;display:flex;flex-direction:column;gap:12px}
+  .win{position:absolute;left:${Math.round(c.W * 0.2)}px;width:${Math.round(c.W * 0.54)}px;top:${winTop}px;height:${Math.round(c.H * 0.36)}px;background:#0B0B0B;border-radius:14px;box-shadow:0 30px 60px rgba(0,0,0,.28);overflow:hidden;color:#fff}
+  .shot{position:absolute;right:0;top:48px;bottom:0;width:60%;background:${img};filter:grayscale(1) contrast(1.15)}
+  .shot::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#0B0B0B 0%,rgba(11,11,11,0) 40%)}
+  .wbar{height:48px;display:flex;align-items:center;gap:8px;padding:0 18px;border-bottom:1px solid #222}.wbar i{width:9px;height:9px;border-radius:50%;background:#fff}
+  .wtxt{position:absolute;left:26px;top:74px;bottom:20px;width:58%;font:500 22px/1.35 Inter;color:#BBB;z-index:1;overflow:hidden}
+  .wtxt p{margin-top:10px;font:500 34px/1.12 Inter;color:#fff;letter-spacing:-.02em}
+  .side{position:absolute;left:${Math.round(c.W * 0.7)}px;width:${Math.round(c.W * 0.22)}px;top:${winTop - 30}px;height:${Math.round(c.H * 0.3)}px;background:#fff;border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.14);padding:18px;font:500 17px/2 Inter;color:#333}
+  .side .A{font:400 70px/1 'Instrument Serif',serif}
+  .feat{position:absolute;left:${Math.round(c.W * 0.06)}px;width:${Math.round(c.W * 0.3)}px;top:${Math.round(c.H * 0.72)}px;background:#fff;border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.16);padding:16px;font:600 18px/1 Inter}
+  .feat div{margin-top:14px;height:${Math.round(c.H * 0.08)}px;border-radius:6px;background:${img};filter:grayscale(1)}
+  .globe{position:absolute;left:${Math.round(c.W * 0.6)}px;top:${Math.round(c.H * 0.68)}px;width:${Math.round(c.W * 0.24)}px;height:${Math.round(c.W * 0.24)}px}
+  .go{position:absolute;left:${Math.round(c.W * 0.8)}px;top:${Math.round(c.H * 0.77)}px;width:84px;height:84px;border-radius:50%;background:${VIOLET};color:#fff;display:flex;align-items:center;justify-content:center;font:600 36px/1 Inter;box-shadow:0 14px 30px rgba(124,58,237,.4)}
+  .foot{position:absolute;left:60px;right:60px;bottom:40px;border-top:2px solid #111;border-bottom:2px solid #111;padding:18px 0;display:flex;align-items:center;justify-content:center;gap:26px;font:500 24px/1 Inter;letter-spacing:.34em;text-transform:uppercase}`;
+  const inner = `<div class="aa">Aa</div><div class="list">${words.join("<br>")}</div>
+    <img src="${logo}" style="position:absolute;right:130px;top:56px;height:36px;width:auto">
+    <svg style="position:absolute;right:60px;top:52px" width="44" height="44" viewBox="0 0 24 24"><path d="M6 18 L18 6 M8 6 H18 V16" fill="none" stroke="#111" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <div class="dots">${dots}</div>
+    <div data-txt style="position:absolute;left:64px;right:120px;top:${Math.round(c.H * 0.06)}px">
+      ${before ? `<div class="small">${esc(before)}</div>` : ""}
+      <h1 class="giant" style="font-size:${giant}px">${esc(key)}</h1>
+      ${after ? `<h2 class="big" style="font-size:${big2}px">${esc(after)}</h2>` : ""}
+    </div>
+    <div class="win"><div class="wbar"><i></i><i></i><i></i></div><div class="shot"></div>
+      <div data-fitbox class="wtxt">Saturn Studio<p>${body ? body.split(/(?<=[.!?])\s/)[0].replace(/[.!?]$/, "") : "Pensé pour vous"}<span style="color:${VIOLET}">.</span></p><div style="margin-top:18px;color:#fff;font-size:28px">→</div></div>
+    </div>
+    <div class="side"><div class="A">A</div>Agents<br>Automatisations<br>Contenu<br>Veille<br>Conseil</div>
+    <div class="feat">À la une ↗<div></div></div>
+    <div class="globe">${globe}</div><div class="go">→</div>
+    <div class="foot"><svg width="30" height="30" viewBox="0 0 200 200"><g fill="none" stroke="#111" stroke-width="10"><circle cx="100" cy="100" r="92"/><ellipse cx="100" cy="100" rx="40" ry="92"/><line x1="8" y1="100" x2="192" y2="100"/></g></svg>${r === "end" ? "On en parle ?" : "Saturn Studio · Agence IA"}</div>`;
+  return doc(css, inner, c);
+}
+
 const RENDER: Record<Direction, (s: Slide, c: Ctx) => string> = {
   vanguard, orbit: orbitStory, signal, grille, atelier, cinema, brasier, studio, "plein-air": pleinAir, conversation,
+  bureau, respira, heros, vitrine,
 };
 
 export function directionSlideHTML(d: Direction, s: Slide, c: Ctx): string {
   return RENDER[d](s, c);
 }
 
+async function sceneDataUri(file: string, W: number, H: number): Promise<string> {
+  const buf = await sharp(file).resize(W, H, { fit: "cover", position: "attention" }).jpeg({ quality: 88 }).toBuffer();
+  return `data:image/jpeg;base64,${buf.toString("base64")}`;
+}
+
 export function sizeFor(platform: Platform, single: boolean): { W: number; H: number } {
   return platform === "instagram" || !single ? { W: 1080, H: 1350 } : { W: 1080, H: 1080 };
 }
 
-/** Rend toutes les slides d'un post dans la direction choisie → URLs publiques des PNG. */
-export async function composeDirection(postId: string, platform: Platform, slides: Slide[], d: Direction): Promise<string[]> {
+/**
+ * Rend les slides d'un post dans la direction choisie → URLs publiques des PNG.
+ * opts.scenes : chemins disque des scènes Higgsfield (directions à scènes) ;
+ * opts.indices : ne rendre que ces slides (les autres restent à null dans le résultat).
+ */
+export async function composeDirection(
+  postId: string, platform: Platform, slides: Slide[], d: Direction,
+  opts: { scenes?: (string | null | undefined)[]; indices?: number[] } = {}
+): Promise<string[]> {
   const single = slides.length === 1;
   const { W, H } = sizeFor(platform, single);
   await fsp.mkdir(OUT_DIR, { recursive: true });
@@ -622,8 +834,11 @@ export async function composeDirection(postId: string, platform: Platform, slide
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: W, height: H, deviceScaleFactor: 1 });
-    for (let i = 0; i < slides.length; i++) {
-      await page.setContent(directionSlideHTML(d, slides[i], { i, total: slides.length, W, H, single }), { waitUntil: "load", timeout: 60000 });
+    const todo = opts.indices ?? slides.map((_, i) => i);
+    for (const i of todo) {
+      const sceneFile = opts.scenes?.[i];
+      const scene = sceneFile ? await sceneDataUri(sceneFile, W, H) : undefined;
+      await page.setContent(directionSlideHTML(d, slides[i], { i, total: slides.length, W, H, single, scene }), { waitUntil: "load", timeout: 60000 });
       await Promise.race([
         page.evaluate(() => (document as Document & { fonts: FontFaceSet }).fonts.ready.then(() => true)),
         new Promise((r) => setTimeout(r, 5000)),
@@ -632,7 +847,7 @@ export async function composeDirection(postId: string, platform: Platform, slide
       await new Promise((r) => setTimeout(r, 150));
       const file = `${postId}-${d}-${i}.png`;
       await page.screenshot({ path: path.join(OUT_DIR, file) });
-      urls.push(`/content-out/${file}?v=${Date.now()}`);
+      urls[i] = `/content-out/${file}?v=${Date.now()}`;
     }
   } finally {
     await browser.close();

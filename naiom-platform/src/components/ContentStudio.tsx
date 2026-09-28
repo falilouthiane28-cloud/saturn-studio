@@ -22,8 +22,13 @@ interface ContentPost {
 interface Tmpl { bg: string; fg: string; accent: string; sub: string; font: string }
 const PREVIEW_TMPL: Tmpl = { bg: "#ffffff", fg: "#141414", accent: "var(--color-primary)", sub: "#6b7280", font: "'Archivo',sans-serif" };
 
-// Directions Saturn : les 10 modèles de Léa, rendus avec Orbi (mascotte) et le logo intégrés.
-const DIRECTIONS = [
+// Directions Saturn : les 14 modèles de Léa, avec Orbi (mascotte) et le logo intégrés.
+// `ai` : Scènes Orbi — chaque slide est une scène générée par Higgsfield (≈1 à 2 min, crédits).
+const DIRECTIONS = ([
+  { id: "da-bureau", name: "Bureau", hint: "Scène IA", ai: true },
+  { id: "da-respira", name: "Respira", hint: "Scène IA", ai: true },
+  { id: "da-heros", name: "Héros", hint: "Scène IA", ai: true },
+  { id: "da-vitrine", name: "Vitrine", hint: "Scène IA", ai: true },
   { id: "da-vanguard", name: "Vanguard", hint: "Minimaliste" },
   { id: "da-orbit", name: "Orbit Story", hint: "Narratif" },
   { id: "da-signal", name: "Signal", hint: "Néon" },
@@ -34,7 +39,7 @@ const DIRECTIONS = [
   { id: "da-studio", name: "Studio", hint: "Produit" },
   { id: "da-plein-air", name: "Plein air", hint: "Paysage" },
   { id: "da-conversation", name: "Conversation", hint: "Chat" },
-].map((d) => ({ ...d, src: `/templates/da/${d.id.slice(3)}.png` }));
+] as { id: string; name: string; hint: string; ai?: boolean }[]).map((d) => ({ ...d, src: `/templates/da/${d.id.slice(3)}.png` }));
 const directionName = (id?: string | null) => DIRECTIONS.find((d) => d.id === id)?.name;
 
 const FORMATS: Record<Platform, { key: Format; label: string }[]> = {
@@ -118,7 +123,8 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
   const [format, setFormat] = useState<Format>(saved?.format ?? formats[0].key);
   const [idea, setIdea] = useState(saved?.idea ?? "");
   const tmpl = PREVIEW_TMPL;
-  const [refTpl, setRefTpl] = useState<string>(directionName(saved?.refId) ? saved!.refId! : DIRECTIONS[0].id);
+  const [refTpl, setRefTpl] = useState<string>(directionName(saved?.refId) ? saved!.refId! : "da-vanguard");
+  const isAi = !!DIRECTIONS.find((d) => d.id === refTpl)?.ai;
   const [res, setRes] = useState<Result | null>(saved?.result ?? null);
   const [currentId, setCurrentId] = useState<string | null>(saved?.id ?? null);
   const [err, setErr] = useState<string | null>(null);
@@ -136,8 +142,8 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
     const r = await fetch("/api/content/visuals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error ?? "Génération visuels impossible");
-    for (let k = 0; k < 90; k++) {
-      await new Promise((res) => setTimeout(res, 5000));
+    for (let k = 0; k < 120; k++) {
+      await new Promise((res) => setTimeout(res, j.scenes ? 5000 : 500));
       const pr = await fetch(`/api/content/visuals?id=${id}`, { cache: "no-store" });
       const pj = await pr.json();
       if (Array.isArray(pj.images)) { setSlideImages(pj.images); setProgress({ done: pj.images.filter((x: string | null) => x).length, total: pj.images.length }); }
@@ -203,6 +209,7 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
                 <button key={d.id} onClick={() => setRefTpl(d.id)}
                   className={cn("relative overflow-hidden rounded-lg border-2 text-left transition", refTpl === d.id ? "border-[var(--color-primary)]" : "border-transparent opacity-85 hover:opacity-100")}>
                   <img src={d.src} alt="" className="aspect-[4/5] w-full object-cover" />
+                  {d.ai && <span className="absolute left-1 top-1 rounded-md bg-[var(--color-primary)] px-1.5 py-0.5 text-[9px] font-black text-white">IA</span>}
                   <div className="bg-[var(--color-bg)] px-1.5 py-1">
                     <div className="text-[10px] font-black text-[var(--color-ink)]">{d.name}</div>
                     <div className="text-[9px] text-[var(--color-muted)]">{d.hint}</div>
@@ -219,10 +226,11 @@ function PlatformPanel({ platform, saved, onSaved }: { platform: Platform; saved
           style={{ background: PLAT[platform].color }}>
           <Icon name={loading ? "Loader" : "Sparkles"} size={15} className={loading ? "animate-spin" : ""} />
           {phase === "text" ? "Léa rédige le contenu…"
-            : phase === "visuals" ? `Mise en image des slides… ${progress ? `(${progress.done}/${progress.total})` : ""}`
+            : phase === "visuals" ? `${isAi ? "Higgsfield met Orbi en scène" : "Mise en image des slides"}… ${progress ? `(${progress.done}/${progress.total})` : ""}`
             : res ? "Regénérer" : "Générer"}
         </button>
-        {phase === "visuals" && <div className="text-[11px] text-[var(--color-muted)]">Léa met chaque slide en page avec Orbi (quelques secondes).</div>}
+        {phase === "visuals" && <div className="text-[11px] text-[var(--color-muted)]">{isAi ? "Une scène générée par slide, en parallèle (≈1 à 2 min). Les slides apparaissent au fil de l'eau." : "Léa met chaque slide en page avec Orbi (quelques secondes)."}</div>}
+        {showTemplates && isAi && phase === "idle" && <div className="text-[11px] text-[var(--color-muted)]">Modèle IA : une scène Higgsfield par slide (consomme des crédits).</div>}
 
         {res && currentId && !loading && (
           <div className="space-y-2">

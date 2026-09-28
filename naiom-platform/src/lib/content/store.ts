@@ -11,7 +11,8 @@ import type { ContentResult, Platform, Format } from "./generate";
 const DIR = path.join(REPO_ROOT, "content");
 const STORE = path.join(DIR, "store.json");
 
-export interface SlideJob { index: number; jobId: string }
+/** Job Higgsfield d'une scène Orbi (une par slide). */
+export interface SlideJob { index: number; jobId: string; tries?: number; state?: "pending" | "done" | "failed" }
 export interface ContentPost {
   id: string;
   platform: Platform;
@@ -20,7 +21,8 @@ export interface ContentPost {
   template?: string; // nom DA (aperçu texte)
   refId?: string; // direction Saturn choisie (da-vanguard, da-signal…)
   result: ContentResult;
-  visuals?: { jobs: SlideJob[]; images: (string | null)[]; done: boolean };
+  scenes?: string[]; // direction artistique de Léa, une scène par slide (directions à scènes)
+  visuals?: { jobs: SlideJob[]; images: (string | null)[]; done: boolean; scenes?: (string | null)[] };
   status: "draft" | "scheduled" | "posted";
   schedule?: { at: string } | null;
   createdAt: string;
