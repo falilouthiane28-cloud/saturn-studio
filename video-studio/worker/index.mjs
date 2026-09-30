@@ -80,6 +80,38 @@ function notify(title, text) {
   spawn("powershell.exe", ["-NoProfile", "-WindowStyle", "Hidden", "-Command", ps], { detached: true, stdio: "ignore", windowsHide: true }).unref();
 }
 
+/* ---------- envoi par morceaux (connexion montante lente : pas de requête de plus de 5 min) ---------- */
+const CHUNK = 4 * 1024 * 1024;
+async function uploadFile(jobId, file) {
+  const name = path.basename(file);
+  const size = fs.statSync(file).size;
+  const fd = fs.openSync(file, "r");
+  try {
+    let offset = 0, failures = 0;
+    for (;;) {
+      const end = Math.min(size, offset + CHUNK);
+      const buf = Buffer.alloc(end - offset);
+      fs.readSync(fd, buf, 0, buf.length, offset);
+      try {
+        const r = await api(`/api/video/worker/output/${jobId}?name=${encodeURIComponent(name)}&offset=${offset}${end >= size ? "&final=1" : ""}`, {
+          method: "PUT", body: buf, headers: { "Content-Type": "application/octet-stream" },
+        });
+        const j = await r.json().catch(() => ({}));
+        if (r.status === 409 && typeof j.expected === "number") { offset = j.expected; continue; }
+        if (!r.ok) throw new Error(`${r.status} ${j.error ?? ""}`);
+        failures = 0;
+        if (end >= size) return;
+        offset = end;
+      } catch (e) {
+        if (++failures > 6) throw new Error(`Envoi de ${name} impossible : ${e.message}`);
+        await new Promise((res) => setTimeout(res, 3000 * failures));
+      }
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 /* ---------- job.json ---------- */
 const jobFile = (dir) => path.join(dir, "job.json");
 const readJob = (dir) => { try { return JSON.parse(fs.readFileSync(jobFile(dir), "utf8")); } catch { return null; } };
@@ -97,6 +129,8 @@ async function pollServer() {
   writeJob(dir, { ...job, source: "saturn", localStatus: "downloading" });
   try {
     for (const c of job.clips) {
+      const local = path.join(dir, c.name);
+      if (fs.existsSync(local) && fs.statSync(local).size === c.size) continue;
       const res = await api(`/api/video/worker/source/${job.id}/${encodeURIComponent(c.name)}`);
       if (!res.ok || !res.body) throw new Error(`Téléchargement de ${c.name} impossible (${res.status})`);
       await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(path.join(dir, c.name)));
@@ -180,7 +214,9 @@ async function processJob(dir) {
     log(`${job.id} : ${units.length} unités analysées, demande du plan à Fatou…`);
 
     // 2. Plan de Fatou.
-    const pr = await api("/api/video/worker/plan", {
+    const saved = path.join(out, "plan.json");
+    const reuse = fs.existsSync(saved) ? JSON.parse(fs.readFileSync(saved, "utf8")) : null;
+    const pr = reuse ? { ok: true, json: async () => reuse.plan } : await api("/api/video/worker/plan", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         job: { title: job.title, cta: job.cta, style: job.style, duration: job.duration, guidance: job.guidance, previousPlan: job.plan },
@@ -202,9 +238,14 @@ async function processJob(dir) {
         const inputProps = { width, height, fps: 30, style: job.style, segments: v.segments, hook: plan.hook, cta: plan.cta, variantLabel: v.label, assets: job.assets };
         const composition = await selectComposition({ serveUrl: url, id: "Montage", inputProps });
         const base = `${v.key}-${fmt.replace(":", "x")}`;
-        log(`${job.id} : rendu ${v.label} ${fmt} (${Math.round(composition.durationInFrames / 30)} s)…`);
-        await renderMedia({ composition, serveUrl: url, codec: "h264", crf: 20, concurrency: 4, outputLocation: path.join(out, `${base}.mp4`), inputProps, imageFormat: "jpeg", jpegQuality: 88 });
-        await renderStill({ composition, serveUrl: url, output: path.join(out, `${base}.jpg`), inputProps, frame: Math.min(24, composition.durationInFrames - 1), imageFormat: "jpeg", jpegQuality: 85 });
+        const ok = path.join(out, `${base}.ok`);
+        if (!fs.existsSync(ok)) {
+          log(`${job.id} : rendu ${v.label} ${fmt} (${Math.round(composition.durationInFrames / 30)} s)…`);
+          // CRF 23 : qualité largement suffisante pour les réseaux (qui recompressent), fichiers 2 à 3 fois plus légers.
+          await renderMedia({ composition, serveUrl: url, codec: "h264", crf: 23, concurrency: 4, outputLocation: path.join(out, `${base}.mp4`), inputProps, imageFormat: "jpeg", jpegQuality: 88 });
+          await renderStill({ composition, serveUrl: url, output: path.join(out, `${base}.jpg`), inputProps, frame: Math.min(24, composition.durationInFrames - 1), imageFormat: "jpeg", jpegQuality: 85 });
+          fs.writeFileSync(ok, "");
+        }
         outputs.push({ file: `${base}.mp4`, thumb: `${base}.jpg`, format: fmt, variant: v.key, label: v.label, seconds: +(composition.durationInFrames / 30).toFixed(1) });
       }
     }
@@ -212,11 +253,9 @@ async function processJob(dir) {
     // 4. Renvoi au studio.
     if (job.source === "saturn") {
       for (const o of outputs) {
-        for (const f of [o.file, o.thumb]) {
-          const r = await api(`/api/video/worker/output/${job.id}?name=${encodeURIComponent(f)}`, {
-            method: "PUT", body: Readable.toWeb(fs.createReadStream(path.join(out, f))), duplex: "half", headers: { "Content-Type": "application/octet-stream" },
-          });
-          if (!r.ok) throw new Error(`Envoi de ${f} impossible (${r.status} ${(await r.text()).slice(0, 120)})`);
+        for (const f of [o.thumb, o.file]) {
+          log(`${job.id} : envoi de ${f} au studio…`);
+          await uploadFile(job.id, path.join(out, f));
         }
       }
       await api(`/api/video/worker/done/${job.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ outputs, plan }) });

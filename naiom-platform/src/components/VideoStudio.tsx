@@ -43,16 +43,38 @@ const STATUS: Record<Job["status"], string> = {
   uploading: "Envoi des rushs…", queued: "En attente du poste de montage", rendering: "Montage en cours sur le PC", done: "Prêt", failed: "Échec",
 };
 
-/** Envoi d'un fichier avec progression (fetch n'expose pas la progression d'envoi). */
-function upload(jobId: string, file: File, onProgress: (p: number) => void): Promise<void> {
+const CHUNK = 8 * 1024 * 1024;
+
+/** Envoi d'un morceau avec progression (fetch n'expose pas la progression d'envoi). */
+function putChunk(url: string, blob: Blob, onProgress: (loaded: number) => void): Promise<{ status: number; body: { error?: string; expected?: number } }> {
   return new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
-    x.open("PUT", `/api/video/upload?job=${encodeURIComponent(jobId)}&name=${encodeURIComponent(file.name)}`);
-    x.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
-    x.onload = () => (x.status < 300 ? resolve() : reject(new Error((() => { try { return JSON.parse(x.responseText).error; } catch { return `Envoi impossible (${x.status})`; } })())));
+    x.open("PUT", url);
+    x.upload.onprogress = (e) => onProgress(e.loaded);
+    x.onload = () => { let body = {}; try { body = JSON.parse(x.responseText); } catch { /* */ } resolve({ status: x.status, body }); };
     x.onerror = () => reject(new Error("Connexion interrompue pendant l'envoi."));
-    x.send(file);
+    x.send(blob);
   });
+}
+
+/** Envoi d'un rush par morceaux de 8 Mo, avec reprise automatique (connexion lente ou instable). */
+async function upload(jobId: string, file: File, onProgress: (p: number) => void): Promise<void> {
+  const base = `/api/video/upload?job=${encodeURIComponent(jobId)}&name=${encodeURIComponent(file.name)}`;
+  let offset = 0, failures = 0;
+  while (offset < file.size || offset === 0) {
+    const end = Math.min(file.size, offset + CHUNK);
+    try {
+      const r = await putChunk(`${base}&offset=${offset}${end >= file.size ? "&final=1" : ""}`, file.slice(offset, end), (l) => onProgress((offset + l) / file.size));
+      if (r.status === 409 && typeof r.body.expected === "number") { offset = r.body.expected; continue; }
+      if (r.status >= 300) throw new Error(r.body.error ?? `Envoi impossible (${r.status})`);
+      offset = end;
+      failures = 0;
+      if (end >= file.size) return;
+    } catch (e) {
+      if (++failures > 5) throw e;
+      await new Promise((res) => setTimeout(res, 2000 * failures));
+    }
+  }
 }
 
 export function VideoStudio() {
@@ -239,6 +261,7 @@ function JobCard({ job, onChange }: { job: Job; onChange: () => void }) {
             job.status === "done" ? "bg-emerald-100 text-emerald-700" : job.status === "failed" ? "bg-red-100 text-red-600" : "bg-violet-100 text-violet-700")}>
             {pending && <Icon name="Loader" size={10} className="mr-1 inline animate-spin" />}{STATUS[job.status]}
           </span>
+          {job.status === "failed" && <button onClick={() => act({ action: "submit" })} disabled={busy} className="rounded-lg border border-[var(--color-line)] px-2 py-0.5 text-[10px] font-bold">Relancer</button>}
           <button onClick={del} aria-label="Supprimer" className="text-[var(--color-muted)] hover:text-rose-500"><Icon name="Trash2" size={14} /></button>
         </div>
       </div>

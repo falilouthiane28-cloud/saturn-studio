@@ -56,3 +56,31 @@ export async function fileResponse(req: Request, file: string, download?: string
   const stream = Readable.toWeb(fs.createReadStream(file)) as ReadableStream;
   return new Response(stream, { headers: { ...headers, "Content-Length": String(stat.size) } });
 }
+
+/**
+ * Envoi par morceaux (reprise possible) : chaque requête ajoute un morceau à `dest.part`
+ * à l'octet `offset` ; `final` publie le fichier. Évite les coupures des requêtes longues
+ * (Node coupe au-delà de 5 min) sur une connexion montante lente.
+ * Renvoie la taille reçue ; si `offset` ne correspond pas, lève une erreur avec la bonne valeur.
+ */
+export class OffsetMismatch extends Error {
+  constructor(public expected: number) { super(`Reprendre à l'octet ${expected}.`); }
+}
+export async function saveChunk(req: Request, dest: string, offset: number, final: boolean, max = MAX_UPLOAD_BYTES): Promise<number> {
+  if (!req.body) throw new Error("Corps de requête vide.");
+  await fs.promises.mkdir(path.dirname(dest), { recursive: true });
+  const part = `${dest}.part`;
+  if (offset === 0) await fs.promises.rm(part, { force: true });
+  const current = (await fs.promises.stat(part).catch(() => null))?.size ?? 0;
+  if (current !== offset) throw new OffsetMismatch(current);
+  let size = current;
+  const limit = new Transform({
+    transform(chunk: Buffer, _enc, cb) {
+      size += chunk.length;
+      cb(size > max ? new Error(`Fichier trop lourd (max ${Math.round(max / 1024 / 1024)} Mo).`) : null, chunk);
+    },
+  });
+  await pipeline(Readable.fromWeb(req.body as import("node:stream/web").ReadableStream), limit, fs.createWriteStream(part, { flags: "a" }));
+  if (final) await fs.promises.rename(part, dest);
+  return size;
+}

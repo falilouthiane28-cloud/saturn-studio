@@ -2,13 +2,13 @@ import path from "node:path";
 import { cookies } from "next/headers";
 import { authEnabled, SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { getJob, jobDir, safeName, updateJob } from "@/lib/video/store";
-import { saveBody, VIDEO_EXT } from "@/lib/video/files";
+import { OffsetMismatch, saveChunk, VIDEO_EXT } from "@/lib/video/files";
 
 export const runtime = "nodejs";
 export const maxDuration = 900;
 
 /**
- * PUT /api/video/upload?job=…&name=… — envoi d'un rush (corps brut, écrit en flux).
+ * PUT /api/video/upload?job=…&name=…&offset=…&final=1 — envoi d'un rush par morceaux (corps brut, écrit en flux, reprise possible).
  * Hors du proxy (qui mettrait tout le fichier en mémoire) : la session est vérifiée ici.
  */
 export async function PUT(req: Request) {
@@ -22,10 +22,13 @@ export async function PUT(req: Request) {
   try {
     const name = safeName(url.searchParams.get("name") ?? "");
     if (!VIDEO_EXT.test(name)) throw new Error("Format vidéo non accepté (mp4, mov, webm, m4v, mkv).");
-    const size = await saveBody(req, path.join(jobDir(id), "src", name));
-    await updateJob(id, (j) => ({ clips: [...j.clips.filter((c) => c.name !== name), { name, size }] }));
+    const offset = Math.max(0, Number(url.searchParams.get("offset")) || 0);
+    const final = url.searchParams.get("final") === "1";
+    const size = await saveChunk(req, path.join(jobDir(id), "src", name), offset, final);
+    if (final) await updateJob(id, (j) => ({ clips: [...j.clips.filter((c) => c.name !== name), { name, size }] }));
     return Response.json({ success: true, name, size });
   } catch (e) {
+    if (e instanceof OffsetMismatch) return Response.json({ error: e.message, expected: e.expected }, { status: 409 });
     return Response.json({ error: e instanceof Error ? e.message : "Erreur" }, { status: 400 });
   }
 }
