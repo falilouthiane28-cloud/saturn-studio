@@ -9,7 +9,7 @@ import { refusSiInterdit } from "./guard.ts";
 import { router } from "./router.ts";
 import { loadSkill, type SkillName } from "./skillLoader.ts";
 import { DOSSIER_ETAT_DEFAUT, EtatFichiers, type AdaptateurEtat } from "./stateStore.ts";
-import { consignesPipeline, detecterVideo, lireStyles, lireVoix, REFUS_VIDEO_AUTRUI, type DemandeVideo } from "./motion.ts";
+import { assurerVoix, consignesPipeline, detecterVideo, lireStyles, REFUS_VIDEO_AUTRUI, VOIX_PRESETS_FR, type DemandeVideo } from "./motion.ts";
 import { captionLint, hookscore, type CaptionLint, type HookClassement } from "./tools.ts";
 import { LANG, type Langue } from "./config.ts";
 
@@ -170,7 +170,9 @@ const MSG_VOIX = "Avant d'écrire quoi que ce soit : colle-moi trois de tes prop
 async function tourVideo(video: Exclude<DemandeVideo, "refus">, demande: string, etat: AdaptateurEtat): Promise<Tour> {
   const dossier = etat instanceof EtatFichiers ? etat.dossier : DOSSIER_ETAT_DEFAUT;
   const [voix, swipe, plan, log, styles, voixHf] = await Promise.all([
-    etat.lire("voice.md"), etat.lire("swipe.md"), etat.lire("plan.md"), etat.lire("log.md"), lireStyles(dossier), lireVoix(dossier),
+    etat.lire("voice.md"), etat.lire("swipe.md"), etat.lire("plan.md"), etat.lire("log.md"), lireStyles(dossier),
+    // Voix préréglée choisie par le propriétaire (voix française) : Celine au premier usage, jamais recréée.
+    assurerVoix(dossier, VOIX_PRESETS_FR.celine),
   ]);
   // Reel + vidéo : ig-reel écrit le script, donc la voix du propriétaire est obligatoire (comme pour un Reel seul).
   if (video === "reel-video" && !voix && demande.length <= 600) return { type: "reponse", raison: "voix", texte: MSG_VOIX };

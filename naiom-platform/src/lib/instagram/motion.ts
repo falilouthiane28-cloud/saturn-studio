@@ -217,6 +217,6 @@ ${brief}${story}
 3. Montre le plan (scènes, narration, prompts, nombre d'images et de clips à payer) et attends son « oui ».
 4. Après le « oui » : generer_image_cle pour chaque scène (prompts de plan_video_motion, tels quels), puis animer_scene sur chaque image, puis statut_video jusqu'à « completed ».
 5. Narration audio : voix ${voix ? `${voix.voice_name} (${voix.voice_id})` : "non choisie (Celine ou Elodie : demande au propriétaire)"}. L'API du serveur ne fait pas de synthèse vocale : dis-le, et propose soit que le propriétaire enregistre la narration, soit de la générer depuis la session Claude Code.
-6. Montage : les clips, la narration et les textes mot par mot vont au poste Remotion (studio vidéo). Termine par le bloc MOTION VIDEO READY (durée, scènes avec timecodes, narration, voix, style, score ig-human, request_id Higgsfield).
+6. Montage : quand tous les clips sont « completed », appelle assembler_video avec leurs request_id dans l'ordre des scènes ; il rend le lien de la vidéo finale (image seule). La narration enregistrée et les textes mot par mot peuvent ensuite être ajoutés sur le poste Remotion (studio vidéo). Termine par le bloc MOTION VIDEO READY (durée, scènes avec timecodes, narration, voix, style, score ig-human, request_id Higgsfield).
 Style actif : clean-explainer. Styles disponibles : ${Object.keys(styles).join(", ")}. Jamais de vidéo ou d'image externe : tout est généré.`;
 }

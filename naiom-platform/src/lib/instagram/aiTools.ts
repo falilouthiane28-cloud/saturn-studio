@@ -12,6 +12,7 @@ import { DOSSIER_ETAT_DEFAUT, EtatFichiers, estUnOui, type FichierEtat } from ".
 import { creerEnveloppe, type Enveloppe } from "./handoff.ts";
 import { LANG } from "./config.ts";
 import { DUREE_MAX, animerImage, estRequestId, lancerImageCle, lancerVideo, statutVideo, type VideoDemande } from "../integrations/higgsfieldVideo.ts";
+import { assemblerMotion } from "../integrations/montageMotion.ts";
 import { ajouterStyle, decouperScenes, lireStyles, promptAnimation, promptImage, promptRespecteStyle, verifierNarration, type Duree, type StyleMotion } from "./motion.ts";
 
 const json = (x: unknown) => JSON.stringify(x, null, 1);
@@ -175,6 +176,14 @@ export function outilsInstagram(opts: { derniereReponse: string; skills: readonl
           if (img.status !== "completed" || !img.imageUrl) return `L'image ${image_request_id} n'est pas prête (${img.status}). Réessaie avec statut_video.`;
           return json({ request_id: await animerImage(img.imageUrl, prompt, duree) });
         } catch (e) { return `ÉCHEC : ${(e as Error).message}`; }
+      },
+    }),
+    assembler_video: tool({
+      description: "Monte la vidéo finale sur le serveur : colle dans l'ordre les clips des scènes (request_id rendus par animer_scene, tous « completed ») en un MP4 vertical 720×1280, et renvoie son lien public. Ne dépense aucun crédit.",
+      inputSchema: S<{ request_ids: string[] }>({ type: "object", properties: { request_ids: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 12 } }, required: ["request_ids"] }),
+      execute: async ({ request_ids }) => {
+        try { const r = await assemblerMotion(request_ids); return json({ url: r.url, clips: r.clips }); }
+        catch (e) { return `ÉCHEC : ${(e as Error).message}`; }
       },
     }),
     ajouter_style_motion: tool({
