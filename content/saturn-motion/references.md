@@ -21,4 +21,6 @@ Quatre vidéos envoyées comme modèles (WhatsApp, 848×480, 17 à 28 s ; les 2-
 - Templates : Démo produit (20 s), Découverte (25 s), Révélation de marque (15 s) (lib/instagram/motionTemplates.ts).
 - Scènes UI et LOGO ; mot accentué `*mot*` ; format 9:16 ou 16:9.
 - Images Higgsfield sans texte ; titres, mot accentué et logo rendus par Chromium et posés au montage (integrations/titresMotion.ts, montageMotion.ts).
-- Limite : la saisie « tapée » lettre par lettre et le curseur animé ne sont pas encore animés au montage (titres en fondu).
+- Titres animés : texte tapé lettre par lettre avec curseur (interface, accroche des styles SaaS), apparition mot par mot (accroche clean), fondu (le reste).
+- Sound design généré par ffmpeg (aucun fichier externe) : whoosh aux coupes, pop aux titres, cliquetis de frappe, drone sur la tension, riser + impact + scintillement sur le logo, nappe d'ambiance. Narration du propriétaire mixée avec baisse automatique de la musique.
+- Démo : demo-titres-son.mp4 (fonds unis de test, titres et son réels).

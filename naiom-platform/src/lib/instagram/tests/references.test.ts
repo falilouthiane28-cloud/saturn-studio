@@ -86,7 +86,7 @@ test("R7 · vrai rendu : titres Chromium + ffmpeg sur deux clips, image de contr
   const a = path.join(d, "a.mp4"), b = path.join(d, "b.mp4"), out = path.join(d, "final.mp4");
   await run(FFMPEG, ["-y", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=white:s=720x1280:r=30:d=2", "-pix_fmt", "yuv420p", a]);
   await run(FFMPEG, ["-y", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0x7C3AED:s=720x1280:r=30:d=2", "-pix_fmt", "yuv420p", b]);
-  let pngs: (string | null)[];
+  let pngs: Awaited<ReturnType<typeof rendreTitres>>;
   try {
     pngs = await rendreTitres([{ texte: "Le progrès *ralentit*", ton: "clair", type: "HOOK" }, { texte: "Saturn Studio", ton: "marque", type: "LOGO" }], "9:16", "#7C3AED", d);
   } catch (e) { t.skip(`Chromium indisponible : ${(e as Error).message.slice(0, 80)}`); return; }

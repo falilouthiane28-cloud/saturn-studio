@@ -13,7 +13,8 @@ import { creerEnveloppe, type Enveloppe } from "./handoff.ts";
 import { LANG } from "./config.ts";
 import { DUREE_MAX, animerImage, estRequestId, lancerImageCle, lancerVideo, statutVideo, type VideoDemande } from "../integrations/higgsfieldVideo.ts";
 import { assemblerMotion } from "../integrations/montageMotion.ts";
-import { ajouterStyle, decouperScenes, lireStyles, promptAnimation, promptImage, promptRespecteStyle, verifierNarration, type Duree, type FormatVideo, type StyleMotion } from "./motion.ts";
+import { animationPar } from "../integrations/titresMotion.ts";
+import { ajouterStyle, decouperScenes, lireStyles, promptAnimation, promptImage, promptRespecteStyle, verifierNarration, tonScene, type Duree, type FormatVideo, type StyleMotion, type TypeScene } from "./motion.ts";
 
 const json = (x: unknown) => JSON.stringify(x, null, 1);
 const S = <T>(schema: object) => jsonSchema<T>(schema as Parameters<typeof jsonSchema>[0]);
@@ -179,10 +180,26 @@ export function outilsInstagram(opts: { derniereReponse: string; skills: readonl
       },
     }),
     assembler_video: tool({
-      description: "Monte la vidéo finale sur le serveur : colle dans l'ordre les clips des scènes (request_id rendus par animer_scene, tous « completed ») en un MP4 vertical 720×1280, et renvoie son lien public. Ne dépense aucun crédit.",
-      inputSchema: S<{ request_ids: string[] }>({ type: "object", properties: { request_ids: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 12 } }, required: ["request_ids"] }),
-      execute: async ({ request_ids }) => {
-        try { const r = await assemblerMotion(request_ids); return json({ url: r.url, clips: r.clips }); }
+      description: "Monte la vidéo finale sur le serveur : colle dans l'ordre les clips des scènes (request_id rendus par animer_scene, tous « completed »), pose les titres animés (texte tapé, mot accentué, logo) si tu passes les scènes, et ajoute le sound design (whoosh, pops, frappe, riser et impact sur le logo, nappe d'ambiance). Renvoie le lien de la vidéo finale et de sa version muette. Ne dépense aucun crédit.",
+      inputSchema: S<{ request_ids: string[]; scenes?: { type: TypeScene; texte_ecran: string }[]; style?: string; format?: FormatVideo }>({
+        type: "object",
+        properties: {
+          request_ids: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 12 },
+          scenes: { type: "array", items: { type: "object", properties: { type: { type: "string", enum: ["HOOK", "CONTEXT", "TENSION", "SOLUTION", "PROOF", "UI", "CTA", "LOGO"] }, texte_ecran: { type: "string" } }, required: ["type", "texte_ecran"] } },
+          style: { type: "string" }, format: { type: "string", enum: ["9:16", "16:9"] },
+        },
+        required: ["request_ids"],
+      }),
+      execute: async ({ request_ids, scenes, style, format }) => {
+        try {
+          const styles = await lireStyles(DOSSIER_ETAT_DEFAUT);
+          const st = styles[style ?? "clean-explainer"] ?? styles["clean-explainer"];
+          const titres = scenes?.length === request_ids.length
+            ? scenes.map((s) => ({ texte: s.texte_ecran, type: s.type, ton: tonScene(s.type, st), animation: animationPar(s.type, style ?? "clean-explainer") }))
+            : undefined;
+          const r = await assemblerMotion(request_ids, { format: format ?? "9:16", titres, accent: st.accent });
+          return json({ url: r.url, url_muette: r.url_muette, clips: r.clips, duree: Math.round(r.duree * 10) / 10 });
+        }
         catch (e) { return `ÉCHEC : ${(e as Error).message}`; }
       },
     }),

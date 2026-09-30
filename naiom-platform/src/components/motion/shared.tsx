@@ -43,7 +43,7 @@ export function TitreAccent({ texte, ton }: { texte: string; ton: Ton }) {
     <>
       {texte.split(/(\*[^*]+\*)/).filter(Boolean).map((m, i) =>
         m.startsWith("*") && m.endsWith("*")
-          ? <span key={i} className={ton === "marque" ? "text-[#FFE5A0]" : "text-[#7C3AED]"}>{m.slice(1, -1)}</span>
+          ? <span key={i} className={ton === "marque" ? "text-[#FFE5A0]" : ton === "sombre" ? "text-[#B79CF7]" : "text-[#7C3AED]"}>{m.slice(1, -1)}</span>
           : <span key={i}>{m}</span>)}
     </>
   );

@@ -7,7 +7,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { animerImage, lancerImageCle, statutVideo } from "../integrations/higgsfieldVideo.ts";
-import { assemblerMotion } from "../integrations/montageMotion.ts";
+import { assemblerMotion, remixerAvecNarration } from "../integrations/montageMotion.ts";
+import { animationPar } from "../integrations/titresMotion.ts";
+import type { SceneSon } from "../integrations/sonMotion.ts";
 import type { MotionPlan } from "./motionPlan.ts";
 
 export interface EtapeScene { image_id?: string; image_url?: string; video_id?: string; video_url?: string; statut: "attente" | "image" | "animation" | "prete" | "echec"; erreur?: string }
@@ -17,9 +19,20 @@ export interface MotionJob {
   plan: MotionPlan;
   statut: "plan" | "generation" | "montage" | "pret" | "echec";
   etapes: EtapeScene[];
-  final_url?: string;
+  final_url?: string;          // vidéo finale (titres + sound design, + narration si envoyée)
+  sans_voix_url?: string;      // version sound design seul (gardée après ajout de la narration)
+  url_muette?: string;         // image seule, base des remixages
+  duree?: number;
+  scenes_son?: SceneSon[];
+  narration?: string;          // fichier audio envoyé par le propriétaire (dossier d'état)
   erreur?: string;
 }
+
+export const FORMATS_NARRATION: Record<string, string> = {
+  "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/mp4": "m4a", "audio/x-m4a": "m4a", "audio/aac": "aac",
+  "audio/wav": "wav", "audio/x-wav": "wav", "audio/wave": "wav", "audio/webm": "webm", "audio/ogg": "ogg",
+};
+export const TAILLE_MAX_NARRATION = 25 * 1024 * 1024;
 
 const FICHIER = "motion-jobs.json";
 const verrous = new Map<string, Promise<unknown>>();
@@ -106,10 +119,34 @@ export async function avancerJob(dossier: string, id: string): Promise<MotionJob
     }
     try {
       // Titres posés au montage : texte à l'écran de chaque scène, mot accentué, logo final.
-      const titres = job.plan.scenes.map((s) => ({ texte: s.texte_ecran, type: s.type, ton: s.ton ?? (s.fond === "black" ? "sombre" as const : "clair" as const) }));
+      const titres = job.plan.scenes.map((s) => ({
+        texte: s.texte_ecran, type: s.type, ton: s.ton ?? (s.fond === "black" ? "sombre" as const : "clair" as const),
+        animation: animationPar(s.type, job.plan.style ?? "clean-explainer"),
+      }));
       const r = await assemblerMotion(job.etapes.map((e) => e.video_id!), { format: job.plan.format ?? "9:16", titres, accent: job.plan.accent });
-      job.final_url = r.url; job.statut = "pret";
+      Object.assign(job, { final_url: r.url, url_muette: r.url_muette, duree: r.duree, scenes_son: r.scenes_son, statut: "pret" });
     } catch (err) { job.statut = "echec"; job.erreur = `Montage : ${(err as Error).message}`; }
+  })).job;
+}
+
+/**
+ * Narration du propriétaire : fichier audio enregistré dans le dossier d'état, puis la vidéo est
+ * remixée (sound design qui baisse sous la voix). La version sans voix reste disponible.
+ */
+export async function ajouterNarration(dossier: string, id: string, audio: Buffer, typeMime: string): Promise<MotionJob> {
+  const ext = FORMATS_NARRATION[typeMime.split(";")[0].trim().toLowerCase()];
+  if (!ext) throw new Error("Format audio non accepté (mp3, m4a, aac, wav, webm, ogg).");
+  if (!audio.length || audio.length > TAILLE_MAX_NARRATION) throw new Error("Fichier audio vide ou trop lourd (25 Mo maximum).");
+  return (await avecJob(dossier, id, async (job) => {
+    if (job.statut !== "pret" || !job.url_muette || !job.scenes_son || !job.duree) throw new Error("La vidéo doit être montée avant d'ajouter la narration.");
+    const rep = path.join(dossier, "motion-audio");
+    await fs.mkdir(rep, { recursive: true });
+    const f = path.join(rep, `${job.id}.${ext}`);
+    await fs.writeFile(f, audio);
+    const url = await remixerAvecNarration(job.url_muette, job.scenes_son, job.duree, f);
+    job.sans_voix_url ??= job.final_url;
+    job.narration = f;
+    job.final_url = url;
   })).job;
 }
 

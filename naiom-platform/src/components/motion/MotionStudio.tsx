@@ -6,7 +6,7 @@
  * est ouvert (interrogation du serveur toutes les 5 s) et reprend à la visite suivante.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Clapperboard, Download, LoaderCircle, Sparkles, Trash2, TriangleAlert } from "lucide-react";
+import { Check, Clapperboard, Download, LoaderCircle, Mic, Sparkles, Trash2, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CLASSE_TON, LIBELLE_SCENE, Label, NOM_STYLE, Strip, TitreAccent, tonDe, type TemplateVideo, type Ton, type TypeScene } from "./shared";
 
@@ -14,7 +14,7 @@ type Format = "9:16" | "16:9";
 interface ScenePlan { n: number; type: TypeScene; debut: number; fin: number; texte_ecran: string; narration: string; ton?: Ton }
 interface Etape { statut: "attente" | "image" | "animation" | "prete" | "echec"; image_url?: string; video_url?: string; erreur?: string }
 interface Job {
-  id: string; createdAt: string; statut: "plan" | "generation" | "montage" | "pret" | "echec"; final_url?: string; erreur?: string;
+  id: string; createdAt: string; statut: "plan" | "generation" | "montage" | "pret" | "echec"; final_url?: string; sans_voix_url?: string; narration?: string; erreur?: string;
   etapes: Etape[];
   plan: {
     idee: string; sujet: string; duree: number; template: { id: string; name: string }; cta: string; points: string[]; style?: string; format?: Format;
@@ -43,6 +43,7 @@ export function MotionStudio({ templateId, onTemplate }: { templateId: string; o
   const [selId, setSelId] = useState<string | null>(null);
   const [preparation, setPreparation] = useState(false);
   const [confirmer, setConfirmer] = useState(false);
+  const [mixage, setMixage] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const enCours = useRef(false);
 
@@ -95,6 +96,18 @@ export function MotionStudio({ templateId, onTemplate }: { templateId: string; o
     const j = await r.json();
     if (!r.ok) setErr(j.error ?? "Lancement impossible");
     if (j.job) setJobs((cur) => cur.map((x) => (x.id === j.job.id ? j.job : x)));
+  }
+
+  async function envoyerNarration(job: Job, fichier: File | undefined) {
+    if (!fichier) return;
+    setErr(null); setMixage(true);
+    try {
+      const fd = new FormData(); fd.append("audio", fichier);
+      const r = await fetch(`/api/motion/jobs/${job.id}/narration`, { method: "POST", body: fd });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error ?? "Mixage impossible");
+      setJobs((cur) => cur.map((x) => (x.id === j.job.id ? j.job : x)));
+    } catch (e) { setErr(e instanceof Error ? e.message : "Erreur"); } finally { setMixage(false); }
   }
 
   async function supprimer(job: Job) {
@@ -199,9 +212,20 @@ export function MotionStudio({ templateId, onTemplate }: { templateId: string; o
             <div className="flex flex-wrap items-start gap-4 rounded-xl bg-[#1A1A1A] p-4">
               <video src={sel.final_url} controls playsInline className={cn("rounded-lg bg-black", sel.plan.format === "16:9" ? "aspect-video w-[360px] max-w-full" : "aspect-[9/16] w-[200px]")} />
               <div className="space-y-2 text-white">
-                <p className="text-[14px] font-black">Ta vidéo est montée.</p>
-                <p className="max-w-xs text-[12px] text-white/70">Elle est sans son : enregistre la narration ci-dessous et ajoute-la au montage (CapCut ou studio Vidéo).</p>
-                <a href={sel.final_url} download className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-white px-3.5 text-[13px] font-bold text-[#1A1A1A]"><Download size={15} aria-hidden /> Télécharger</a>
+                <p className="text-[14px] font-black">{sel.narration ? "Ta vidéo est montée, avec ta voix." : "Ta vidéo est montée."}</p>
+                <p className="max-w-xs text-[12px] text-white/70">
+                  Titres animés et sound design inclus (whoosh, pops, frappe, riser et impact sur le logo, nappe d&apos;ambiance).
+                  {sel.narration ? " La musique baisse sous ta voix." : " Ajoute ta narration : enregistre le texte ci-dessous et envoie le fichier."}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <a href={sel.final_url} download className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-white px-3.5 text-[13px] font-bold text-[#1A1A1A]"><Download size={15} aria-hidden /> Télécharger</a>
+                  <label className={cn("inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-xl border border-white/30 px-3.5 text-[13px] font-bold text-white transition hover:bg-white/10", mixage && "pointer-events-none opacity-60")}>
+                    {mixage ? <LoaderCircle size={15} className="animate-spin motion-reduce:animate-none" aria-hidden /> : <Mic size={15} aria-hidden />}
+                    {mixage ? "Mixage de ta voix…" : sel.narration ? "Remplacer ma narration" : "Ajouter ma narration"}
+                    <input type="file" accept="audio/*" className="sr-only" disabled={mixage} onChange={(e) => { void envoyerNarration(sel, e.target.files?.[0]); e.target.value = ""; }} />
+                  </label>
+                </div>
+                {sel.sans_voix_url && <a href={sel.sans_voix_url} download className="block text-[11px] text-white/60 underline">Télécharger la version sans voix</a>}
               </div>
             </div>
           )}
