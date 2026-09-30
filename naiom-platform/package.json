@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test:instagram": "node --experimental-strip-types --test src/lib/instagram/tests/*.test.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.71",
