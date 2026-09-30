@@ -1,10 +1,29 @@
 # Journal d'avancement — Saturn Studio
 
-## 📍 Où on en est (27 sept. 2026)
+## 📍 Où on en est (30 sept. 2026)
 - **En ligne** : https://209-74-71-111.sslip.io (VPS Spaceship, Docker, Caddy HTTPS, page /login).
-- **Fait** : 6 agents avec connecteurs (YouTube, Instagram/TikTok via Apify, Gmail, Drive, Fireflies) ; actions d'écriture sur approbation ; style « Poster » (carrousels de Fatou + decks PDF) ; visuels Higgsfield ; **logo Saturn Studio sur toutes les créations**.
-- **En attente de l'utilisateur** : Client ID/Secret LinkedIn ; URI Google (`/api/integrations/google/callback`) dans Google Cloud ; Instagram bloqué (compte Facebook verrouillé par Meta).
-- **Prochaine étape** : publication LinkedIn réelle (dès réception des clés), puis TikTok / X.
+- **Fait** : 6 agents avec connecteurs ; **Léa renommée Fatou** ; 14 modèles visuels avec la mascotte **Orbi** (scènes IA Higgsfield) ; téléchargement PDF + ZIP des vraies images ; **Nina** appelée sur les posts techniques ; **montage vidéo étape 1** (rendu sur le PC) ; **pack Instagram** branché sur Fatou (brouillon seulement, 47 tests).
+- **En attente de l'utilisateur** : brief 3 (Nina + pack Instagram) ; Client ID/Secret LinkedIn ; URI Google dans Google Cloud ; Instagram (compte Facebook verrouillé par Meta).
+- **Prochaine étape** : brief 3 Nina (retirer ses outils Apify de scraping Instagram, brancher ig-viral / ig-audit / ig-plan / ig-profile), puis étapes 2-3 du montage vidéo.
+
+## Pack Instagram sur Fatou (29-30 sept. 2026) ✅
+- ✅ Pack `instagram-agent-skill` (MIT, commit `d03c56b`, voir `agents/skills/instagram/UPSTREAM.txt`) : 13 skills **copiés à l'octet** (`.gitattributes` `* -text`), calibrage français dans `_saturn/` (`hooks.fr.json`, `slop.fr.json`).
+- ✅ Couche commune `src/lib/instagram/` : scripts Python lancés par `execFile` (liste blanche), portages TS vérifiés par tests « golden » contre le Python, routeur de capacités, état (`IG_STATE_DIR`, `log.md` en ajout seul et seulement après « oui »), garde brouillon-seulement, enveloppe de relais Nina → Fatou.
+- ✅ Fatou : prompt système IG verbatim dans `.claude/agents/createur-contenu.md`, 13 outils IA, chiffres inventés remplacés par `{{your number}}`, légende passée par ig-human + caption_lint (lien = échec). Vérifié en prod.
+- ✅ Outils de publication retirés de Fatou (`linkedin_publier`, `instagram_publier`, `instagram_reels_hashtag`) ; `web_fetch` bloque instagram.com / facebook.com pour Fatou et Nina.
+- ✅ Garde corrigée après 2 faux positifs en prod : ne refuse que les vraies DEMANDES (« publie ça », « à ma place »), pas les mots dans un contenu à rédiger.
+- Tests : `node --test src/lib/instagram/tests/` (47 ✅, en local ; Node 24 requis).
+
+## Montage vidéo — étape 1 (28-29 sept. 2026) ✅
+- ✅ Studio vidéo : l'utilisateur envoie vidéo + voix (pas de voix off générée), envoi **par morceaux de 8 Mo avec reprise** (connexion lente : les envois d'un bloc tombaient en 408).
+- ✅ **Poste de montage sur le PC** : `C:\Users\fallo\dev\video-studio` (Remotion), lancer `demarrer.bat`. Il interroge le serveur (`VIDEO_WORKER_TOKEN`), monte, renvoie le rendu. Montage interrompu → repris au redémarrage.
+- ✅ Testé de bout en bout (6 vidéos, empreintes MD5 identiques). Étapes 2-3 : pas encore demandées.
+
+## 14 modèles + mascotte Orbi + scènes IA (27-28 sept. 2026) ✅
+- ✅ **Orbi** : drone en porcelaine blanche, œil-anneau de Saturne violet, **sans jambes (il flotte)**. Références `orbi-base.png` + `orbi-wave.png`, contrôle qualité par vision Claude (2 reprises max).
+- ✅ 14 directions (`src/lib/content/directions.ts`) dont 4 « Scènes Orbi » générées par Higgsfield (format 3:4, le 4:5 est refusé). Script anti-chevauchement du texte.
+- ✅ Téléchargement **PDF + ZIP** construits à partir des PNG réellement rendus (avant : illustrations absentes).
+- ✅ Nina (`src/lib/content/nina.ts`) : brief de veille ajouté aux posts jugés techniques.
 
 ## Logo sur toutes les créations (27 sept. 2026) ✅
 - ✅ Logo officiel (`public/brand/saturn-logo-{black,white}.png`, fond transparent) : dans la mise en page des carrousels Poster/Éditorial, decks PDF (pied de page) et visuels hybrides ; apposé sur les images IA (Higgsfield, Gemini, Creative Studio) et les miniatures YouTube (bas droite). Noir ou blanc choisi selon le fond.

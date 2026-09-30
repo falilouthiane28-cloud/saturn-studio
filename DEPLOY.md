@@ -1,5 +1,10 @@
 # Déployer Saturn Studio sur un VPS
 
+> **⚠️ Production réelle (sept. 2026) : Docker + Caddy, pas PM2/nginx.** VPS `209.74.71.111` (SSH port 22022), app dans `/srv/saturn`.
+> Mise à jour : `cd /srv/saturn && git pull && docker compose up -d --build`.
+> L'image installe Chromium (Puppeteer) et python3 (pack Instagram). Variables à avoir dans `naiom-platform/.env.local` en plus des clés API : `SATURN_ACCESS_PASSWORD`, `PUBLIC_SITE_URL`, `VIDEO_WORKER_TOKEN`, `IG_STATE_DIR=/srv/saturn/content/instagram`.
+> Le guide PM2/nginx ci-dessous reste une alternative sans Docker.
+
 Guide complet : du serveur vide à l'app en ligne en HTTPS. Architecture visée
 (celle de la page « Héberger » du projet) : **VPS Node + PM2 + nginx**.
 Pas de serverless (Vercel) : l'app écrit sur disque (tokens Google, données

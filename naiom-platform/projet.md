@@ -59,6 +59,9 @@ Images sources : `C:\Users\fallo\Documents\AGENTS AI CLAUDE\img\mascotte *.jpeg`
 - **Médias générés** (`public/generated-*`, `public/content-out`) : servis par `src/app/media/[dir]/[...file]` (Next ne sert pas en prod les fichiers ajoutés après le build) ; volumes Docker dédiés.
 - **Publication** : LinkedIn (`lib/integrations/linkedin.ts`) et Instagram (`lib/integrations/instagramPublish.ts`), OAuth avec state anti-CSRF, jetons dans `src/data/*-tokens.json` (hors git et hors image).
 - **Connecteurs des agents** : `src/lib/tools/` — `registry.ts` (outils + `AGENT_TOOLS` par agent), `meta.ts` (libellés, importable côté client), `agentTools.ts` (conversion AI SDK, journal `analytics/tools/tool-calls.jsonl`). Branchés dans `api/chat/route.ts`. Outils `kind: "write"` → `needsApproval` : carte « Approuver / Refuser » dans le chat (`components/chat/ToolActivity.tsx`). Aucun repli sur des données de démo.
+- **Contenu de Fatou** : `src/lib/content/` — `directions.ts` (14 modèles), `scenes.ts` + `sceneRun.ts` (scènes Orbi Higgsfield + contrôle qualité), `generate.ts`, `nina.ts` (veille sur posts techniques) ; routes `api/content/{generate,visuals,download}` (PDF + ZIP).
+- **Pack Instagram** : `agents/skills/instagram/` (13 skills, MIT) + `src/lib/instagram/` (outils Python, portages TS, routeur, garde brouillon-seulement, état dans `IG_STATE_DIR`). Tests : `node --test src/lib/instagram/tests/`.
+- **Montage vidéo** : `src/lib/video/` + `api/video/*` (envoi par morceaux, file de tâches) ; le rendu se fait sur le PC dans `C:\Users\fallo\dev\video-studio` (Remotion, `demarrer.bat`, `.env` avec `SATURN_URL` + `VIDEO_WORKER_TOKEN`).
 - **Navigation** : `SiteFooter` unique (landing `full` / app `compact`), `MobileTabBar` (≤ 768 px) montée hors des en-têtes (un `backdrop-filter` piège le `position: fixed`), sélecteur des 6 agents sur la fiche agent.
 
 ## Marque
@@ -68,5 +71,6 @@ Logo : `public/brand/saturn-logo-{black,white}.png`, géré par `src/lib/brand/l
 - VPS Spaceship `209.74.71.111`, SSH port **22022**. App dans `/srv/saturn` (clone du repo GitHub privé `falilouthiane28-cloud/saturn-studio`), conteneur Docker lié à `127.0.0.1:3000`.
 - **https://209-74-71-111.sslip.io** via Caddy (Let's Encrypt automatique). Pare-feu ufw : 22022, 80, 443.
 - Déployer : `cd /srv/saturn && git pull && docker compose up -d --build` (≈ 30 s de compilation grâce au swap de 2 Go ; `docker image prune -f` de temps en temps, disque ≈ 70 %).
-- Image Docker : Chromium système + polices (dont emoji) pour Puppeteer.
+- Image Docker : Chromium système + polices (dont emoji) pour Puppeteer, **python3** pour le pack Instagram.
+- Variables serveur ajoutées : `PUBLIC_SITE_URL`, `VIDEO_WORKER_TOKEN` (le même dans le `.env` du poste de montage), `IG_STATE_DIR=/srv/saturn/content/instagram`.
 - Secrets uniquement dans `/srv/saturn/naiom-platform/.env.local` sur le serveur (jamais dans le repo).

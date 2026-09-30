@@ -49,5 +49,27 @@ Règles et contexte persistants à respecter avant toute intervention.
 - Aucune route sous `/api` exemptée d'authentification (livrables PDF privés).
 - Vérifier l'absence de secrets dans chaque commit ; le repo GitHub reste **privé**.
 
+## Instagram : règles dures (brief du 29 sept. 2026)
+- **Brouillon seulement** : aucun agent ne publie, n'envoie, ne commente, n'aime, ne suit ni ne programme sur Instagram. Garde : `src/lib/instagram/guard.ts` (testée).
+- Jamais de connexion à Instagram, jamais de mot de passe ni de jeton demandé, **aucun scraping** ni boucle en arrière-plan.
+- Jamais de chiffre inventé → `{{your number}}`. Copier des formules, pas des vidéos ; citer le compte source.
+- Tout texte passe par ig-human, avec son score ; ne jamais prétendre « indétectable ».
+- Rien n'est journalisé avant le « oui » du propriétaire.
+- Les fichiers du pack (`agents/skills/instagram/`) restent identiques à l'octet : le calibrage français va dans `_saturn/`.
+- Prompts système des agents en anglais ; code et commentaires en français ; aucune nouvelle bibliothèque.
+
+## Visuels de Fatou
+- Mascotte **Orbi : jamais de jambes ni de pieds** (il flotte). Toujours passer les 2 références + le contrôle qualité.
+- Higgsfield : format **3:4** (4:5 refusé), file limitée à 20 tâches. **Demander avant tout test coûteux en crédits** (crédits déjà épuisés une fois par des tests).
+
+## Pièges ajoutés (sept. 2026)
+- JS : `\b` ignore les accents → bornes Unicode `(?<![\p{L}])…(?![\p{L}])` avec le drapeau `u`.
+- Python : `len()` compte les points de code, `round()` arrondit au pair ; « 18 000 € » et l'apostrophe typographique à normaliser.
+- Node `--test` en « strip types » : imports en `.ts`, pas de propriétés de paramètres dans les constructeurs.
+- Windows : `python` (pas `python3`) ; l'image Docker installe `python3`. `PYTHONUTF8=1`.
+- Envois de fichiers : toujours par morceaux (Node coupe une requête après 5 min).
+- Remotion : `Video` de `@remotion/media` (OffthreadVideo échouait) ; le ffmpeg fourni n'a pas les filtres select/fps.
+- `proxy.ts` exclut `api/video/upload` et `api/video/worker/` (authentifiés autrement : session / jeton).
+
 ## Chef d'équipe
 Fallou (`fireflies`), déclaré dans `agentsUI.ts`.
