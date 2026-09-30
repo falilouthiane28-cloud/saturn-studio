@@ -11,6 +11,7 @@ import { classerAccrochesReel, lintLegende, remplacerChiffresInventes, resumeTri
 import { DOSSIER_ETAT_DEFAUT, EtatFichiers, estUnOui, type FichierEtat } from "./stateStore.ts";
 import { creerEnveloppe, type Enveloppe } from "./handoff.ts";
 import { LANG } from "./config.ts";
+import { DUREE_MAX, lancerVideo, statutVideo, type VideoDemande } from "../integrations/higgsfieldVideo.ts";
 
 const json = (x: unknown) => JSON.stringify(x, null, 1);
 const S = <T>(schema: object) => jsonSchema<T>(schema as Parameters<typeof jsonSchema>[0]);
@@ -92,6 +93,33 @@ export function outilsInstagram(opts: { derniereReponse: string; skills: readonl
         if (!estUnOui(opts.derniereReponse)) return "REFUSÉ : rien n'est journalisé avant le « oui » du propriétaire. Demande-lui de valider.";
         await etat.ajouterAuJournal(`${new Date().toISOString().slice(0, 10)} ${ligne}`);
         return "Ajouté à log.md.";
+      },
+    }),
+    generer_video: tool({
+      description: `Génère un plan vidéo motion design avec Higgsfield (Seedance 2.5, texte → vidéo, 4 à ${DUREE_MAX} s, 9:16 par défaut, sans texte à l'écran : le texte s'ajoute au montage). Dépense les crédits Higgsfield du propriétaire : montre-lui d'abord le prompt, la durée et le format, et n'appelle cet outil qu'après son « oui ». Renvoie un request_id à suivre avec statut_video.`,
+      inputSchema: S<VideoDemande>({
+        type: "object",
+        properties: {
+          prompt: { type: "string" },
+          duree: { type: "integer", minimum: 4, maximum: DUREE_MAX },
+          format: { type: "string", enum: ["9:16", "1:1", "3:4", "4:3", "16:9", "21:9"] },
+          resolution: { type: "string", enum: ["480p", "720p", "1080p"] },
+          audio: { type: "boolean" },
+        },
+        required: ["prompt"],
+      }),
+      execute: async (d) => {
+        if (!estUnOui(opts.derniereReponse)) return "REFUSÉ : une vidéo dépense des crédits Higgsfield. Montre le prompt, la durée et le format au propriétaire et attends son « oui ».";
+        try { return json({ request_id: await lancerVideo(d), suite: "Appelle statut_video avec ce request_id dans une minute environ." }); }
+        catch (e) { return `ÉCHEC : ${(e as Error).message}`; }
+      },
+    }),
+    statut_video: tool({
+      description: "Suit un job vidéo Higgsfield lancé par generer_video : queued, in_progress, completed (avec l'URL de la vidéo, valable au moins 7 jours : à télécharger) ou failed.",
+      inputSchema: S<{ request_id: string }>({ type: "object", properties: { request_id: { type: "string" } }, required: ["request_id"] }),
+      execute: async ({ request_id }) => {
+        try { return json(await statutVideo(request_id)); }
+        catch (e) { return `ÉCHEC : ${(e as Error).message}`; }
       },
     }),
     passer_relais: tool({
