@@ -97,7 +97,8 @@ export async function analyzeClip(file, index) {
     }
     for (const [a, b] of merged) {
       let start = a;
-      for (const c of cuts.filter((c) => c > a + 4 && c < b - 4)) { if (c - start > 12) { units.push([start, c]); start = c; } }
+      // Passage long (souvent musique continue ou plans enchaînés) : découpé aux changements de plan.
+      if (b - a > 8) for (const c of cuts.filter((c) => c > a + 2.5 && c < b - 2.5)) { if (c - start >= 2.5) { units.push([start, c]); start = c; } }
       units.push([start, b]);
     }
   } else {

@@ -71,6 +71,9 @@ http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": type, "Accept-Ranges": "bytes", "Content-Length": size });
     fs.createReadStream(file).pipe(res);
   }
+}).on("error", (e) => {
+  console.error(e.code === "EADDRINUSE" ? "Un poste de montage tourne déjà sur ce PC (port " + PORT + " occupé)." : e.message);
+  process.exit(1);
 }).listen(PORT, "127.0.0.1");
 const urlOf = (jobId, name) => `http://127.0.0.1:${PORT}/${encodeURIComponent(jobId)}/${name.split("/").map(encodeURIComponent).join("/")}`;
 
@@ -117,9 +120,12 @@ const jobFile = (dir) => path.join(dir, "job.json");
 const readJob = (dir) => { try { return JSON.parse(fs.readFileSync(jobFile(dir), "utf8")); } catch { return null; } };
 const writeJob = (dir, j) => fs.writeFileSync(jobFile(dir), JSON.stringify(j, null, 2));
 
+let firstPoll = true;
 /** Récupère le prochain montage demandé dans le studio et télécharge ses rushs. */
 async function pollServer() {
-  const r = await api("/api/video/worker/next");
+  // 1re requête après démarrage : le serveur rend les montages interrompus (poste arrêté en cours de route).
+  const r = await api(`/api/video/worker/next${firstPoll ? "?resume=1" : ""}`);
+  firstPoll = false;
   if (!r.ok) throw new Error(`Serveur : ${r.status} ${(await r.text()).slice(0, 120)}`);
   const { job } = await r.json();
   if (!job) return;

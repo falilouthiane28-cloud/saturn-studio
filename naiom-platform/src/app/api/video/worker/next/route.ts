@@ -6,6 +6,6 @@ export const runtime = "nodejs";
 export async function GET(req: Request) {
   if (!workerAuthorized(req)) return Response.json({ error: "Jeton du poste de montage invalide" }, { status: 401 });
   await touchWorker();
-  const job = await claimNext();
+  const job = await claimNext(new URL(req.url).searchParams.get("resume") === "1");
   return Response.json({ job });
 }

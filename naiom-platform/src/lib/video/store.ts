@@ -78,10 +78,14 @@ export async function deleteJob(id: string): Promise<void> {
   await fs.rm(jobDir(id), { recursive: true, force: true });
 }
 
-/** Réserve le plus ancien job en attente pour le poste de montage. */
-export async function claimNext(): Promise<VideoJob | null> {
+/**
+ * Réserve le plus ancien job en attente pour le poste de montage. `resume` (1re requête
+ * après le démarrage du poste) : un job resté « en montage » a été interrompu (poste
+ * arrêté ou PC éteint) — il est repris.
+ */
+export async function claimNext(resume = false): Promise<VideoJob | null> {
   const jobs = await read();
-  const next = [...jobs].reverse().find((j) => j.status === "queued");
+  const next = [...jobs].reverse().find((j) => j.status === "queued" || (resume && j.status === "rendering"));
   if (!next) return null;
   next.status = "rendering";
   next.startedAt = new Date().toISOString();
