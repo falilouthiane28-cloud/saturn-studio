@@ -95,7 +95,7 @@ const GABARITS: Record<Duree, [TypeScene, number][]> = {
   25: [["HOOK", 2], ["CONTEXT", 4], ["TENSION", 4], ["SOLUTION", 7], ["PROOF", 5], ["CTA", 3]],
   30: [["HOOK", 2], ["CONTEXT", 4], ["TENSION", 4], ["SOLUTION", 7], ["PROOF", 5], ["PROOF", 5], ["CTA", 3]],
 };
-const FOND: Record<TypeScene, "white" | "black"> = { HOOK: "white", CONTEXT: "white", TENSION: "black", SOLUTION: "white", PROOF: "white", CTA: "black" };
+export const FOND: Record<TypeScene, "white" | "black"> = { HOOK: "white", CONTEXT: "white", TENSION: "black", SOLUTION: "white", PROOF: "white", CTA: "black" };
 
 export function decouperScenes(duree: Duree): Scene[] {
   const g = GABARITS[duree];

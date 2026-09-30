@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "./Icon";
 import { VideoStudio } from "./VideoStudio";
+import { MotionStudio } from "./motion/MotionStudio";
+import { TemplatesStudio } from "./motion/TemplatesStudio";
 import { cn } from "@/lib/utils";
 
 /* ============ types ============ */
@@ -81,7 +83,8 @@ const XLogo = ({ s = 18 }: { s?: number }) => (
 /* ============ main ============ */
 export function ContentStudio() {
   const [platform, setPlatform] = useState<Platform>("instagram");
-  const [mode, setMode] = useState<"create" | "library" | "video">("create");
+  const [mode, setMode] = useState<"create" | "motion" | "templates" | "library" | "video">("create");
+  const [motionTemplate, setMotionTemplate] = useState("explainer-20");
   const [posts, setPosts] = useState<ContentPost[]>([]);
   const reload = useCallback(async () => {
     try { const j = await (await fetch("/api/content/list", { cache: "no-store" })).json(); setPosts(j.posts ?? []); } catch { /* */ }
@@ -91,20 +94,24 @@ export function ContentStudio() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-black tracking-tight text-[var(--color-ink)]">Studio contenu — Fatou</h2>
           <p className="text-[13px] text-[var(--color-muted)]">Crée du contenu adapté à chaque réseau et visualise le rendu final comme sur la plateforme.</p>
         </div>
-        <div className="flex rounded-xl border border-[var(--color-line)] p-0.5 text-[12px] font-bold">
-          {([["create", "Créer"], ["video", "Vidéo"], ["library", `Bibliothèque${posts.length ? ` (${posts.length})` : ""}`]] as const).map(([k, l]) => (
-            <button key={k} onClick={() => setMode(k)}
+        <div className="flex max-w-full overflow-x-auto rounded-xl border border-[var(--color-line)] p-0.5 text-[12px] font-bold" role="tablist" aria-label="Studio de Fatou">
+          {([["create", "Créer"], ["motion", "Motion"], ["templates", "Templates"], ["video", "Vidéo"], ["library", `Bibliothèque${posts.length ? ` (${posts.length})` : ""}`]] as const).map(([k, l]) => (
+            <button key={k} onClick={() => setMode(k)} role="tab" aria-selected={mode === k}
               className={cn("rounded-lg px-3 py-1.5 transition", mode === k ? "bg-[var(--color-ink)] text-white" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>{l}</button>
           ))}
         </div>
       </div>
 
-      {mode === "video" ? (
+      {mode === "motion" ? (
+        <MotionStudio templateId={motionTemplate} onTemplate={setMotionTemplate} />
+      ) : mode === "templates" ? (
+        <TemplatesStudio actif={motionTemplate} onUse={(id) => { setMotionTemplate(id); setMode("motion"); }} />
+      ) : mode === "video" ? (
         <VideoStudio />
       ) : mode === "library" ? (
         <LibraryView posts={posts} onChange={reload} />
