@@ -23,12 +23,17 @@ export const OUTILS: Record<string, OutilAgent> = {
   journaliser: { name: "journaliser", description: "Ajoute une ligne à log.md, uniquement si le propriétaire a répondu « oui »." },
   passer_relais: { name: "passer_relais", description: "Crée une enveloppe de relais entre Fatou et Nina." },
   generer_video: { name: "generer_video", description: "Génère un plan vidéo motion design (Higgsfield Seedance 2.5), uniquement après le « oui » du propriétaire." },
-  statut_video: { name: "statut_video", description: "Suit un job vidéo Higgsfield et renvoie l'URL du fichier quand il est prêt." },
+  statut_video: { name: "statut_video", description: "Suit un job Higgsfield (vidéo ou image clé) et renvoie l'URL du fichier quand il est prêt." },
+  plan_video_motion: { name: "plan_video_motion", description: "Découpe une vidéo motion design en scènes, avec timecodes et prompts au style actif." },
+  verifier_narration: { name: "verifier_narration", description: "Longueur de narration (2,5 mots/s) et passage ig-human (≥ 70)." },
+  generer_image_cle: { name: "generer_image_cle", description: "Image clé 9:16 d'une scène (Higgsfield), après le « oui » du propriétaire." },
+  animer_scene: { name: "animer_scene", description: "Anime une image clé générée par Fatou (Higgsfield image → vidéo), après le « oui »." },
+  ajouter_style_motion: { name: "ajouter_style_motion", description: "Ajoute un style de motion design à motion-styles.json." },
 };
 
 const liste = (noms: string[]) => noms.map((n) => OUTILS[n]);
 
-export const OUTILS_FATOU = liste(["charger_skill", "hookscore", "classer_accroches_reel", "beats", "caption_lint", "ig_human", "detect_avant_apres", "verifier_chiffres", "trier_commentaires", "lire_etat", "ecrire_etat", "journaliser", "passer_relais", "generer_video", "statut_video"]);
+export const OUTILS_FATOU = liste(["charger_skill", "hookscore", "classer_accroches_reel", "beats", "caption_lint", "ig_human", "detect_avant_apres", "verifier_chiffres", "trier_commentaires", "lire_etat", "ecrire_etat", "journaliser", "passer_relais", "generer_video", "statut_video", "plan_video_motion", "verifier_narration", "generer_image_cle", "animer_scene", "ajouter_style_motion"]);
 export const OUTILS_NINA = liste(["charger_skill", "hookscore", "humanize", "detect", "ig_human", "swipe", "score_profil", "lire_etat", "ecrire_etat", "journaliser", "passer_relais"]);
 
 // Refus au chargement si un outil de publication s'était glissé dans une liste.

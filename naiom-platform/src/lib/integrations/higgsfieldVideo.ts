@@ -6,7 +6,7 @@
  * on lance, on garde le request_id, on interroge /requests/{id}/status.
  * Chaque génération dépense des crédits : l'appelant doit avoir l'accord du propriétaire.
  */
-import { BASE, call, isHiggsfieldApiConfigured } from "./higgsfieldApi.ts";
+import { BASE, call, imageUrlOf, isHiggsfieldApiConfigured, type Status } from "./higgsfieldApi.ts";
 
 const VIDEO_MODEL = process.env.HIGGSFIELD_VIDEO_MODEL ?? "bytedance/seedance-2.5/text-to-video";
 export const RATIOS_VIDEO = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"] as const;
@@ -67,8 +67,36 @@ export async function lancerVideo(d: VideoDemande): Promise<string> {
   return r.request_id;
 }
 
-export async function statutVideo(requestId: string): Promise<VideoStatut> {
-  if (!/^[\w-]{6,80}$/.test(requestId)) throw new Error("request_id invalide.");
-  const s = await call<RepStatut>(`${BASE}/requests/${encodeURIComponent(requestId)}/status`);
-  return { requestId, status: statusOf(s.status ?? ""), videoUrl: videoUrlOf(s) };
+export const estRequestId = (id: string) => /^[\w-]{6,80}$/.test(id);
+
+export async function statutVideo(requestId: string): Promise<VideoStatut & { imageUrl: string | null }> {
+  if (!estRequestId(requestId)) throw new Error("request_id invalide.");
+  const s = await call<RepStatut & Status>(`${BASE}/requests/${encodeURIComponent(requestId)}/status`);
+  const video = videoUrlOf(s);
+  return { requestId, status: statusOf(s.status ?? ""), videoUrl: video, imageUrl: video ? null : imageUrlOf(s) ?? null };
+}
+
+/* ---------------- motion design : image clé puis animation ---------------- */
+const IMAGE_MODEL = process.env.HIGGSFIELD_KEYFRAME_MODEL ?? "higgsfield-ai/soul/standard";
+// Image → vidéo (doc : open.higgsfield.ai/models/alibaba/happy-horse/v1.1/image-to-video/api-reference).
+// Pas de format en entrée : la vidéo suit le format de l'image, d'où les images clés en 9:16.
+const I2V_MODEL = process.env.HIGGSFIELD_I2V_MODEL ?? "alibaba/happy-horse/v1.1/image-to-video";
+
+/** Image clé verticale d'une scène. Renvoie le request_id. */
+export async function lancerImageCle(prompt: string): Promise<string> {
+  if (!isHiggsfieldApiConfigured()) throw new Error("Higgsfield non connecté : ajoute HIGGSFIELD_API_KEY (« id:secret ») dans .env.local du serveur.");
+  if (!prompt.trim() || prompt.length > 4000) throw new Error("Prompt d'image vide ou trop long.");
+  const r = await call<{ request_id?: string }>(`${BASE}/${IMAGE_MODEL}`, { method: "POST", body: JSON.stringify({ prompt, aspect_ratio: "9:16", resolution: "720p" }) });
+  if (!r.request_id) throw new Error("Higgsfield : aucune image créée.");
+  return r.request_id;
+}
+
+/** Anime une image clé déjà générée (URL rendue par Higgsfield). Durée 2 à 15 s. */
+export async function animerImage(imageUrl: string, prompt: string, duree: number): Promise<string> {
+  if (!isHiggsfieldApiConfigured()) throw new Error("Higgsfield non connecté : ajoute HIGGSFIELD_API_KEY (« id:secret ») dans .env.local du serveur.");
+  const d = Math.round(duree);
+  if (!(d >= 2 && d <= 15)) throw new Error("Durée d'animation : de 2 à 15 secondes.");
+  const r = await call<{ request_id?: string }>(`${BASE}/${I2V_MODEL}`, { method: "POST", body: JSON.stringify({ image_url: imageUrl, prompt, duration: d, resolution: "720p" }) });
+  if (!r.request_id) throw new Error("Higgsfield : aucune animation créée.");
+  return r.request_id;
 }

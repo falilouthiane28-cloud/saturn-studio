@@ -9,6 +9,7 @@ import { router } from "./router.ts";
 import { EtatFichiers } from "./stateStore.ts";
 import { outilsInstagram } from "./aiTools.ts";
 import { LANG } from "./config.ts";
+import { detecterVideo } from "./motion.ts";
 
 export function texteUtilisateur(m: UIMessage): string {
   return (m.parts ?? []).map((p) => (p.type === "text" ? p.text : "")).join("\n").trim();
@@ -42,6 +43,12 @@ export async function preparerFatouChat(messages: UIMessage[]): Promise<Preparat
   if (tour.type === "modele") return { type: "modele", systemeEnPlus: tour.contexte, tools };
   // Pas de capacité dans ce message : skill actif retrouvé plus haut dans la conversation.
   for (let i = users.length - 2; i >= 0; i--) {
+    // Pipeline vidéo en cours (le « oui » qui lance les générations arrive après le plan).
+    const v = detecterVideo(users[i]);
+    if (v && v !== "refus") {
+      const t = await preparerTourFatou(users[i], etat);
+      if (t.type === "modele") return { type: "modele", systemeEnPlus: `# Suite de la conversation (pipeline vidéo en cours)\n${t.contexte}`, tools };
+    }
     const r = router(users[i], FATOU_SKILLS);
     if (r.type === "capacite") {
       return { type: "modele", systemeEnPlus: `# Capacité en cours : ${r.skill} (suite de la conversation)\nSuis ce SKILL.md tel quel.\n\n${loadSkill(r.skill).texte}`, tools };

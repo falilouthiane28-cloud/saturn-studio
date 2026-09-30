@@ -21,7 +21,7 @@ export interface AdaptateurEtat {
 export const DOSSIER_ETAT_DEFAUT = process.env.IG_STATE_DIR ?? path.join(os.homedir(), ".claude", "instagram");
 
 export class EtatFichiers implements AdaptateurEtat {
-  private readonly dossier: string;
+  readonly dossier: string;
   constructor(dossier: string = DOSSIER_ETAT_DEFAUT) {
     this.dossier = dossier;
   }

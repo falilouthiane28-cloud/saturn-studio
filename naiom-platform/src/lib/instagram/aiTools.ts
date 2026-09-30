@@ -11,7 +11,8 @@ import { classerAccrochesReel, lintLegende, remplacerChiffresInventes, resumeTri
 import { DOSSIER_ETAT_DEFAUT, EtatFichiers, estUnOui, type FichierEtat } from "./stateStore.ts";
 import { creerEnveloppe, type Enveloppe } from "./handoff.ts";
 import { LANG } from "./config.ts";
-import { DUREE_MAX, lancerVideo, statutVideo, type VideoDemande } from "../integrations/higgsfieldVideo.ts";
+import { DUREE_MAX, animerImage, estRequestId, lancerImageCle, lancerVideo, statutVideo, type VideoDemande } from "../integrations/higgsfieldVideo.ts";
+import { ajouterStyle, decouperScenes, lireStyles, promptAnimation, promptImage, promptRespecteStyle, verifierNarration, type Duree, type StyleMotion } from "./motion.ts";
 
 const json = (x: unknown) => JSON.stringify(x, null, 1);
 const S = <T>(schema: object) => jsonSchema<T>(schema as Parameters<typeof jsonSchema>[0]);
@@ -120,6 +121,79 @@ export function outilsInstagram(opts: { derniereReponse: string; skills: readonl
       execute: async ({ request_id }) => {
         try { return json(await statutVideo(request_id)); }
         catch (e) { return `ÉCHEC : ${(e as Error).message}`; }
+      },
+    }),
+    plan_video_motion: tool({
+      description: "Motion design : découpe la vidéo en scènes (15 s → 4, 20-25 s → 6, 30 s → 7), rend les timecodes, le fond de chaque scène, la cible de mots de narration et les prompts d'images et d'animation au style actif. Un texte à l'écran par scène, 6 mots maximum.",
+      inputSchema: S<{ duree: Duree; textes_ecran: string[]; style?: string }>({
+        type: "object",
+        properties: { duree: { type: "integer", enum: [15, 20, 25, 30] }, textes_ecran: { type: "array", items: { type: "string" } }, style: { type: "string" } },
+        required: ["duree", "textes_ecran"],
+      }),
+      execute: async ({ duree, textes_ecran, style }) => {
+        try {
+          const styles = await lireStyles(DOSSIER_ETAT_DEFAUT);
+          const actif = styles[style ?? "clean-explainer"];
+          if (!actif) return `Style inconnu : ${style}. Disponibles : ${Object.keys(styles).join(", ")}.`;
+          const scenes = decouperScenes(duree);
+          if (textes_ecran.length !== scenes.length) return `Il faut ${scenes.length} textes à l'écran (un par scène) pour ${duree} s, reçu ${textes_ecran.length}.`;
+          return json({
+            duree, style: actif.name, mots_narration: Math.round(duree * 2.5),
+            scenes: scenes.map((s, i) => ({ ...s, texte_ecran: textes_ecran[i], prompt_image: promptImage(s, textes_ecran[i], actif), prompt_animation: promptAnimation(s) })),
+            cout: `${scenes.length} images clés + ${scenes.length} animations à payer sur l'API Higgsfield`,
+          });
+        } catch (e) { return `ERREUR : ${(e as Error).message}`; }
+      },
+    }),
+    verifier_narration: tool({
+      description: "Contrôle la narration d'une vidéo : environ 2,5 mots par seconde (±20 %) et passage ig-human (score ≥ 70 exigé). Si ok est false, réécris avant de montrer.",
+      inputSchema: S<{ texte: string; duree: number }>({ type: "object", properties: { texte: { type: "string" }, duree: { type: "integer" } }, required: ["texte", "duree"] }),
+      execute: async ({ texte, duree }) => json(await verifierNarration(texte, duree, LANG)),
+    }),
+    generer_image_cle: tool({
+      description: "Génère l'image clé verticale (9:16) d'une scène avec Higgsfield, à partir du prompt rendu par plan_video_motion. Dépense des crédits : seulement après le « oui » du propriétaire. Renvoie un request_id (suivi avec statut_video, champ imageUrl).",
+      inputSchema: S<{ prompt: string }>({ type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"] }),
+      execute: async ({ prompt }) => {
+        if (!promptRespecteStyle(prompt)) return "REFUSÉ : le prompt doit reprendre le style (fond blanc ou noir, « motion design »). Utilise le prompt rendu par plan_video_motion.";
+        if (!estUnOui(opts.derniereReponse)) return "REFUSÉ : une image dépense des crédits Higgsfield. Montre le plan au propriétaire et attends son « oui ».";
+        try { return json({ request_id: await lancerImageCle(prompt) }); }
+        catch (e) { return `ÉCHEC : ${(e as Error).message}`; }
+      },
+    }),
+    animer_scene: tool({
+      description: "Anime une image clé générée par generer_image_cle (request_id terminé), avec le prompt d'animation de plan_video_motion, 2 à 15 s. Jamais une image ou une vidéo externe. Dépense des crédits : seulement après le « oui ».",
+      inputSchema: S<{ image_request_id: string; prompt: string; duree: number }>({
+        type: "object",
+        properties: { image_request_id: { type: "string" }, prompt: { type: "string" }, duree: { type: "integer", minimum: 2, maximum: 15 } },
+        required: ["image_request_id", "prompt", "duree"],
+      }),
+      execute: async ({ image_request_id, prompt, duree }) => {
+        if (!estRequestId(image_request_id)) return "REFUSÉ : seulement une image générée par generer_image_cle (son request_id), jamais une URL ou un fichier externe.";
+        if (!estUnOui(opts.derniereReponse)) return "REFUSÉ : une animation dépense des crédits Higgsfield. Attends le « oui » du propriétaire.";
+        try {
+          const img = await statutVideo(image_request_id);
+          if (img.status !== "completed" || !img.imageUrl) return `L'image ${image_request_id} n'est pas prête (${img.status}). Réessaie avec statut_video.`;
+          return json({ request_id: await animerImage(img.imageUrl, prompt, duree) });
+        } catch (e) { return `ÉCHEC : ${(e as Error).message}`; }
+      },
+    }),
+    ajouter_style_motion: tool({
+      description: "Ajoute un style de motion design demandé par le propriétaire dans motion-styles.json (identifiant en kebab-case).",
+      inputSchema: S<{ id: string; style: StyleMotion }>({
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          style: {
+            type: "object",
+            properties: { name: { type: "string" }, backgrounds: { type: "array", items: { type: "string" } }, accents: { type: "array", items: { type: "string" } }, typography: { type: "string" }, elements: { type: "string" }, transitions: { type: "string" }, pacing: { type: "string" }, tension_frame: { type: "string" } },
+            required: ["name", "backgrounds", "accents", "typography", "elements", "transitions", "pacing", "tension_frame"],
+          },
+        },
+        required: ["id", "style"],
+      }),
+      execute: async ({ id, style }) => {
+        try { await ajouterStyle(DOSSIER_ETAT_DEFAUT, id, style); return `Style ${id} ajouté à motion-styles.json.`; }
+        catch (e) { return `ERREUR : ${(e as Error).message}`; }
       },
     }),
     passer_relais: tool({

@@ -8,7 +8,8 @@
 import { refusSiInterdit } from "./guard.ts";
 import { router } from "./router.ts";
 import { loadSkill, type SkillName } from "./skillLoader.ts";
-import type { AdaptateurEtat } from "./stateStore.ts";
+import { DOSSIER_ETAT_DEFAUT, EtatFichiers, type AdaptateurEtat } from "./stateStore.ts";
+import { consignesPipeline, detecterVideo, lireStyles, lireVoix, REFUS_VIDEO_AUTRUI, type DemandeVideo } from "./motion.ts";
 import { captionLint, hookscore, type CaptionLint, type HookClassement } from "./tools.ts";
 import { LANG, type Langue } from "./config.ts";
 
@@ -19,7 +20,7 @@ const BESOIN_VOIX = new Set<SkillName>(["ig-reel"]);
 
 export type Tour =
   | { type: "reponse"; texte: string; raison: "refus" | "question" | "voix" | "dm-sans-declencheur" | "dm-a-froid" }
-  | { type: "modele"; skill: SkillName; contexte: string }
+  | { type: "modele"; skill: SkillName | Exclude<DemandeVideo, "refus">; contexte: string }
   | { type: "libre" }; // pas une demande Instagram : Fatou reprend son travail habituel
 
 /* ---------------- DM : déclencheur obligatoire ---------------- */
@@ -163,10 +164,37 @@ export function resumeTri(t: ReturnType<typeof trierCommentaires>): string {
   return [ligne, ...reel, ...bruit].join("\n");
 }
 
+/* ---------------- motion design ---------------- */
+const MSG_VOIX = "Avant d'écrire quoi que ce soit : colle-moi trois de tes propres reels (le texte ou la transcription de ce que tu dis). J'en tire ta voix, je l'enregistre, et tout ce que je t'écris sonnera comme toi. Un texte dans la mauvaise voix est inutilisable, puisque c'est toi qui dois le dire face caméra.";
+
+async function tourVideo(video: Exclude<DemandeVideo, "refus">, demande: string, etat: AdaptateurEtat): Promise<Tour> {
+  const dossier = etat instanceof EtatFichiers ? etat.dossier : DOSSIER_ETAT_DEFAUT;
+  const [voix, swipe, plan, log, styles, voixHf] = await Promise.all([
+    etat.lire("voice.md"), etat.lire("swipe.md"), etat.lire("plan.md"), etat.lire("log.md"), lireStyles(dossier), lireVoix(dossier),
+  ]);
+  // Reel + vidéo : ig-reel écrit le script, donc la voix du propriétaire est obligatoire (comme pour un Reel seul).
+  if (video === "reel-video" && !voix && demande.length <= 600) return { type: "reponse", raison: "voix", texte: MSG_VOIX };
+  const parties = [`# Capacité choisie : ${video}\nSuis ces consignes dans l'ordre. Remplace les commandes « python3 … » par les outils du même nom.`];
+  if (video === "reel-video") parties.push(`# Étape 1 : ig-reel d'abord (le script validé devient la narration)\n${loadSkill("ig-reel").texte}`);
+  parties.push(consignesPipeline(video, styles, voixHf));
+  if (video === "reel-video") parties.push(`# Étape 3 : ig-caption (Job A), puisque la vidéo porte déjà l'accroche\n${loadSkill("ig-caption").texte}`);
+  parties.push(`# Fichiers d'état\n${[
+    voix ? `## voice.md\n${voix}` : "## voice.md\n(absent)",
+    swipe ? `## swipe.md\n${swipe}` : "", plan ? `## plan.md\n${plan}` : "",
+    log ? `## log.md (fin)\n${log.split("\n").slice(-40).join("\n")}` : "",
+  ].filter(Boolean).join("\n\n")}`);
+  return { type: "modele", skill: video, contexte: parties.join("\n\n") };
+}
+
 /* ---------------- préparation d'un tour ---------------- */
 export async function preparerTourFatou(demande: string, etat: AdaptateurEtat): Promise<Tour> {
   const refus = refusSiInterdit(demande);
   if (refus) return { type: "reponse", texte: refus, raison: "refus" };
+
+  // Motion design : détecté avant le routeur des skills (« reel vidéo » ne doit pas finir en simple ig-reel).
+  const video = detecterVideo(demande);
+  if (video === "refus") return { type: "reponse", texte: REFUS_VIDEO_AUTRUI, raison: "refus" };
+  if (video) return tourVideo(video, demande, etat);
 
   const r = router(demande, FATOU_SKILLS);
   if (r.type === "question") return { type: "reponse", texte: r.question, raison: "question" };
