@@ -90,11 +90,12 @@ async function uploadFile(jobId, file) {
   const size = fs.statSync(file).size;
   const fd = fs.openSync(file, "r");
   try {
-    let offset = 0, failures = 0;
+    let offset = size + 1, failures = 0;
     for (;;) {
-      const end = Math.min(size, offset + CHUNK);
-      const buf = Buffer.alloc(end - offset);
-      fs.readSync(fd, buf, 0, buf.length, offset);
+      const end = offset > size ? offset : Math.min(size, offset + CHUNK);
+      // Sonde (offset impossible) : un octet factice, le serveur répond 409 avec l'octet attendu sans le lire.
+      const buf = Buffer.alloc(offset > size ? 1 : end - offset);
+      if (offset <= size) fs.readSync(fd, buf, 0, buf.length, offset);
       try {
         const r = await api(`/api/video/worker/output/${jobId}?name=${encodeURIComponent(name)}&offset=${offset}${end >= size ? "&final=1" : ""}`, {
           method: "PUT", body: buf, headers: { "Content-Type": "application/octet-stream" },
@@ -106,12 +107,27 @@ async function uploadFile(jobId, file) {
         if (end >= size) return;
         offset = end;
       } catch (e) {
-        if (++failures > 6) throw new Error(`Envoi de ${name} impossible : ${e.message}`);
-        await new Promise((res) => setTimeout(res, 3000 * failures));
+        // Connexion instable : jusqu'à ~10 min d'attente avant d'abandonner (reprise au même octet).
+        if (++failures > 25) throw new Error(`Envoi de ${name} impossible : ${e.message}`);
+        await new Promise((res) => setTimeout(res, Math.min(30_000, 3000 * failures)));
       }
     }
   } finally {
     fs.closeSync(fd);
+  }
+}
+
+/** Appel au serveur répété tant que la connexion est coupée (~10 min au plus). */
+async function avecReprise(appel) {
+  for (let i = 1; ; i++) {
+    try {
+      const r = await appel();
+      if (r.ok || r.status < 500) return r;
+      throw new Error(`HTTP ${r.status}`);
+    } catch (e) {
+      if (i > 25) throw e;
+      await new Promise((res) => setTimeout(res, Math.min(30_000, 3000 * i)));
+    }
   }
 }
 
@@ -132,7 +148,8 @@ async function pollServer() {
   log(`Nouveau montage ${job.id} (${job.clips.length} rush(s), style ${job.style})`);
   const dir = path.join(VIDEO, job.id);
   fs.mkdirSync(dir, { recursive: true });
-  writeJob(dir, { ...job, source: "saturn", localStatus: "downloading" });
+  // Reprise : on garde ce que le poste savait déjà (fichiers envoyés).
+  writeJob(dir, { ...(readJob(dir) ?? {}), ...job, source: "saturn", localStatus: "downloading" });
   try {
     for (const c of job.clips) {
       const local = path.join(dir, c.name);
@@ -258,13 +275,17 @@ async function processJob(dir) {
 
     // 4. Renvoi au studio.
     if (job.source === "saturn") {
+      const envoyes = new Set(readJob(dir).uploaded ?? []);
       for (const o of outputs) {
         for (const f of [o.thumb, o.file]) {
+          if (envoyes.has(f)) continue;
           log(`${job.id} : envoi de ${f} au studio…`);
           await uploadFile(job.id, path.join(out, f));
+          envoyes.add(f);
+          writeJob(dir, { ...readJob(dir), uploaded: [...envoyes] });
         }
       }
-      await api(`/api/video/worker/done/${job.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ outputs, plan }) });
+      await avecReprise(() => api(`/api/video/worker/done/${job.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ outputs, plan }) }));
     }
     writeJob(dir, { ...readJob(dir), localStatus: "done", outputs });
     const mins = Math.round((Date.now() - t0) / 6000) / 10;
