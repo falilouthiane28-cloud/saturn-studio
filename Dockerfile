@@ -33,7 +33,8 @@ FROM base AS runtime
 ENV NODE_ENV=production
 # Chromium pour les rendus HTML → PNG/PDF (carrousels, miniatures, factures),
 # avec des polices (dont emoji) pour que le texte ne sorte pas en carrés.
-RUN apt-get update  && apt-get install -y --no-install-recommends chromium fonts-liberation fonts-noto-core fonts-noto-color-emoji  && rm -rf /var/lib/apt/lists/*
+# python3 : scripts d'origine du pack Instagram (naiom-platform/agents/skills/instagram), bibliothèque standard seule.
+RUN apt-get update  && apt-get install -y --no-install-recommends chromium fonts-liberation fonts-noto-core fonts-noto-color-emoji python3  && rm -rf /var/lib/apt/lists/*
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 # Modules d'agents, frères de l'app (indispensables à PATHS.agents).
 COPY .claude /srv/saturn/.claude

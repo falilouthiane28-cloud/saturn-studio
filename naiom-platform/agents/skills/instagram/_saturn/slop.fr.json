@@ -1,0 +1,352 @@
+{
+  "version": "1.0",
+  "note": "Ajout Saturn (hors pack amont) : lexique français au même format que ig-human/slop.json. Fusionné avec l'original quand LANG=fr (humanize.py et detect.py le lisent via --lexicon). Les remplacements restent grammaticaux ; un remplacement vide supprime l'expression, comme dans l'amont.",
+  "words": [
+    {
+      "find": "incontournable",
+      "replace": "indispensable",
+      "family": "adjectifs"
+    },
+    {
+      "find": "révolutionnaire",
+      "replace": "nouveau",
+      "family": "adjectifs"
+    },
+    {
+      "find": "révolutionner",
+      "replace": "changer",
+      "family": "verbes"
+    },
+    {
+      "find": "booster",
+      "replace": "augmenter",
+      "family": "verbes"
+    },
+    {
+      "find": "optimiser",
+      "replace": "améliorer",
+      "family": "verbes"
+    },
+    {
+      "find": "tirer parti de",
+      "replace": "utiliser",
+      "family": "verbes"
+    },
+    {
+      "find": "exploiter pleinement",
+      "replace": "utiliser",
+      "family": "verbes"
+    },
+    {
+      "find": "véritable",
+      "replace": "vrai",
+      "family": "adjectifs"
+    },
+    {
+      "find": "crucial",
+      "replace": "important",
+      "family": "adjectifs"
+    },
+    {
+      "find": "cruciale",
+      "replace": "importante",
+      "family": "adjectifs"
+    },
+    {
+      "find": "fondamental",
+      "replace": "de base",
+      "family": "adjectifs"
+    },
+    {
+      "find": "synergie",
+      "replace": "collaboration",
+      "family": "noms"
+    },
+    {
+      "find": "écosystème",
+      "replace": "ensemble",
+      "family": "noms"
+    },
+    {
+      "find": "paradigme",
+      "replace": "modèle",
+      "family": "noms"
+    },
+    {
+      "find": "levier",
+      "replace": "moyen",
+      "family": "noms"
+    },
+    {
+      "find": "game-changer",
+      "replace": "vrai changement",
+      "family": "noms"
+    },
+    {
+      "find": "véritable révolution",
+      "replace": "grand changement",
+      "family": "noms"
+    },
+    {
+      "find": "sans plus attendre",
+      "replace": "",
+      "family": "transitions"
+    },
+    {
+      "find": "en somme",
+      "replace": "bref",
+      "family": "transitions"
+    },
+    {
+      "find": "en définitive",
+      "replace": "au final",
+      "family": "transitions"
+    },
+    {
+      "find": "par ailleurs",
+      "replace": "et",
+      "family": "transitions"
+    },
+    {
+      "find": "de surcroît",
+      "replace": "en plus",
+      "family": "transitions"
+    }
+  ],
+  "phrases": [
+    {
+      "find": "dans le monde d'aujourd'hui",
+      "replace": "aujourd'hui",
+      "family": "ouvertures"
+    },
+    {
+      "find": "dans le monde actuel",
+      "replace": "aujourd'hui",
+      "family": "ouvertures"
+    },
+    {
+      "find": "à l'ère du numérique",
+      "replace": "aujourd'hui",
+      "family": "ouvertures"
+    },
+    {
+      "find": "dans un monde en constante évolution",
+      "replace": "aujourd'hui",
+      "family": "ouvertures"
+    },
+    {
+      "find": "dans un monde où tout va vite",
+      "replace": "aujourd'hui",
+      "family": "ouvertures"
+    },
+    {
+      "find": "il est important de noter que",
+      "replace": "",
+      "family": "remplissage"
+    },
+    {
+      "find": "il est important de souligner que",
+      "replace": "",
+      "family": "remplissage"
+    },
+    {
+      "find": "il convient de noter que",
+      "replace": "",
+      "family": "remplissage"
+    },
+    {
+      "find": "il est essentiel de",
+      "replace": "il faut",
+      "family": "remplissage"
+    },
+    {
+      "find": "force est de constater que",
+      "replace": "",
+      "family": "remplissage"
+    },
+    {
+      "find": "n'hésitez pas à",
+      "replace": "",
+      "family": "appels"
+    },
+    {
+      "find": "n'hésite pas à",
+      "replace": "",
+      "family": "appels"
+    },
+    {
+      "find": "plongeons dans",
+      "replace": "voyons",
+      "family": "ouvertures"
+    },
+    {
+      "find": "plongeons au cœur de",
+      "replace": "voyons",
+      "family": "ouvertures"
+    },
+    {
+      "find": "sans plus tarder",
+      "replace": "",
+      "family": "ouvertures"
+    },
+    {
+      "find": "dans cet article",
+      "replace": "ici",
+      "family": "préambules"
+    },
+    {
+      "find": "dans cette vidéo",
+      "replace": "ici",
+      "family": "préambules"
+    },
+    {
+      "find": "dans ce post",
+      "replace": "ici",
+      "family": "préambules"
+    },
+    {
+      "find": "je vais vous montrer",
+      "replace": "voici",
+      "family": "préambules"
+    },
+    {
+      "find": "je vais te montrer",
+      "replace": "voici",
+      "family": "préambules"
+    },
+    {
+      "find": "que vous soyez",
+      "replace": "si vous êtes",
+      "family": "remplissage"
+    },
+    {
+      "find": "que tu sois",
+      "replace": "si tu es",
+      "family": "remplissage"
+    },
+    {
+      "find": "en conclusion",
+      "replace": "bref",
+      "family": "conclusions"
+    },
+    {
+      "find": "pour conclure",
+      "replace": "bref",
+      "family": "conclusions"
+    },
+    {
+      "find": "pour résumer",
+      "replace": "bref",
+      "family": "conclusions"
+    },
+    {
+      "find": "en fin de compte",
+      "replace": "au final",
+      "family": "conclusions"
+    },
+    {
+      "find": "à l'heure actuelle",
+      "replace": "aujourd'hui",
+      "family": "remplissage"
+    },
+    {
+      "find": "le secret réside dans",
+      "replace": "le secret, c'est",
+      "family": "remplissage"
+    },
+    {
+      "find": "il ne s'agit pas seulement de",
+      "replace": "ce n'est pas que",
+      "family": "remplissage"
+    },
+    {
+      "find": "prendre votre business au niveau supérieur",
+      "replace": "faire grandir votre business",
+      "family": "promesses"
+    },
+    {
+      "find": "passer au niveau supérieur",
+      "replace": "progresser",
+      "family": "promesses"
+    },
+    {
+      "find": "faire la différence",
+      "replace": "compter",
+      "family": "promesses"
+    },
+    {
+      "find": "change la donne",
+      "replace": "change tout",
+      "family": "promesses"
+    },
+    {
+      "find": "abonne-toi pour plus de contenu",
+      "replace": "",
+      "family": "appâts"
+    },
+    {
+      "find": "abonnez-vous pour plus de contenu",
+      "replace": "",
+      "family": "appâts"
+    },
+    {
+      "find": "identifie quelqu'un qui",
+      "replace": "",
+      "family": "appâts"
+    },
+    {
+      "find": "double-tape si",
+      "replace": "",
+      "family": "appâts"
+    },
+    {
+      "find": "dis-moi en commentaire",
+      "replace": "dis-moi",
+      "family": "appâts"
+    }
+  ],
+  "structures": [
+    {
+      "id": "pas-seulement-fr",
+      "regex": "(?i)\\bce n'est pas (?:seulement|juste|qu'un|qu'une) [^.!?\\n]{2,60}[,.] c'est\\b",
+      "name": "« Ce n'est pas seulement X, c'est Y »",
+      "fix": "Dis la seule chose que tu veux dire. Supprime la mise en place."
+    },
+    {
+      "id": "non-seulement-fr",
+      "regex": "(?i)\\bnon seulement\\b[^.!?\\n]{2,80}\\bmais (?:aussi|également)\\b",
+      "name": "« Non seulement X mais aussi Y »",
+      "fix": "Deux phrases, ou garde la plus forte."
+    },
+    {
+      "id": "il-ne-s-agit-pas-fr",
+      "regex": "(?i)\\bil ne s'agit pas de [^.!?\\n]{2,60}[.!,] il s'agit de\\b",
+      "name": "« Il ne s'agit pas de X. Il s'agit de Y. »",
+      "fix": "Commence par Y. Le retournement est la signature."
+    },
+    {
+      "id": "voici-ce-que-fr",
+      "regex": "(?i)\\bvoici ce que (?:j'ai|nous avons) appris\\b",
+      "name": "« Voici ce que j'ai appris »",
+      "fix": "Donne directement la leçon."
+    },
+    {
+      "id": "en-conclusion-fr",
+      "regex": "(?im)^\\s*(?:en conclusion|pour conclure|pour résumer|en résumé)\\b",
+      "name": "Conclusion scolaire",
+      "fix": "Termine sur l'idée, pas sur l'annonce de la fin."
+    },
+    {
+      "id": "appat-fr",
+      "regex": "(?i)\\b(?:t'es d'accord \\?|vous êtes d'accord \\?|qui d'autre\\b|j'ai tort \\?)\\s*$",
+      "name": "Appât à engagement",
+      "fix": "Pose une vraie question précise, ou rien."
+    },
+    {
+      "id": "dans-cette-video-fr",
+      "regex": "(?i)\\b(?:dans (?:cette|ce) (?:vidéo|reel|post)|aujourd'hui je vais (?:te|vous) montrer|je vais (?:te|vous) (?:montrer|apprendre) comment)\\b",
+      "name": "Préambule de vidéo",
+      "fix": "Supprime-le, ouvre sur le résultat."
+    }
+  ]
+}

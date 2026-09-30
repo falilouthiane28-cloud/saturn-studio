@@ -1,0 +1,7 @@
+Pack « instagram-agent-skill » — copie conforme, non modifiée (pour rester comparable à l'amont).
+Source  : https://github.com/Jakeschincariol/instagram-agent-skill
+Commit  : d03c56bb598be770c60b201f94237e5d1a4268a6 (2026-09-13)
+Licence : MIT (voir LICENSE)
+Contenu : skills/<13 dossiers> copiés tels quels ; templates/voice.md → _templates/voice.md.
+Ajouts Saturn : UNIQUEMENT dans _saturn/ (jamais dans un fichier amont).
+Mise à jour : recopier skills/ depuis l'amont, puis `git diff` sur ce dossier.

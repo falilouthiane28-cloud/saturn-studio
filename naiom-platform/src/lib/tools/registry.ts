@@ -236,7 +236,9 @@ export const AGENT_TOOLS: Record<string, string[]> = {
   fireflies: ["fireflies_calls", "gmail_boite", "drive_fichiers"],
   prospection: ["gmail_boite", "gmail_envoyer", "instagram_reels_createurs", "drive_fichiers"],
   proposition: ["fireflies_calls", "gmail_boite", "gmail_envoyer", "drive_fichiers"],
-  "createur-contenu": ["linkedin_publier", "instagram_publier", "youtube_ma_chaine", "youtube_recherche", "instagram_reels_hashtag", "tiktok_tendances", "drive_fichiers"],
+  // Fatou rédige, ne publie jamais (règle du pack Instagram) : ni linkedin_publier ni instagram_publier ;
+  // pas de scraping Instagram (instagram_reels_hashtag) — le propriétaire colle les contenus.
+  "createur-contenu": ["youtube_ma_chaine", "youtube_recherche", "tiktok_tendances", "drive_fichiers"],
   veille: ["instagram_reels_hashtag", "instagram_reels_createurs", "tiktok_tendances", "youtube_recherche"],
   ecommerce: ["linkedin_publier", "instagram_publier", "instagram_reels_hashtag", "tiktok_tendances", "youtube_recherche"],
 };

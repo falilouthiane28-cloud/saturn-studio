@@ -5,6 +5,9 @@ import { buildMockResponse } from "@/lib/mockStream";
 import { renderInbox, renderMeetings, renderCandidatesFull, renderYouTube, renderDrive } from "@/lib/dataSources";
 import { appendUsage } from "@/lib/analytics/usage";
 import { toolsForAgent, toolsInstruction } from "@/lib/tools/agentTools";
+import { preparerFatouChat, remplirPromptFatou } from "@/lib/instagram/chat";
+
+const AGENTS_INSTAGRAM = new Set(["createur-contenu", "veille"]);
 
 export const runtime = "nodejs";
 // Les connecteurs Instagram/TikTok (Apify) peuvent prendre 1 à 2 minutes.
@@ -197,6 +200,11 @@ export async function POST(req: Request) {
     return new Response(`Unknown agent "${agentSlug}"`, { status: 404 });
   }
 
+  // Fatou (Instagram) : garde-fous déterministes avant le modèle (refus, voix manquante,
+  // DM sans déclencheur, question si deux capacités) ; sinon SKILL.md choisi + outils du pack.
+  const fatou = agentSlug === "createur-contenu" ? await preparerFatouChat(sanitizedMessages) : null;
+  if (fatou?.type === "reponse") return fatou.response;
+
   const useMock = process.env.DEMO_MOCK === "1" || !process.env.ANTHROPIC_API_KEY;
   if (useMock) {
     return buildMockResponse(agentSlug, sanitizedMessages);
@@ -204,7 +212,8 @@ export async function POST(req: Request) {
 
   const baseSystem =
     agent.systemPrompt || `Tu es ${agent.name}. Sois bref, en français, et utile.`;
-  const systemPrompt = await hydrateSystemPrompt(agentSlug, baseSystem);
+  let systemPrompt = await hydrateSystemPrompt(agentSlug, fatou ? remplirPromptFatou(baseSystem) : baseSystem);
+  if (fatou?.type === "modele" && fatou.systemeEnPlus) systemPrompt += `\n\n---\n\n${fatou.systemeEnPlus}`;
 
   const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
   const startTime = Date.now();
@@ -234,8 +243,13 @@ export async function POST(req: Request) {
     maxRetries: 2,
     tools: {
       web_search: anthropic.tools.webSearch_20260209({ maxUses: webBudget }),
-      web_fetch: anthropic.tools.webFetch_20260209({ maxUses: webBudget }),
+      // Agents Instagram : jamais de lecture automatique d'Instagram ou de Facebook (pas de scraping).
+      web_fetch: anthropic.tools.webFetch_20260209({
+        maxUses: webBudget,
+        ...(AGENTS_INSTAGRAM.has(agentSlug) ? { blockedDomains: ["instagram.com", "www.instagram.com", "facebook.com", "www.facebook.com"] } : {}),
+      }),
       ...toolsForAgent(agentSlug),
+      ...(fatou?.type === "modele" ? fatou.tools : {}),
     },
     stopWhen: stepCountIs(8),
     onFinish: async ({ usage, steps }) => {

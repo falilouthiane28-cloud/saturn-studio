@@ -1,0 +1,188 @@
+{
+  "version": "1.0",
+  "note": "Ajout Saturn (hors pack amont) : équivalents français des 26 formules de ig-reel/hooks.json. Même id ; classement dans le classify_order de l'amont. Le champ match est une regex JavaScript (drapeaux i et u appliqués par src/lib/instagram/hooks.ts ; \\p{L} = toute lettre, accents compris) : elle n'est lue par aucun script Python de l'amont.",
+  "hooks": [
+    {
+      "id": 1,
+      "name": "Aveu du coût",
+      "template": "{Montant précis}, c'est ce que {une erreur} m'a coûté.",
+      "example": "18 000 €, c'est ce qu'une clause oubliée m'a coûté.",
+      "match": "\\d[\\d  .,]*\\s?(?:€|euros?|francs?|fcfa|k)\\b[^.!?]{0,15}\\bce qu(?:e|')|m'a coûté|nous a coûté|j'ai perdu[^.!?]{0,20}\\d"
+    },
+    {
+      "id": 2,
+      "name": "Ordre négatif",
+      "template": "Arrête de {action courante}. Fais {alternative} à la place.",
+      "example": "Arrête de poster tous les jours. Poste deux fois, mais mieux.",
+      "match": "^\\s*(?:arr[êe]te[sz]?|stop|ne (?:fais|fait|faites) (?:plus|pas|jamais)|n'(?:utilise|envoie|achète)[sz]? (?:plus|pas|jamais)|jamais)\\b"
+    },
+    {
+      "id": 3,
+      "name": "Personne ne te le dit",
+      "template": "Personne ne te dit que {vérité inconfortable}.",
+      "example": "Personne ne te dit que tes 30 premiers reels vont faire un flop.",
+      "match": "\\bpersonne ne (?:te |vous |nous )?(?:dit|dira|parle|explique|montre|avoue)\\b|\\bce que personne ne\\b|\\bon ne (?:te|vous) (?:dit|le dit) (?:jamais|pas)\\b"
+    },
+    {
+      "id": 4,
+      "name": "Le remplacement",
+      "template": "{Cette chose} a remplacé {chose chère} pour {prix}.",
+      "example": "Cet outil à 20 € a remplacé mon assistante à 1 500 € par mois.",
+      "match": "\\bremplac(?:é|e|er|ent)\\b|\\bau lieu (?:de payer|d'embaucher|de recruter)\\b"
+    },
+    {
+      "id": 5,
+      "name": "Temps compressé",
+      "template": "Avant, ça me prenait {long}. Maintenant, {court}.",
+      "example": "Avant, mes devis me prenaient 3 heures. Maintenant, 8 minutes.",
+      "match": "\\bme prenai(?:t|ent)\\b|\\b(?:maintenant|aujourd'hui),? (?:ça|il|elle|je) (?:prend|me prend|mets|fais)\\b|\\bavant\\b[^.!?]{0,40}\\b\\d+\\s*(?:h|heures?|min|minutes?|jours?)\\b[^.!?]*[.!?,]\\s*(?:maintenant|aujourd'hui)\\b"
+    },
+    {
+      "id": 6,
+      "name": "Le reçu",
+      "template": "J'ai {fait une chose} pendant {N jours}. Voici les vrais chiffres.",
+      "example": "J'ai posté un reel par jour pendant 90 jours. Voici les vrais chiffres.",
+      "match": "\\bpendant \\d+\\s+(?:jours?|semaines?|mois|ans?|années?)\\b|\\bvoici (?:les|mes) (?:vrais )?chiffres\\b"
+    },
+    {
+      "id": 7,
+      "name": "Mauvaise façon, bonne façon",
+      "template": "Tu fais {chose} de travers, et ce n'est pas ta faute. {La correction}.",
+      "example": "Tu écris tes accroches à l'envers, et ce n'est pas ta faute.",
+      "match": "\\b(?:la plus grosse|la grande|l'?)\\s?erreur\\b|\\btu (?:le )?fais (?:mal|de travers|à l'envers)\\b|\\bvous (?:le )?faites (?:mal|de travers)\\b|\\bc'est pas ta faute\\b|\\bce n'est pas (?:ta|votre) faute\\b"
+    },
+    {
+      "id": 8,
+      "name": "Fuite d'initié",
+      "template": "J'ai passé {N ans} {dans le milieu}. Voici ce qu'on ne disait jamais.",
+      "example": "J'ai passé 7 ans en agence. Voici ce qu'on ne disait jamais aux clients.",
+      "match": "\\bj'ai (?:passé|travaillé|bossé|été)\\b[^.!?]*\\b\\d+\\s*\\+?\\s*ans\\b|\\bon ne (?:disait|dit) jamais\\b|\\bce qu'on ne (?:dit|montre) jamais\\b"
+    },
+    {
+      "id": 9,
+      "name": "Le vol",
+      "template": "Vole ce {modèle}. Il m'a pris {temps} à mettre au point.",
+      "example": "Vole ce script. Il m'a pris 2 ans à mettre au point.",
+      "match": "^\\s*(?:vole|volez|pique|piquez|copie|copiez)\\b|^\\s*voici (?:le|mon|ma) (?:script|modèle|template|méthode) exact"
+    },
+    {
+      "id": 10,
+      "name": "Si ceci, regarde",
+      "template": "Si tu {situation précise}, ces {durée} règlent le problème.",
+      "example": "Si tes reels plafonnent à 200 vues, ces 30 secondes règlent ça.",
+      "match": "^\\s*si (?:tu|vous|t'|ton|ta|tes|votre|vos|je|j')"
+    },
+    {
+      "id": 11,
+      "name": "Liste avec favori",
+      "template": "{N} {choses} qui {résultat}. La n°{k}, personne ne l'utilise.",
+      "example": "5 outils IA qui m'ont fait gagner 10 h. Le n°4, personne ne l'utilise.",
+      "match": "^\\s*(?:voici\\s+)?\\d+\\s+\\p{L}+|\\b(?:le|la) n°\\s?\\d+\\b|\\b(?:numéro) \\d+\\b|\\b(?:trois|quatre|cinq|sept|dix)\\s+\\p{L}+\\s+(?:qui|que|pour)\\b"
+    },
+    {
+      "id": 12,
+      "name": "L'objection",
+      "template": "« {Objection qu'on entend vraiment}. » D'accord. Voici la version qui marche quand même.",
+      "example": "« J'ai pas le temps de filmer. » D'accord. Voici la version en 10 minutes.",
+      "match": "^\\s*[«\"“]\\s?[^»\"”]{5,120}\\s?[»\"”][,.]?\\s*(?:d'accord|ok|soit|très bien|alors|voici)"
+    },
+    {
+      "id": 13,
+      "name": "Avant / après",
+      "template": "{L'ancien}. {Le nouveau}. {Une phrase sur le levier}.",
+      "example": "Ça, c'était mon profil en janvier. Ça, c'est aujourd'hui.",
+      "match": "\\bc'était\\b[^.!?]*[.!?]\\s*(?:ça|et ça|voilà),? c'est\\b|\\bavant\\b[^.!?]*\\baprès\\b"
+    },
+    {
+      "id": 14,
+      "name": "L'interpellation",
+      "template": "{Groupe précis}, c'est celui que vous ignorez.",
+      "example": "Freelances, c'est le réglage que vous ignorez tous.",
+      "match": "^\\s*(?:tous les|toutes les|chaque)\\s+\\p{L}+|^\\s*[\\p{Ll}][\\p{L} ]{2,28}s\\s*[,:]|^\\s*(?:à tous ceux|pour ceux|pour celles|avis aux)\\b"
+    },
+    {
+      "id": 15,
+      "name": "Le carnet d'échecs",
+      "template": "Mes {N} premiers {essais} n'ont rien donné. Voici ce qui a changé au {N+1}e.",
+      "example": "Mes 40 premiers reels ont fait moins de 300 vues. Voici ce qui a changé au 41e.",
+      "match": "\\bmes \\d+\\s+premi(?:ers|ères)\\b|\\bles \\d+\\s+premi(?:ers|ères)\\s+(?:reels?|vidéos?|posts?|clients?|mois)\\b"
+    },
+    {
+      "id": 16,
+      "name": "La question telle quelle",
+      "template": "« {Question exactement comme on me l'a posée} » — on me la pose chaque semaine.",
+      "example": "« Combien de reels avant que ça décolle ? » On me le demande chaque semaine.",
+      "match": "^\\s*[«\"“]?\\s?(?:comment|pourquoi|quand|où|qui|quel|quelle|quels|quelles|combien|est-ce que|faut-il|peut-on|dois-je|tu|vous)\\b[^?]{3,110}\\s?\\?"
+    },
+    {
+      "id": 17,
+      "name": "Face-à-face",
+      "template": "{A} contre {B}. J'ai testé les deux pendant {temps}, et il n'y a pas photo.",
+      "example": "ChatGPT contre Claude pour écrire un devis. Il n'y a pas photo.",
+      "match": "\\b(?:vs\\.?|versus|contre)\\b|\\bdifférences? entre\\b|\\bil n'y a pas photo\\b"
+    },
+    {
+      "id": 18,
+      "name": "Démo à froid",
+      "template": "{On commence en pleine action.} Regarde ce que ça fait.",
+      "example": "Regarde ce que fait ce prompt sur un devis de 3 pages.",
+      "match": "^\\s*(?:regarde|regardez) (?:ce que|ça|bien)\\b|^\\s*(?:laisse|laissez)-moi (?:te |vous )?montrer\\b"
+    },
+    {
+      "id": 19,
+      "name": "L'échéance",
+      "template": "{Chose} change le {date}. Fais {action} avant.",
+      "example": "Instagram change ses règles le 1er novembre. Fais ça avant.",
+      "match": "\\bavant (?:que|le|la|les|qu')\\b[^.!?]*\\b(?:change|changent|ferme|ferment|expire|finit|s'arrête)\\b|\\bchangen?t? (?:ses|les|son|sa)?\\s?\\p{L}*\\s?le \\d|\\bd'ici 20\\d\\d\\b|\\bfais[- ](?:le|ça) avant\\b"
+    },
+    {
+      "id": 20,
+      "name": "Permission",
+      "template": "Tu n'as pas besoin de {ce que tout le monde dit qu'il faut}.",
+      "example": "Tu n'as pas besoin de 10 000 abonnés pour vendre.",
+      "match": "\\b(?:tu n'as|t'as|vous n'avez) pas besoin\\b|\\barr[êe]te de (?:t'inquiéter|essayer)\\b"
+    },
+    {
+      "id": 21,
+      "name": "Début en pleine phrase",
+      "template": "{… et c'est là que {le basculement}.}",
+      "example": "… et c'est là que le client a raccroché.",
+      "match": "^\\s*(?:\\.\\.\\.|…)|^\\s*(?:et c'est (?:là|à ce moment-là) que|alors (?:il|elle|ils) (?:m'a|a) dit)\\b|^\\s*(?:euh|bon bah)\\b"
+    },
+    {
+      "id": 22,
+      "name": "Contre-pied",
+      "template": "{Proverbe connu, retourné.}",
+      "example": "Le contenu n'est pas roi. La distribution l'est.",
+      "match": "^\\s*[\\p{L}][\\p{L}' ]{2,34}\\b(?:n'est pas|est|sont|gagne|gagnent|perd|perdent|finit|finissent)\\s+(?:roi|premier|dernier|mort|faux|surcoté|sous-coté|dépassé)\\b"
+    },
+    {
+      "id": 23,
+      "name": "La statistique",
+      "template": "{N} % des {groupe} {fait surprenant}.",
+      "example": "90 % des reels meurent dans les 3 premières secondes.",
+      "match": "^\\s*\\d[\\d  ,.]*\\s?%|\\b\\d[\\d  ,.]*\\s?%\\s+(?:des|de)\\b"
+    },
+    {
+      "id": 24,
+      "name": "La révélation",
+      "template": "Voici le nouveau {truc}.",
+      "example": "Voici le nouveau CV : un reel de 30 secondes.",
+      "match": "^\\s*(?:voici|voilà|c'est)\\s+(?:le|la|les|mon|ma|mes)\\s+(?:nouveau|nouvelle|nouveaux|nouvelles)\\b|^\\s*ce (?:petit|nouveau) \\p{L}+ "
+    },
+    {
+      "id": 25,
+      "name": "Le résultat d'un autre",
+      "template": "Il y avait {une personne} qui {résultat} en {temps}.",
+      "example": "Une cliente a doublé ses ventes en 6 semaines avec un seul reel.",
+      "match": "\\bil y (?:avait|a) (?:un|une|ce|cette)\\b|^\\s*(?:un|une) (?:client|cliente|créateur|créatrice|étudiant|étudiante|fondateur|fondatrice|ami|amie|pote)\\b[^.!?]{0,20}\\b(?:a|ont)\\s+\\p{L}+(?:é|i|u|t|s)\\b"
+    },
+    {
+      "id": 26,
+      "name": "Le superlatif",
+      "template": "Le {plus rapide / seul} {truc}, c'est {la réponse}.",
+      "example": "La seule façon de percer en 2026, c'est la régularité.",
+      "match": "^\\s*(?:le|la|les)?\\s?(?:plus (?:rapide|simple|gros|grosse|grand|facile|dur|important)|meilleur|meilleure|pire|seul|seule|numéro un)\\s+\\p{L}+|\\b(?:le|la) (?:meilleure|seule|pire) (?:façon|manière) de\\b"
+    }
+  ]
+}
