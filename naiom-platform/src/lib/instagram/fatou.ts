@@ -73,7 +73,8 @@ export async function classerAccrochesReel(accroches: { formula_id: number; text
 }
 
 /* ---------------- légende : règles Saturn par-dessus caption.py ---------------- */
-const DEMANDES_FR = /\b(?:enregistre|sauvegarde|commente|partage|envoie(?:-le)?|abonne-toi|clique|écris-moi|dis-moi|réponds|tape|garde ce post)\b/gi;
+// Impératifs seulement : « je t'envoie », « tu partages » sont des verbes conjugués, pas des demandes.
+const DEMANDES_FR = /(?<![\p{L}'’])(?<!(?:je|tu|on|il|elle|nous|vous|ils|elles) )(?:enregistre|sauvegarde|commente|partage|envoie(?:-le|-moi)?|abonne-toi|clique|écris-moi|dis-moi|réponds|tape|garde ce post)(?![\p{L}])/giu;
 export interface LegendeLint extends Omit<CaptionLint, "fiabilite"> { reference: CaptionLint; ajustements: string[] }
 /**
  * caption.py reste la référence (rendue telle quelle dans `reference`). Deux ajustements Saturn :

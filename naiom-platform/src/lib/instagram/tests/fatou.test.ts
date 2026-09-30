@@ -127,3 +127,8 @@ test("journaliser refuse tant que le dernier message n'est pas un « oui »", as
   const r = await t.journaliser.execute!({ ligne: "#3 test" }, { toolCallId: "t", messages: [] });
   assert.match(String(r), /REFUSÉ/);
 });
+
+test("légende : « Commente MÉTHODE et je t'envoie… » = une seule demande (vu en prod)", async () => {
+  const r = await lintLegende("Commente MÉTHODE et je t'envoie ma méthode de prospection.\n\n20 minutes de commentaires par jour, 4 rendez-vous ce mois-ci.", ["prospection"], "fr");
+  assert.equal(r.checks.find((c) => c.check === "ONE ASK")?.status, "PASS");
+});
