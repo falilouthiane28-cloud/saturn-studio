@@ -49,3 +49,9 @@ Thumbs.db
 
 # Journal des appels d'outils des agents (paramètres d'emails, etc.)
 analytics/tools/
+
+# --- Poste de montage vidéo (PC) : rushs et rendus restent en local ---
+video-studio/Video/
+video-studio/Outputs/
+video-studio/test-render.mjs
+video-studio/public/brand/

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "./Icon";
+import { VideoStudio } from "./VideoStudio";
 import { cn } from "@/lib/utils";
 
 /* ============ types ============ */
@@ -80,7 +81,7 @@ const XLogo = ({ s = 18 }: { s?: number }) => (
 /* ============ main ============ */
 export function ContentStudio() {
   const [platform, setPlatform] = useState<Platform>("instagram");
-  const [mode, setMode] = useState<"create" | "library">("create");
+  const [mode, setMode] = useState<"create" | "library" | "video">("create");
   const [posts, setPosts] = useState<ContentPost[]>([]);
   const reload = useCallback(async () => {
     try { const j = await (await fetch("/api/content/list", { cache: "no-store" })).json(); setPosts(j.posts ?? []); } catch { /* */ }
@@ -96,14 +97,16 @@ export function ContentStudio() {
           <p className="text-[13px] text-[var(--color-muted)]">Crée du contenu adapté à chaque réseau et visualise le rendu final comme sur la plateforme.</p>
         </div>
         <div className="flex rounded-xl border border-[var(--color-line)] p-0.5 text-[12px] font-bold">
-          {([["create", "Créer"], ["library", `Bibliothèque${posts.length ? ` (${posts.length})` : ""}`]] as const).map(([k, l]) => (
+          {([["create", "Créer"], ["video", "Vidéo"], ["library", `Bibliothèque${posts.length ? ` (${posts.length})` : ""}`]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setMode(k)}
               className={cn("rounded-lg px-3 py-1.5 transition", mode === k ? "bg-[var(--color-ink)] text-white" : "text-[var(--color-muted)] hover:text-[var(--color-ink)]")}>{l}</button>
           ))}
         </div>
       </div>
 
-      {mode === "library" ? (
+      {mode === "video" ? (
+        <VideoStudio />
+      ) : mode === "library" ? (
         <LibraryView posts={posts} onChange={reload} />
       ) : (
         <>

@@ -27,5 +27,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Exclus : les gros transferts vidéo (le proxy mettrait tout le corps en mémoire) et le
+  // poste de montage. Ces routes vérifient elles-mêmes la session ou le jeton du poste.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/video/upload|api/video/worker/).*)"],
 };
