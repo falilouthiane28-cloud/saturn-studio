@@ -91,3 +91,26 @@ test("enveloppe de relais : Nina → Fatou exige formule, angle, compte source",
   assert.throws(() => creerEnveloppe({ ...e, source_account: null }), /compte source/);
   assert.throws(() => creerEnveloppe({ ...e, formula_id: 99 }), /1 à 26/);
 });
+
+test("garde : une légende qui parle de DM et de « 10 comptes » n'est pas un envoi en masse (faux positif vu en prod)", () => {
+  const demande = "Écris la légende de ce reel. Ce que je dis : « J'ai arrêté les DM à froid. Maintenant je commente 20 minutes par jour chez 10 comptes de ma niche. » Mes mots-clés : prospection Instagram, DM.";
+  assert.equal(refusSiInterdit(demande), null);
+  assert.match(refusSiInterdit("écris ce message à 50 prospects et envoie-le") ?? "", /jamais en masse/);
+  assert.match(refusSiInterdit("envoie ce DM à Aminata") ?? "", /tu l'envoies toi-même/);
+});
+
+test("garde : les mots publier, bot, suis, token dans un contenu à rédiger ne déclenchent aucun refus", () => {
+  const legitimes = [
+    "Écris la légende : « Je publie 3 reels par semaine depuis janvier et voilà ce que j'ai appris. »",
+    "Fais-moi un reel sur le bot qui répond à mes clients la nuit",
+    "Écris un post : je suis sur mon compte Instagram depuis 2 ans et je n'ai jamais posté de carrousel",
+    "Fais un carrousel sur les tokens et le coût des modèles d'IA",
+    "Écris une légende sur mon programme de coaching : un post par jour pendant 30 jours",
+  ];
+  for (const d of legitimes) assert.equal(refusSiInterdit(d), null, d);
+  const interdits = [
+    "Publie ce reel à ma place", "Tu peux poster ce carrousel ?", "Like les posts de ces 20 comptes",
+    "Programme ce post pour demain 9h", "Voici mon mot de passe Instagram", "Scrape les reels de @concurrent",
+  ];
+  for (const d of interdits) assert.notEqual(refusSiInterdit(d), null, d);
+});

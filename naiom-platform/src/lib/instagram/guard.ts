@@ -25,14 +25,29 @@ export function exigerBrouillonSeulement(outils: OutilAgent[]): void {
   if (v.length) throw new Error(`Garde brouillon-seulement : ${v.join(" ; ")}`);
 }
 
-/** Demandes que l'agent doit refuser (en une phrase) avec l'alternative conforme. */
+/**
+ * Demandes que l'agent doit refuser (en une phrase) avec l'alternative conforme.
+ * On ne refuse qu'une DEMANDE d'action (verbe en tête de message, ou « à ma place »,
+ * « pour moi ») : « je publie 3 reels par semaine » ou « un bot qui répond » dans un
+ * contenu à rédiger ne sont pas des demandes.
+ */
+const EN_TETE = String.raw`^\s*(?:(?:est-ce que\s+)?(?:tu peux|peux-tu|pourrais-tu|can you|please)\s+|stp,?\s+)?`;
+const POUR_MOI = String.raw`[^.?!]{0,40}(?:à ma place|pour moi|for me)`;
+const D = (s: string) => new RegExp(s, "iu");
 const DEMANDES_INTERDITES: [RegExp, string][] = [
-  [/\b(?:poste|publie|publier|poster|post(?:e|s)? (?:ça|le|la|ce)|post this|publish)\b/i, "Je ne publie rien moi-même : je te prépare le texte, tu le colles et tu publies."],
-  [/\b(?:envoie|envoyer|send)\b[^.?!]{0,40}\b(?:dm|message|mp)s?\b|\b\d{2,}\s+(?:personnes|comptes|people|accounts)\b/i, "Je n'envoie aucun message et jamais en masse : je rédige le DM, tu l'envoies toi-même à une personne qui a déjà interagi avec toi."],
-  [/\b(?:like|aime|follow|suis|abonne-toi|unfollow)\b[^.?!]{0,30}\b(?:compte|comptes|posts?|accounts?)\b/i, "Je n'aime et ne suis personne à ta place : je te dis qui vaut un commentaire, tu le fais toi-même."],
-  [/\b(?:programme|planifie|schedule)\b[^.?!]{0,30}\b(?:post|publication|reel|story)\b/i, "Je ne programme rien : je te donne le texte et l'heure conseillée, tu programmes dans Instagram."],
-  [/\b(?:mot de passe|password|identifiants|token|connecte-toi à (?:mon )?instagram|log ?in)\b/i, "Je ne me connecte jamais à Instagram et je ne demande aucun mot de passe : colle-moi le contenu, je rédige."],
-  [/\b(?:scrape|scraper|scraping|crawl|aspire|aspirer|bot)\b/i, "Je ne scrape pas : colle-moi les contenus (ou ouvre-les toi-même, à vitesse humaine), je les analyse."],
+  [D(`${EN_TETE}(?:poste|postes|publie|publier|poster|mets en ligne|post this|post it|publish)(?![\\p{L}])|(?<![\\p{L}])(?:poste|publie|publier|poster|post|publish)(?![\\p{L}])${POUR_MOI}`),
+    "Je ne publie rien moi-même : je te prépare le texte, tu le colles et tu publies."],
+  // Envoi par l'agent (« envoie ce DM ») ou envoi en masse (une action d'envoi vers N personnes).
+  [D(`${EN_TETE}(?:envoie|envoyer|send)(?![\\p{L}])[^.?!]{0,40}(?<![\\p{L}])(?:dm|message|mp)s?(?![\\p{L}])|(?<![\\p{L}])(?:envoie|envoyer|send|dm|mp|écris|écrire)(?![\\p{L}])[^.?!]{0,40}\\s(?:à|a|to)\\s+\\d{2,}\\s+(?:personnes|comptes|people|accounts|prospects)(?![\\p{L}])`),
+    "Je n'envoie aucun message et jamais en masse : je rédige le DM, tu l'envoies toi-même à une personne qui a déjà interagi avec toi."],
+  [D(`${EN_TETE}(?:like|likes|aime|follow|suis|abonne-toi|désabonne-toi|unfollow)(?![\\p{L}])|(?<![\\p{L}])(?:like|liker|aimer|follow|suivre|s'abonner)(?![\\p{L}])${POUR_MOI}`),
+    "Je n'aime et ne suis personne à ta place : je te dis qui vaut un commentaire, tu le fais toi-même."],
+  [D(`${EN_TETE}(?:programme|planifie|schedule)(?![\\p{L}])[^.?!]{0,30}(?<![\\p{L}])(?:post|publication|reel|story|carrousel)s?(?![\\p{L}])`),
+    "Je ne programme rien : je te donne le texte et l'heure conseillée, tu programmes dans Instagram."],
+  [D(`(?<![\\p{L}])(?:voici|voilà|mon|ma|mes|donne|here's|here is|my)\\s+(?:mot de passe|password|identifiants|codes? d'accès|token)|connecte-toi (?:à|sur) (?:mon )?instagram|log ?in (?:to|on) (?:my )?instagram`),
+    "Je ne me connecte jamais à Instagram et je ne demande aucun mot de passe : colle-moi le contenu, je rédige."],
+  [D(`${EN_TETE}(?:scrape|scrappe|scraper|crawl|aspire|aspirer|récupère automatiquement)(?![\\p{L}])|(?<![\\p{L}])(?:scrape|scraper|scraping|crawler)(?![\\p{L}])[^.?!]{0,30}(?:instagram|reels?|comptes?|@)`),
+    "Je ne scrape pas : colle-moi les contenus (ou ouvre-les toi-même, à vitesse humaine), je les analyse."],
 ];
 
 /** Renvoie la phrase de refus + alternative si la demande exige une action interdite. */
