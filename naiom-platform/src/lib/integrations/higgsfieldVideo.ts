@@ -82,11 +82,12 @@ const IMAGE_MODEL = process.env.HIGGSFIELD_KEYFRAME_MODEL ?? "higgsfield-ai/soul
 // Pas de format en entrée : la vidéo suit le format de l'image, d'où les images clés en 9:16.
 const I2V_MODEL = process.env.HIGGSFIELD_I2V_MODEL ?? "alibaba/happy-horse/v1.1/image-to-video";
 
-/** Image clé verticale d'une scène. Renvoie le request_id. */
-export async function lancerImageCle(prompt: string): Promise<string> {
+/** Image clé d'une scène (9:16 ou 16:9 : l'animation suivra ce format). Renvoie le request_id. */
+export async function lancerImageCle(prompt: string, format: "9:16" | "16:9" = "9:16"): Promise<string> {
   if (!isHiggsfieldApiConfigured()) throw new Error("Higgsfield non connecté : ajoute HIGGSFIELD_API_KEY (« id:secret ») dans .env.local du serveur.");
   if (!prompt.trim() || prompt.length > 4000) throw new Error("Prompt d'image vide ou trop long.");
-  const r = await call<{ request_id?: string }>(`${BASE}/${IMAGE_MODEL}`, { method: "POST", body: JSON.stringify({ prompt, aspect_ratio: "9:16", resolution: "720p" }) });
+  if (format !== "9:16" && format !== "16:9") throw new Error("Format : 9:16 ou 16:9.");
+  const r = await call<{ request_id?: string }>(`${BASE}/${IMAGE_MODEL}`, { method: "POST", body: JSON.stringify({ prompt, aspect_ratio: format, resolution: "720p" }) });
   if (!r.request_id) throw new Error("Higgsfield : aucune image créée.");
   return r.request_id;
 }

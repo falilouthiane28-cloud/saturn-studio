@@ -76,8 +76,12 @@ test("M6 · style par défaut clean-explainer : chaque prompt d'image dit fond b
     assert.match(p, /motion design/);
     assert.doesNotMatch(p, /\b(?:blue|pink|green|yellow|gradient|colou?red) background/);
   }
+  // Le texte n'est jamais demandé à l'IA : il est posé au montage.
   const noir = decouperScenes(20).find((s) => s.type === "TENSION")!;
-  assert.match(promptImage(noir, "Trop d'applis", STYLE_DEFAUT), /black background, glowing white sans-serif text 'Trop d'applis'/);
+  const p = promptImage(noir, "Trop d'*applis*", STYLE_DEFAUT);
+  assert.match(p, /^black background/);
+  assert.match(p, /no text, no letters/);
+  assert.doesNotMatch(p, /applis/);
 });
 
 test("M7 · reel + vidéo : ig-reel d'abord, puis la vidéo sur le script validé, puis la légende en Job A", async () => {

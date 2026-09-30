@@ -1,6 +1,6 @@
 /**
- * Templates de vidéos motion design : une durée, une suite de scènes typées (HOOK… CTA) et un
- * style. Cinq templates intégrés ; ceux créés par le propriétaire (ou par Fatou à sa demande)
+ * Templates de vidéos motion design : une durée, une suite de scènes typées (HOOK… CTA/LOGO) et un
+ * style. Huit templates intégrés ; ceux créés par le propriétaire (ou par Fatou à sa demande)
  * vont dans motion-templates.json, dans le dossier d'état Instagram.
  */
 import fs from "node:fs/promises";
@@ -17,8 +17,8 @@ export interface TemplateVideo {
   builtin?: boolean;
 }
 
-const T = (id: string, name: string, description: string, duree: Duree, seq: [TypeScene, number][]): TemplateVideo =>
-  ({ id, name, description, duree, scenes: seq.map(([type, secondes]) => ({ type, secondes })), style: "clean-explainer", builtin: true });
+const T = (id: string, name: string, description: string, duree: Duree, seq: [TypeScene, number][], style = "clean-explainer"): TemplateVideo =>
+  ({ id, name, description, duree, scenes: seq.map(([type, secondes]) => ({ type, secondes })), style, builtin: true });
 
 export const TEMPLATES_INTEGRES: TemplateVideo[] = [
   T("explainer-20", "Explainer", "Le format complet : accroche, contexte, tension, solution, preuve, appel à l'action.", 20,
@@ -31,9 +31,16 @@ export const TEMPLATES_INTEGRES: TemplateVideo[] = [
     [["HOOK", 2], ["TENSION", 4], ["SOLUTION", 6], ["PROOF", 4], ["CTA", 4]]),
   T("lancement-30", "Lancement", "Annoncer un produit ou un service en racontant l'histoire complète.", 30,
     [["HOOK", 2], ["CONTEXT", 4], ["TENSION", 4], ["SOLUTION", 7], ["PROOF", 5], ["PROOF", 5], ["CTA", 3]]),
+  // Inspirés des références du propriétaire (Hera, Claude, Claude.ai) : peu de coupes, l'interface en vedette, logo final.
+  T("demo-produit-20", "Démo produit", "Montrer un outil en action : la question tapée, l'interface qui répond, le résultat, le logo.", 20,
+    [["HOOK", 3], ["UI", 5], ["UI", 4], ["PROOF", 4], ["LOGO", 4]], "lancement-saas"),
+  T("decouverte-25", "Découverte", "Faire découvrir un produit : l'invitation, l'écran en perspective, la liste de ce qu'il fait, la gamme, le logo.", 25,
+    [["HOOK", 3], ["UI", 6], ["PROOF", 6], ["SOLUTION", 6], ["LOGO", 4]], "degrade-doux"),
+  T("revelation-15", "Révélation de marque", "Une scène 3D sombre et lumineuse qui mène au produit puis au logo.", 15,
+    [["HOOK", 3], ["CONTEXT", 4], ["UI", 4], ["LOGO", 4]], "produit-3d"),
 ];
 
-const TYPES: TypeScene[] = ["HOOK", "CONTEXT", "TENSION", "SOLUTION", "PROOF", "CTA"];
+const TYPES: TypeScene[] = ["HOOK", "CONTEXT", "TENSION", "SOLUTION", "PROOF", "UI", "CTA", "LOGO"];
 
 /** Règles communes à tous les templates (intégrés ou créés). Renvoie la liste des erreurs. */
 export function validerTemplate(t: TemplateVideo, stylesDispo: string[]): string[] {
@@ -46,7 +53,7 @@ export function validerTemplate(t: TemplateVideo, stylesDispo: string[]): string
     if (t.scenes.some((s) => !TYPES.includes(s.type))) e.push(`types de scène : ${TYPES.join(", ")}`);
     if (t.scenes.some((s) => !(s.secondes >= 1.5 && s.secondes <= 10))) e.push("chaque scène : 1,5 à 10 s");
     if (t.scenes[0].type !== "HOOK") e.push("la première scène est le HOOK");
-    if (t.scenes[t.scenes.length - 1].type !== "CTA") e.push("la dernière scène est le CTA");
+    if (!["CTA", "LOGO"].includes(t.scenes[t.scenes.length - 1].type)) e.push("la dernière scène est le CTA ou le LOGO");
     const total = t.scenes.reduce((a, s) => a + s.secondes, 0);
     if (total < t.duree - 2 || total > t.duree + 2) e.push(`total des scènes (${total} s) à ±2 s de la durée`);
   }

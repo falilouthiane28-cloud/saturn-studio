@@ -1,36 +1,58 @@
 /**
  * Montage des vidéos motion design de Fatou, sur le serveur : les clips Higgsfield des scènes
- * (dans l'ordre) sont téléchargés puis collés par ffmpeg en un seul MP4 vertical 720×1280,
- * servi par /generated-shorts/. Sécurité : execFile sans shell, délais, taille maximale par
- * clip, dossier temporaire supprimé, URL https uniquement (rendues par Higgsfield).
+ * (dans l'ordre) sont téléchargés, mis au format (720×1280 ou 1280×720), recouverts de leurs
+ * titres (PNG transparents, fondu d'entrée) puis collés par ffmpeg en un seul MP4 servi par
+ * /generated-shorts/. Sécurité : execFile sans shell, délais, taille maximale par clip, dossier
+ * temporaire supprimé, URL https uniquement (rendues par Higgsfield).
  */
 import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { estRequestId, statutVideo } from "./higgsfieldVideo.ts";
+import { dimensions, rendreTitres, type Titre } from "./titresMotion.ts";
+import type { FormatVideo } from "../instagram/motion.ts";
 
 const FFMPEG = process.env.FFMPEG_PATH ?? "ffmpeg";
 const TAILLE_MAX = 200 * 1024 * 1024; // 200 Mo par clip
 export const DOSSIER_SORTIE = "generated-shorts";
 
-/** Arguments ffmpeg : mise au format 720×1280 / 30 i/s de chaque clip, puis concaténation (vidéo seule). */
-export function argsConcat(entrees: string[], sortie: string): string[] {
+export interface OptionsMontage { format?: FormatVideo; titres?: (string | null)[] }
+
+/**
+ * Arguments ffmpeg : chaque clip mis au format, son titre (PNG) posé par-dessus avec un fondu
+ * d'entrée, puis concaténation (vidéo seule).
+ */
+export function argsConcat(entrees: string[], sortie: string, opts: OptionsMontage = {}): string[] {
   if (entrees.length < 2 || entrees.length > 12) throw new Error("Montage : de 2 à 12 clips.");
-  const norm = entrees.map((_, i) => `[${i}:v]scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=white,fps=30,setsar=1,format=yuv420p[v${i}]`);
-  const concat = `${entrees.map((_, i) => `[v${i}]`).join("")}concat=n=${entrees.length}:v=1:a=0[out]`;
+  const { w, h } = dimensions(opts.format ?? "9:16");
+  const titres = opts.titres ?? [];
+  const pngs = titres.map((t, i) => ({ t, i })).filter((x): x is { t: string; i: number } => !!x.t);
+  const filtres: string[] = [];
+  const sorties: string[] = [];
+  entrees.forEach((_, i) => {
+    filtres.push(`[${i}:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},fps=30,setsar=1,format=yuv420p[v${i}]`);
+    const k = pngs.findIndex((p) => p.i === i);
+    if (k >= 0) {
+      filtres.push(`[${entrees.length + k}:v]format=rgba,fade=t=in:st=0.25:d=0.4:alpha=1[t${i}]`);
+      filtres.push(`[v${i}][t${i}]overlay=0:0:shortest=1,format=yuv420p[w${i}]`);
+      sorties.push(`[w${i}]`);
+    } else sorties.push(`[v${i}]`);
+  });
+  filtres.push(`${sorties.join("")}concat=n=${entrees.length}:v=1:a=0[out]`);
   return [
     "-y", "-hide_banner", "-loglevel", "error",
     ...entrees.flatMap((f) => ["-i", f]),
-    "-filter_complex", [...norm, concat].join(";"),
+    ...pngs.flatMap((p) => ["-loop", "1", "-framerate", "30", "-i", p.t]),
+    "-filter_complex", filtres.join(";"),
     "-map", "[out]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-movflags", "+faststart",
     sortie,
   ];
 }
 
-/** Colle des fichiers locaux. Renvoie le chemin de sortie. */
-export function concatLocal(entrees: string[], sortie: string, timeoutMs = 180_000): Promise<string> {
-  const args = argsConcat(entrees, sortie);
+/** Colle des fichiers locaux (avec titres éventuels). Renvoie le chemin de sortie. */
+export function concatLocal(entrees: string[], sortie: string, opts: OptionsMontage = {}, timeoutMs = 240_000): Promise<string> {
+  const args = argsConcat(entrees, sortie, opts);
   return new Promise((resolve, reject) => {
     execFile(FFMPEG, args, { timeout: timeoutMs, windowsHide: true, maxBuffer: 4 * 1024 * 1024 }, (err, _o, stderr) => {
       if (err) reject(new Error(`ffmpeg a échoué : ${String(stderr || err.message).slice(0, 300)}`));
@@ -52,9 +74,13 @@ async function telecharger(url: string, fichier: string): Promise<void> {
 
 /**
  * Monte la vidéo finale à partir des request_id des animations de scènes (ordre = ordre des scènes).
- * Chaque job doit être terminé. Renvoie le chemin public (/generated-shorts/motion-….mp4).
+ * Chaque job doit être terminé. `titres` (un par scène) sont posés au montage. Renvoie le chemin public.
  */
-export async function assemblerMotion(requestIds: string[], racinePublic = path.join(process.cwd(), "public")): Promise<{ fichier: string; url: string; clips: number }> {
+export async function assemblerMotion(
+  requestIds: string[],
+  opts: { format?: FormatVideo; titres?: Titre[]; accent?: string } = {},
+  racinePublic = path.join(process.cwd(), "public"),
+): Promise<{ fichier: string; url: string; clips: number }> {
   if (requestIds.some((id) => !estRequestId(id))) throw new Error("Montage : uniquement des request_id de clips générés par Fatou.");
   const statuts = await Promise.all(requestIds.map((id) => statutVideo(id)));
   const pasPrets = statuts.filter((s) => s.status !== "completed" || !s.videoUrl);
@@ -66,10 +92,12 @@ export async function assemblerMotion(requestIds: string[], racinePublic = path.
       await telecharger(s.videoUrl!, f);
       return f;
     }));
+    const format = opts.format ?? "9:16";
+    const pngs = opts.titres?.length ? await rendreTitres(opts.titres, format, opts.accent ?? "#7C3AED", tmp) : [];
     const dossier = path.join(racinePublic, DOSSIER_SORTIE);
     await fs.mkdir(dossier, { recursive: true });
     const nom = `motion-${Date.now().toString(36)}.mp4`;
-    await concatLocal(fichiers, path.join(dossier, nom));
+    await concatLocal(fichiers, path.join(dossier, nom), { format, titres: pngs });
     return { fichier: path.join(dossier, nom), url: `/${DOSSIER_SORTIE}/${nom}`, clips: fichiers.length };
   } finally {
     await fs.rm(tmp, { recursive: true, force: true });

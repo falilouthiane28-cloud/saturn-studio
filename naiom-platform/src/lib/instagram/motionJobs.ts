@@ -72,7 +72,7 @@ export async function lancerJob(dossier: string, id: string, confirme: boolean):
     job.statut = "generation"; job.erreur = undefined;
     for (const [i, e] of job.etapes.entries()) {
       if (e.image_id && e.statut !== "echec") continue;
-      try { Object.assign(e, { image_id: await lancerImageCle(job.plan.scenes[i].prompt_image), statut: "image", erreur: undefined }); }
+      try { Object.assign(e, { image_id: await lancerImageCle(job.plan.scenes[i].prompt_image, job.plan.format ?? "9:16"), statut: "image", erreur: undefined }); }
       catch (err) { Object.assign(e, { statut: "echec", erreur: (err as Error).message }); job.statut = "echec"; job.erreur = (err as Error).message; break; }
     }
   })).job;
@@ -105,7 +105,9 @@ export async function avancerJob(dossier: string, id: string): Promise<MotionJob
       else return;
     }
     try {
-      const r = await assemblerMotion(job.etapes.map((e) => e.video_id!));
+      // Titres posés au montage : texte à l'écran de chaque scène, mot accentué, logo final.
+      const titres = job.plan.scenes.map((s) => ({ texte: s.texte_ecran, type: s.type, ton: s.ton ?? (s.fond === "black" ? "sombre" as const : "clair" as const) }));
+      const r = await assemblerMotion(job.etapes.map((e) => e.video_id!), { format: job.plan.format ?? "9:16", titres, accent: job.plan.accent });
       job.final_url = r.url; job.statut = "pret";
     } catch (err) { job.statut = "echec"; job.erreur = `Montage : ${(err as Error).message}`; }
   })).job;

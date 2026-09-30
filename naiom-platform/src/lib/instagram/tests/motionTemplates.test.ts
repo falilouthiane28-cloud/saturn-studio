@@ -9,10 +9,10 @@ import { lireBrouillon, type MotionPlan } from "../motionPlan.ts";
 import { creerJob, lancerJob, listerJobs } from "../motionJobs.ts";
 
 const dossier = () => fs.mkdtemp(path.join(os.tmpdir(), "tpl-"));
-const STYLES = ["clean-explainer"];
+const STYLES = ["clean-explainer", "lancement-saas", "produit-3d", "degrade-doux"];
 
-test("T1 · les 5 templates intégrés respectent les règles (HOOK en tête, CTA à la fin, ±2 s, 4 à 7 scènes)", () => {
-  assert.equal(TEMPLATES_INTEGRES.length, 5);
+test("T1 · les 8 templates intégrés respectent les règles (HOOK en tête, CTA ou LOGO à la fin, ±2 s, 4 à 7 scènes)", () => {
+  assert.equal(TEMPLATES_INTEGRES.length, 8);
   for (const t of TEMPLATES_INTEGRES) assert.deepEqual(validerTemplate(t, STYLES), [], t.id);
   const s = scenesDuTemplate(TEMPLATES_INTEGRES[0]);
   assert.equal(s[0].debut, 0);
@@ -25,11 +25,11 @@ test("T2 · template perso : ajouté, relu, jamais en double, supprimable ; les 
   const t: TemplateVideo = { id: "idee-recue-15", name: "Idée reçue", description: "Démonter une idée reçue.", duree: 15, style: "clean-explainer",
     scenes: [{ type: "HOOK", secondes: 2 }, { type: "TENSION", secondes: 4 }, { type: "SOLUTION", secondes: 6 }, { type: "CTA", secondes: 3 }] };
   await ajouterTemplate(d, t, STYLES);
-  assert.equal((await lireTemplates(d)).length, 6);
+  assert.equal((await lireTemplates(d)).length, 9);
   await assert.rejects(() => ajouterTemplate(d, t, STYLES), /existe déjà/);
   await assert.rejects(() => supprimerTemplate(d, "explainer-20"), /intégrés/);
   await supprimerTemplate(d, "idee-recue-15");
-  assert.equal((await lireTemplates(d)).length, 5);
+  assert.equal((await lireTemplates(d)).length, 8);
 });
 
 test("T3 · template invalide proposé par l'IA : refusé avec la liste des erreurs", async () => {

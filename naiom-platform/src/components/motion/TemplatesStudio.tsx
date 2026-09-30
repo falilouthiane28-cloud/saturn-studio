@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { LoaderCircle, Plus, Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Label, Legende, Strip, type TemplateVideo } from "./shared";
+import { Label, Legende, NOM_STYLE, Strip, type TemplateVideo } from "./shared";
 
 export function TemplatesStudio({ onUse, actif }: { onUse: (id: string) => void; actif: string }) {
   const [templates, setTemplates] = useState<TemplateVideo[]>([]);
@@ -74,11 +74,11 @@ export function TemplatesStudio({ onUse, actif }: { onUse: (id: string) => void;
         {templates.map((t) => (
           <article key={t.id} className={cn("flex flex-col gap-3 rounded-2xl border bg-white/70 p-4 transition",
             actif === t.id ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20" : "border-[var(--color-line)]")}>
-            <Strip scenes={t.scenes} />
+            <Strip scenes={t.scenes} style={t.style} />
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h3 className="text-[15px] font-black text-[var(--color-ink)]">{t.name}</h3>
-                <p className="text-[11px] font-semibold text-[var(--color-muted)]">{t.duree} s · {t.scenes.length} scènes{t.builtin ? "" : " · perso"}</p>
+                <p className="text-[11px] font-semibold text-[var(--color-muted)]">{t.duree} s · {t.scenes.length} scènes · {NOM_STYLE[t.style] ?? t.style}{t.builtin ? "" : " · perso"}</p>
               </div>
               {!t.builtin && (
                 <button onClick={() => supprimer(t)} aria-label={`Supprimer le template ${t.name}`}

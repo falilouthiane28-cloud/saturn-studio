@@ -8,15 +8,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Clapperboard, Download, LoaderCircle, Sparkles, Trash2, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FOND_NOIR, LIBELLE_SCENE, Label, Strip, type TemplateVideo, type TypeScene } from "./shared";
+import { CLASSE_TON, LIBELLE_SCENE, Label, NOM_STYLE, Strip, TitreAccent, tonDe, type TemplateVideo, type Ton, type TypeScene } from "./shared";
 
-interface ScenePlan { n: number; type: TypeScene; debut: number; fin: number; texte_ecran: string; narration: string }
+type Format = "9:16" | "16:9";
+interface ScenePlan { n: number; type: TypeScene; debut: number; fin: number; texte_ecran: string; narration: string; ton?: Ton }
 interface Etape { statut: "attente" | "image" | "animation" | "prete" | "echec"; image_url?: string; video_url?: string; erreur?: string }
 interface Job {
   id: string; createdAt: string; statut: "plan" | "generation" | "montage" | "pret" | "echec"; final_url?: string; erreur?: string;
   etapes: Etape[];
   plan: {
-    idee: string; sujet: string; duree: number; template: { id: string; name: string }; cta: string; points: string[];
+    idee: string; sujet: string; duree: number; template: { id: string; name: string }; cta: string; points: string[]; style?: string; format?: Format;
     accroches: { formula_id: number; texte: string; score: number }[];
     scenes: ScenePlan[];
     narration: { texte: string; human_score: number; ok: boolean; mots: number; cible: number };
@@ -37,6 +38,7 @@ const tc = (s: number) => `0:${String(Math.round(s)).padStart(2, "0")}`;
 export function MotionStudio({ templateId, onTemplate }: { templateId: string; onTemplate: (id: string) => void }) {
   const [templates, setTemplates] = useState<TemplateVideo[]>([]);
   const [idee, setIdee] = useState("");
+  const [format, setFormat] = useState<Format>("9:16");
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selId, setSelId] = useState<string | null>(null);
   const [preparation, setPreparation] = useState(false);
@@ -80,7 +82,7 @@ export function MotionStudio({ templateId, onTemplate }: { templateId: string; o
   async function preparer() {
     setErr(null); setPreparation(true); setConfirmer(false);
     try {
-      const r = await fetch("/api/motion/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idee, templateId: template?.id }) });
+      const r = await fetch("/api/motion/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idee, templateId: template?.id, format }) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? "Plan impossible");
       setJobs((cur) => [j.job, ...cur]); setSelId(j.job.id);
@@ -122,7 +124,21 @@ export function MotionStudio({ templateId, onTemplate }: { templateId: string; o
                 <div className="flex items-center justify-between text-[12px] font-black text-[var(--color-ink)]">
                   <span>{t.name}</span><span className="text-[11px] font-semibold text-[var(--color-muted)]">{t.duree} s</span>
                 </div>
-                <Strip scenes={t.scenes} className="h-5" />
+                <Strip scenes={t.scenes} style={t.style} className="h-5" />
+                <span className="block text-[10px] text-[var(--color-muted)]">{NOM_STYLE[t.style] ?? t.style}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <Label>Format</Label>
+          <div className="mt-1.5 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Format de la vidéo">
+            {([["9:16", "Vertical 9:16", "Reels, TikTok, Shorts"], ["16:9", "Paysage 16:9", "LinkedIn, X, site"]] as const).map(([f, l, h]) => (
+              <button key={f} role="radio" aria-checked={format === f} onClick={() => setFormat(f)}
+                className={cn("rounded-xl border-2 p-2.5 text-left transition", format === f ? "border-[var(--color-primary)] bg-white" : "border-[var(--color-line)] hover:bg-white/60")}>
+                <span className="block text-[12px] font-black text-[var(--color-ink)]">{l}</span>
+                <span className="block text-[10px] text-[var(--color-muted)]">{h}</span>
               </button>
             ))}
           </div>
@@ -170,7 +186,7 @@ export function MotionStudio({ templateId, onTemplate }: { templateId: string; o
           <header className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h3 className="text-[18px] font-black tracking-tight text-[var(--color-ink)]">{sel.plan.sujet}</h3>
-              <p className="text-[12px] text-[var(--color-muted)]">{sel.plan.template.name} · {sel.plan.duree} s · {sel.plan.scenes.length} scènes · style clean explainer</p>
+              <p className="text-[12px] text-[var(--color-muted)]">{sel.plan.template.name} · {sel.plan.duree} s · {sel.plan.scenes.length} scènes · {NOM_STYLE[sel.plan.style ?? "clean-explainer"] ?? sel.plan.style} · {sel.plan.format ?? "9:16"}</p>
             </div>
             <div className="flex items-center gap-2">
               <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-bold", STATUT[sel.statut].cls)}>{STATUT[sel.statut].label}</span>
@@ -181,7 +197,7 @@ export function MotionStudio({ templateId, onTemplate }: { templateId: string; o
 
           {sel.statut === "pret" && sel.final_url && (
             <div className="flex flex-wrap items-start gap-4 rounded-xl bg-[#1A1A1A] p-4">
-              <video src={sel.final_url} controls playsInline className="aspect-[9/16] w-[200px] rounded-lg bg-black" />
+              <video src={sel.final_url} controls playsInline className={cn("rounded-lg bg-black", sel.plan.format === "16:9" ? "aspect-video w-[360px] max-w-full" : "aspect-[9/16] w-[200px]")} />
               <div className="space-y-2 text-white">
                 <p className="text-[14px] font-black">Ta vidéo est montée.</p>
                 <p className="max-w-xs text-[12px] text-white/70">Elle est sans son : enregistre la narration ci-dessous et ajoute-la au montage (CapCut ou studio Vidéo).</p>
@@ -208,13 +224,16 @@ export function MotionStudio({ templateId, onTemplate }: { templateId: string; o
             <div className="mt-2 flex gap-3 overflow-x-auto pb-2">
               {sel.plan.scenes.map((s, i) => {
                 const e = sel.etapes[i];
-                const noir = FOND_NOIR.has(s.type);
+                const ton = s.ton ?? tonDe(s.type, sel.plan.style ?? "clean-explainer");
+                const noir = ton !== "clair";
+                const paysage = sel.plan.format === "16:9";
                 return (
-                  <figure key={s.n} className="w-[128px] shrink-0 space-y-1.5">
-                    <div className={cn("relative flex aspect-[9/16] items-center justify-center overflow-hidden rounded-lg border p-2 text-center", noir ? "border-transparent bg-[#1A1A1A] text-white" : "border-[var(--color-line)] bg-white text-[#1A1A1A]")}>
+                  <figure key={s.n} className={cn("shrink-0 space-y-1.5", paysage ? "w-[220px]" : "w-[128px]")}>
+                    <div className={cn("relative flex items-center justify-center overflow-hidden rounded-lg border p-2 text-center", paysage ? "aspect-video" : "aspect-[9/16]", CLASSE_TON[ton], noir ? "border-transparent" : "border-[var(--color-line)]")}>
                       {e?.video_url ? <video src={e.video_url} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden" />
                         : e?.image_url ? <img src={e.image_url} alt={`Image clé, scène ${s.n}`} className="absolute inset-0 h-full w-full object-cover" />
-                        : <span className="text-[12px] font-black leading-tight">{s.texte_ecran}</span>}
+                        : null}
+                      <span className="relative text-[12px] font-black leading-tight drop-shadow-sm"><TitreAccent texte={s.texte_ecran} ton={ton} /></span>
                       <span className={cn("absolute left-1.5 top-1.5 rounded px-1 text-[9px] font-black", noir ? "bg-white/15" : "bg-black/5")}>{s.type}</span>
                       <span className={cn("absolute bottom-1.5 right-1.5 text-[9px] font-semibold", noir ? "text-white/60" : "text-black/40")}>{tc(s.debut)}–{tc(s.fin)}</span>
                     </div>
