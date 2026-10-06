@@ -6,6 +6,7 @@ import { renderInbox, renderMeetings, renderCandidatesFull, renderYouTube, rende
 import { appendUsage } from "@/lib/analytics/usage";
 import { toolsForAgent, toolsInstruction } from "@/lib/tools/agentTools";
 import { preparerFatouChat, remplirPromptFatou } from "@/lib/instagram/chat";
+import { getAgent as getSupabaseAgent, saveInteraction, trackMetric } from "@/lib/supabase";
 
 const AGENTS_INSTAGRAM = new Set(["createur-contenu", "veille"]);
 
@@ -210,15 +211,28 @@ export async function POST(req: Request) {
     return buildMockResponse(agentSlug, sanitizedMessages);
   }
 
-  const baseSystem =
-    agent.systemPrompt || `Tu es ${agent.name}. Sois bref, en français, et utile.`;
+  const agentId = agentSlug === "ecommerce" ? "emma"
+    : agentSlug === "createur-contenu" ? "lea"
+    : agentSlug === "fireflies" ? "jules"
+    : agentSlug === "veille" ? "nina"
+    : agentSlug === "prospection" ? "sacha"
+    : agentSlug === "proposition" ? "victor"
+    : agentSlug;
+
+  const sbAgent = await getSupabaseAgent(agentId);
+  const baseSystem = sbAgent?.system_prompt
+    || agent.systemPrompt
+    || `Tu es ${agent.name}. Sois bref, en français, et utile.`;
   let systemPrompt = await hydrateSystemPrompt(agentSlug, fatou ? remplirPromptFatou(baseSystem) : baseSystem);
   if (fatou?.type === "modele" && fatou.systemeEnPlus) systemPrompt += `\n\n---\n\n${fatou.systemeEnPlus}`;
 
-  const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+  const anthropic = createAnthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY!,
+    baseURL: "https://api.anthropic.com/v1",
+  });
   const startTime = Date.now();
-  // Modèle selon la puissance de l'agent (badge opus/sonnet de sa fiche).
-  const modelId = /opus/i.test(agent.model) ? "claude-opus-5" : "claude-sonnet-5";
+  const sbModel = sbAgent?.model ?? agent.model;
+  const modelId = /opus/i.test(sbModel) ? "claude-opus-5" : "claude-sonnet-5";
 
   // Prompt caching Anthropic (TTL ~5min) — pose un cache_control ephemeral sur
   // le system pour que les tours successifs réutilisent la cache au lieu de
@@ -239,11 +253,10 @@ export async function POST(req: Request) {
   const result = streamText({
     model: anthropic(modelId),
     messages: [cachedSystemMessage, ...modelMessages],
-    maxOutputTokens: 24000, // évite les réponses coupées (finishReason "length") — Opus 5 pense + rédige long
+    maxOutputTokens: 24000,
     maxRetries: 2,
     tools: {
       web_search: anthropic.tools.webSearch_20260209({ maxUses: webBudget }),
-      // Agents Instagram : jamais de lecture automatique d'Instagram ou de Facebook (pas de scraping).
       web_fetch: anthropic.tools.webFetch_20260209({
         maxUses: webBudget,
         ...(AGENTS_INSTAGRAM.has(agentSlug) ? { blockedDomains: ["instagram.com", "www.instagram.com", "facebook.com", "www.facebook.com"] } : {}),
@@ -274,6 +287,27 @@ export async function POST(req: Request) {
           success: true,
           toolCalls,
         });
+
+        const sessionId = body.sessionId as string | undefined;
+        if (sessionId) {
+          const lastUserMsg = sanitizedMessages.filter(m => m.role === "user").pop();
+          if (lastUserMsg) {
+            const userText = lastUserMsg.parts
+              ?.filter((p: any) => p.type === "text")
+              .map((p: any) => p.text)
+              .join("\n") || JSON.stringify(lastUserMsg.parts);
+            await saveInteraction(agentId, sessionId, "user", userText);
+          }
+          const assistantText = (steps || []).map(s => s.text).filter(Boolean).join("\n");
+          if (assistantText) {
+            await saveInteraction(agentId, sessionId, "assistant", assistantText, {
+              tokensIn: inputTokens, tokensOut: outputTokens, latencyMs, model: modelId,
+              metadata: { toolCalls, cachedTokens },
+            });
+          }
+          const now = new Date();
+          await trackMetric(agentId, "tokens_used", inputTokens + outputTokens, now, now, { model: modelId });
+        }
       } catch (e) {
         console.error("[api/chat] usage tracking failed:", e);
       }
