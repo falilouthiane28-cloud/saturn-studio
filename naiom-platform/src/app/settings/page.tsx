@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Icon } from "@/components/Icon";
 import { getInbox, getMeetings, getYouTubeSnapshot, getDriveSnapshot } from "@/lib/dataSources";
 import { SyncButton } from "@/components/SyncButton";
