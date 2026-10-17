@@ -111,7 +111,7 @@ async function getIntegrations(): Promise<Integration[]> {
       envVar: "GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET",
       configured: isGoogleConfigured() && googleStatus.connected,
       email: googleStatus.email,
-      lastUpdated: googleStatus.connectedAt,
+      lastUpdated: undefined,
       connectUrl: isGoogleConfigured() ? "/api/integrations/google/start" : undefined,
       setupSteps: [
         "Credentials OAuth configurées dans .env.local ✓",
