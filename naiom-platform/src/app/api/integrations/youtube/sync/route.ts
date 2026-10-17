@@ -1,12 +1,9 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { fetchYouTubeSnapshot } from "@/lib/integrations/youtube";
 import { loadTokens } from "@/lib/integrations/google";
+import { writeLiveData, readLiveData } from "@/lib/supabase/liveStore";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
-
-const LIVE_YOUTUBE_FILE = path.join(process.cwd(), "src", "data", "live-youtube.json");
 
 export async function POST(req: Request) {
   const tokens = await loadTokens();
@@ -26,7 +23,7 @@ export async function POST(req: Request) {
 
   try {
     const snapshot = await fetchYouTubeSnapshot({ days, videos });
-    await fs.writeFile(LIVE_YOUTUBE_FILE, JSON.stringify(snapshot, null, 2), "utf-8");
+    await writeLiveData("youtube", snapshot);
     return Response.json({
       success: true,
       synced: {
@@ -34,7 +31,6 @@ export async function POST(req: Request) {
         subscribers: snapshot.channel.subscribers,
         viewsInPeriod: snapshot.analytics.totals.views,
       },
-      wroteTo: LIVE_YOUTUBE_FILE,
       at: new Date().toISOString(),
     });
   } catch (err) {
@@ -47,10 +43,9 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-  try {
-    const stat = await fs.stat(LIVE_YOUTUBE_FILE);
-    return Response.json({ live: true, lastUpdated: stat.mtime.toISOString() });
-  } catch {
-    return Response.json({ live: false });
+  const result = await readLiveData("youtube");
+  if (result) {
+    return Response.json({ live: true, lastUpdated: result.updatedAt });
   }
+  return Response.json({ live: false });
 }

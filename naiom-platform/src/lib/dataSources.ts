@@ -1,5 +1,3 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { MOCK_INBOX, type MockEmail } from "@/data/mockInbox";
 import { MOCK_MEETINGS, type MockMeeting } from "@/data/mockMeetings";
 import {
@@ -13,23 +11,25 @@ import { loadTokens } from "@/lib/integrations/google";
 import { fetchYouTubeSnapshot } from "@/lib/integrations/youtube";
 import { fetchGmailInbox } from "@/lib/integrations/gmail";
 import { fetchRecentDriveFiles } from "@/lib/integrations/drive";
+import { readLiveData, writeLiveData } from "@/lib/supabase/liveStore";
 
 /**
  * Layer de données Saturn Studio.
  *
- * Chaque source lit en priorité un fichier "live-*.json" alimenté par un workflow
- * n8n (via POST /api/sync/...). Si le fichier est absent, fallback sur le mock
- * embarqué — la plateforme reste démo-able sans connexion externe.
+ * Chaque source lit en priorité la table Supabase `live_data` alimentée par
+ * les routes de sync ou l'auto-refresh. Si pas de données live, fallback sur
+ * le mock embarqué — la plateforme reste démo-able sans connexion externe.
  */
 
-const DATA_DIR = path.join(process.cwd(), "src", "data");
-export const LIVE_FILES = {
-  inbox: path.join(DATA_DIR, "live-inbox.json"),
-  meetings: path.join(DATA_DIR, "live-meetings.json"),
-  candidates: path.join(DATA_DIR, "live-candidates.json"),
-};
-export const LIVE_YOUTUBE_FILE = path.join(DATA_DIR, "live-youtube.json");
-export const LIVE_DRIVE_FILE = path.join(DATA_DIR, "live-drive.json");
+export const LIVE_SOURCES = {
+  inbox: "inbox",
+  meetings: "meetings",
+  candidates: "candidates",
+  youtube: "youtube",
+  drive: "drive",
+} as const;
+
+export type LiveSource = keyof typeof LIVE_SOURCES;
 
 export interface SourceResult<T> {
   data: T;
@@ -37,122 +37,141 @@ export interface SourceResult<T> {
   lastUpdated?: string;
 }
 
-async function readLiveOrFallback<T>(liveFile: string, fallback: T): Promise<SourceResult<T>> {
-  try {
-    const raw = await fs.readFile(liveFile, "utf-8");
-    const parsed = JSON.parse(raw);
-    const stat = await fs.stat(liveFile);
-    return { data: parsed as T, live: true, lastUpdated: stat.mtime.toISOString() };
-  } catch {
-    return { data: fallback, live: false };
+async function readLiveOrFallback<T>(source: string, fallback: T): Promise<SourceResult<T>> {
+  const result = await readLiveData<T>(source);
+  if (result) {
+    return { data: result.data, live: true, lastUpdated: result.updatedAt };
   }
+  return { data: fallback, live: false };
 }
 
 // ---- Auto-refresh en arrière-plan ----
-// Pour éviter de re-déclencher un fetch en parallèle à chaque page load, on garde
-// une trace des sources en cours de rafraîchissement.
 const refreshInFlight = new Set<string>();
 
-/**
- * Déclenche un refresh en tâche de fond si le fichier live est périmé (ou absent).
- * Ne bloque jamais la réponse — les données fraîches arriveront au prochain page load.
- */
 function scheduleRefresh<T>(
-  liveFile: string,
+  source: string,
   ttlMinutes: number,
   fetchFn: () => Promise<T>,
   label: string
 ): void {
-  if (refreshInFlight.has(liveFile)) return;
+  if (refreshInFlight.has(source)) return;
   (async () => {
     try {
-      const stat = await fs.stat(liveFile).catch(() => null);
-      if (stat) {
-        const ageMin = (Date.now() - stat.mtime.getTime()) / 60000;
-        if (ageMin < ttlMinutes) return; // frais, rien à faire
+      const existing = await readLiveData(source);
+      if (existing) {
+        const ageMin = (Date.now() - new Date(existing.updatedAt).getTime()) / 60000;
+        if (ageMin < ttlMinutes) return;
       }
-      refreshInFlight.add(liveFile);
+      refreshInFlight.add(source);
       const data = await fetchFn();
-      await fs.writeFile(liveFile, JSON.stringify(data, null, 2), "utf-8");
+      await writeLiveData(source, data);
       console.log(`[auto-refresh] ${label} mis à jour (TTL ${ttlMinutes}min)`);
     } catch (err) {
-      // Silencieux — si non configuré ou API down, on garde le cache
       const msg = err instanceof Error ? err.message : String(err);
       console.warn(`[auto-refresh] ${label} : ${msg.slice(0, 120)}`);
     } finally {
-      refreshInFlight.delete(liveFile);
+      refreshInFlight.delete(source);
     }
   })();
 }
 
-/**
- * Lit le cache s'il est frais, SINON fetch en direct (attendu) et met en cache.
- * → quand un outil est connecté, ses vraies données apparaissent immédiatement.
- */
 async function getCachedOrFetch<T>(
-  liveFile: string,
+  source: string,
   ttlMinutes: number,
   fetchFn: () => Promise<T>
 ): Promise<{ data: T; lastUpdated: string }> {
-  try {
-    const stat = await fs.stat(liveFile);
-    const ageMin = (Date.now() - stat.mtime.getTime()) / 60000;
+  const existing = await readLiveData<T>(source);
+  if (existing) {
+    const ageMin = (Date.now() - new Date(existing.updatedAt).getTime()) / 60000;
     if (ageMin < ttlMinutes) {
-      const raw = await fs.readFile(liveFile, "utf-8");
-      return { data: JSON.parse(raw) as T, lastUpdated: stat.mtime.toISOString() };
+      return { data: existing.data, lastUpdated: existing.updatedAt };
     }
-  } catch { /* pas de cache → on fetch */ }
+  }
   const data = await fetchFn();
-  try { await fs.writeFile(liveFile, JSON.stringify(data, null, 2), "utf-8"); } catch { /* */ }
+  try { await writeLiveData(source, data); } catch { /* */ }
   return { data, lastUpdated: new Date().toISOString() };
 }
 
-// Helpers pour savoir si une source est branchée
 async function hasGoogleTokens(): Promise<boolean> {
   const t = await loadTokens();
   return !!t;
 }
 
 export async function getInbox(): Promise<SourceResult<MockEmail[]>> {
-  // Gmail connecté (OAuth) → tes vrais emails apparaissent (fetch attendu + cache 15 min).
   if (await hasGoogleTokens()) {
     try {
-      const { data, lastUpdated } = await getCachedOrFetch(LIVE_FILES.inbox, 15, () => fetchGmailInbox(20));
+      const { data, lastUpdated } = await getCachedOrFetch(LIVE_SOURCES.inbox, 15, () => fetchGmailInbox(20));
       return { data, live: true, lastUpdated };
     } catch (err) {
       console.warn(`[Gmail] ${err instanceof Error ? err.message : err}`);
       return { data: [], live: true, lastUpdated: new Date().toISOString() };
     }
   }
-  // Pas connecté → démo.
   return { data: MOCK_INBOX, live: false, lastUpdated: new Date().toISOString() };
 }
 
 export async function getMeetings(): Promise<SourceResult<MockMeeting[]>> {
-  // DÉMO forcée (FIREFLIES_MOCK=1) : calls fictifs présentés comme live (jamais les vrais).
   if (process.env.FIREFLIES_MOCK === "1") {
     return { data: MOCK_MEETINGS, live: true, lastUpdated: new Date().toISOString() };
   }
-  // Clé Fireflies connectée → on affiche TES vrais calls (fetch attendu + cache 30 min).
   if (isFirefliesConfigured()) {
     try {
-      const { data, lastUpdated } = await getCachedOrFetch(LIVE_FILES.meetings, 30, () => fetchFirefliesMeetings(20));
+      const { data, lastUpdated } = await getCachedOrFetch(LIVE_SOURCES.meetings, 30, () => fetchFirefliesMeetings(20));
       return { data, live: true, lastUpdated };
     } catch (err) {
       console.warn(`[Fireflies] ${err instanceof Error ? err.message : err}`);
-      return { data: [], live: true, lastUpdated: new Date().toISOString() }; // connecté mais 0 call / erreur → pas de mock trompeur
+      return { data: [], live: true, lastUpdated: new Date().toISOString() };
     }
   }
-  // Pas de clé → démo (calls d'exemple).
   return { data: MOCK_MEETINGS, live: false, lastUpdated: new Date().toISOString() };
 }
 
 export async function getCandidates(): Promise<SourceResult<{ candidates: MockCandidate[]; jobs: MockJobPosting[] }>> {
-  // Pas de fetch réel pour l'instant (source à définir)
-  return readLiveOrFallback(LIVE_FILES.candidates, { candidates: MOCK_CANDIDATES, jobs: MOCK_JOBS });
+  return readLiveOrFallback(LIVE_SOURCES.candidates, { candidates: MOCK_CANDIDATES, jobs: MOCK_JOBS });
 }
 
-// ---- Rendus pour prompts agents (async, utilisent dataSources) ----
+export async function getYouTubeSnapshot(): Promise<{ live: boolean; lastUpdated?: string; data?: unknown }> {
+  if (await hasGoogleTokens()) {
+    scheduleRefresh(
+      LIVE_SOURCES.youtube,
+      60,
+      () => fetchYouTubeSnapshot({ days: 30, videos: 20 }),
+      "YouTube"
+    );
+  }
+  const result = await readLiveData(LIVE_SOURCES.youtube);
+  if (result) {
+    return { live: true, lastUpdated: result.updatedAt, data: result.data };
+  }
+  return { live: false };
+}
+
+export async function renderYouTube(): Promise<string> {
+  const snap = await getYouTubeSnapshot();
+  if (!snap.live || !snap.data) return "";
+  const { renderYouTubeForPrompt } = await import("@/lib/integrations/youtube");
+  return renderYouTubeForPrompt(snap.data as Parameters<typeof renderYouTubeForPrompt>[0]);
+}
+
+export async function getDriveSnapshot(): Promise<{ live: boolean; lastUpdated?: string; data?: unknown }> {
+  if (await hasGoogleTokens()) {
+    scheduleRefresh(LIVE_SOURCES.drive, 30, () => fetchRecentDriveFiles(30), "Drive");
+  }
+  const result = await readLiveData(LIVE_SOURCES.drive);
+  if (result) {
+    return { live: true, lastUpdated: result.updatedAt, data: result.data };
+  }
+  return { live: false };
+}
+
+export async function renderDrive(): Promise<string> {
+  const snap = await getDriveSnapshot();
+  if (!snap.live || !snap.data) return "";
+  const { renderDriveForPrompt } = await import("@/lib/integrations/drive");
+  return renderDriveForPrompt(snap.data as Parameters<typeof renderDriveForPrompt>[0]);
+}
+
+// ---- Rendus pour prompts agents ----
 
 export async function renderInbox(): Promise<string> {
   const { data } = await getInbox();
@@ -190,53 +209,6 @@ ${m.actionItems.map((a) => `  - ${a}`).join("\n")}
 **Extrait :** ${m.transcript || "(pas d'extrait disponible)"}`
     )
     .join("\n\n");
-}
-
-export async function getYouTubeSnapshot(): Promise<{ live: boolean; lastUpdated?: string; data?: unknown }> {
-  // TTL 60 min · YouTube Data + Analytics
-  if (await hasGoogleTokens()) {
-    scheduleRefresh(
-      LIVE_YOUTUBE_FILE,
-      60,
-      () => fetchYouTubeSnapshot({ days: 30, videos: 20 }),
-      "YouTube"
-    );
-  }
-  try {
-    const raw = await fs.readFile(LIVE_YOUTUBE_FILE, "utf-8");
-    const stat = await fs.stat(LIVE_YOUTUBE_FILE);
-    return { live: true, lastUpdated: stat.mtime.toISOString(), data: JSON.parse(raw) };
-  } catch {
-    return { live: false };
-  }
-}
-
-export async function renderYouTube(): Promise<string> {
-  const snap = await getYouTubeSnapshot();
-  if (!snap.live || !snap.data) return "";
-  const { renderYouTubeForPrompt } = await import("@/lib/integrations/youtube");
-  return renderYouTubeForPrompt(snap.data as Parameters<typeof renderYouTubeForPrompt>[0]);
-}
-
-export async function getDriveSnapshot(): Promise<{ live: boolean; lastUpdated?: string; data?: unknown }> {
-  // TTL 30 min · Google Drive metadata
-  if (await hasGoogleTokens()) {
-    scheduleRefresh(LIVE_DRIVE_FILE, 30, () => fetchRecentDriveFiles(30), "Drive");
-  }
-  try {
-    const raw = await fs.readFile(LIVE_DRIVE_FILE, "utf-8");
-    const stat = await fs.stat(LIVE_DRIVE_FILE);
-    return { live: true, lastUpdated: stat.mtime.toISOString(), data: JSON.parse(raw) };
-  } catch {
-    return { live: false };
-  }
-}
-
-export async function renderDrive(): Promise<string> {
-  const snap = await getDriveSnapshot();
-  if (!snap.live || !snap.data) return "";
-  const { renderDriveForPrompt } = await import("@/lib/integrations/drive");
-  return renderDriveForPrompt(snap.data as Parameters<typeof renderDriveForPrompt>[0]);
 }
 
 export async function renderCandidatesFull(): Promise<string> {

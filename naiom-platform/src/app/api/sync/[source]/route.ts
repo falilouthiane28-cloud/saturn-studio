@@ -1,25 +1,12 @@
-import fs from "node:fs/promises";
-import { LIVE_FILES } from "@/lib/dataSources";
+import { LIVE_SOURCES, type LiveSource } from "@/lib/dataSources";
+import { writeLiveData, readLiveData, deleteLiveData } from "@/lib/supabase/liveStore";
 
 export const runtime = "nodejs";
 
-type Source = keyof typeof LIVE_FILES; // "inbox" | "meetings" | "candidates"
-
-function isValidSource(s: string): s is Source {
-  return s === "inbox" || s === "meetings" || s === "candidates";
+function isValidSource(s: string): s is LiveSource {
+  return s in LIVE_SOURCES;
 }
 
-/**
- * POST /api/sync/inbox      → payload attendu : MockEmail[]
- * POST /api/sync/meetings   → payload attendu : MockMeeting[]
- * POST /api/sync/candidates → payload attendu : { candidates: MockCandidate[], jobs: MockJobPosting[] }
- *
- * Le payload est écrit tel quel dans src/data/live-<source>.json.
- * Appelez ce endpoint depuis un workflow n8n à intervalle régulier.
- *
- * Auth basique via header x-sync-secret (env var SYNC_SECRET).
- * Si SYNC_SECRET n'est pas défini : endpoint ouvert (mode dev uniquement — à sécuriser en prod).
- */
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ source: string }> }
@@ -48,7 +35,6 @@ export async function POST(
     return Response.json({ error: "Body must be valid JSON" }, { status: 400 });
   }
 
-  // Validation basique (structure par source)
   if (source === "inbox" || source === "meetings") {
     if (!Array.isArray(payload)) {
       return Response.json(
@@ -67,11 +53,10 @@ export async function POST(
   }
 
   try {
-    await fs.writeFile(LIVE_FILES[source], JSON.stringify(payload, null, 2), "utf-8");
+    await writeLiveData(source, payload);
     return Response.json({
       success: true,
       source,
-      wroteTo: LIVE_FILES[source],
       receivedAt: new Date().toISOString(),
     });
   } catch (err) {
@@ -83,9 +68,6 @@ export async function POST(
   }
 }
 
-/**
- * DELETE /api/sync/<source> : supprime le fichier live, retour au mock.
- */
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ source: string }> }
@@ -105,16 +87,13 @@ export async function DELETE(
   }
 
   try {
-    await fs.unlink(LIVE_FILES[source]);
+    await deleteLiveData(source);
     return Response.json({ success: true, source, reset: "mock" });
   } catch {
     return Response.json({ success: true, source, reset: "already mock" });
   }
 }
 
-/**
- * GET /api/sync/<source> : retourne le statut de la source (live ou mock, dernière mise à jour).
- */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ source: string }> }
@@ -125,15 +104,13 @@ export async function GET(
     return Response.json({ error: "Source invalide" }, { status: 400 });
   }
 
-  try {
-    const stat = await fs.stat(LIVE_FILES[source]);
+  const result = await readLiveData(source);
+  if (result) {
     return Response.json({
       source,
       live: true,
-      lastUpdated: stat.mtime.toISOString(),
-      size: stat.size,
+      lastUpdated: result.updatedAt,
     });
-  } catch {
-    return Response.json({ source, live: false });
   }
+  return Response.json({ source, live: false });
 }

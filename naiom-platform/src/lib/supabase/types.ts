@@ -300,6 +300,24 @@ export type Database = {
         }
         Relationships: []
       }
+      live_data: {
+        Row: {
+          source: string
+          payload: Json
+          updated_at: string
+        }
+        Insert: {
+          source: string
+          payload?: Json
+          updated_at?: string
+        }
+        Update: {
+          source?: string
+          payload?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

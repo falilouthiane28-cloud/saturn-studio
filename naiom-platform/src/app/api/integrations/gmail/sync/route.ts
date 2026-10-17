@@ -1,7 +1,6 @@
-import fs from "node:fs/promises";
 import { fetchGmailInbox } from "@/lib/integrations/gmail";
-import { LIVE_FILES } from "@/lib/dataSources";
 import { loadTokens } from "@/lib/integrations/google";
+import { writeLiveData } from "@/lib/supabase/liveStore";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -20,11 +19,10 @@ export async function POST(req: Request) {
 
   try {
     const emails = await fetchGmailInbox(limit);
-    await fs.writeFile(LIVE_FILES.inbox, JSON.stringify(emails, null, 2), "utf-8");
+    await writeLiveData("inbox", emails);
     return Response.json({
       success: true,
       synced: emails.length,
-      wroteTo: LIVE_FILES.inbox,
       at: new Date().toISOString(),
     });
   } catch (err) {

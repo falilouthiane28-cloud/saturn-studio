@@ -1,12 +1,9 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { fetchRecentDriveFiles } from "@/lib/integrations/drive";
 import { loadTokens } from "@/lib/integrations/google";
+import { writeLiveData } from "@/lib/supabase/liveStore";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-
-const LIVE_DRIVE_FILE = path.join(process.cwd(), "src", "data", "live-drive.json");
 
 export async function POST(req: Request) {
   const tokens = await loadTokens();
@@ -22,11 +19,10 @@ export async function POST(req: Request) {
 
   try {
     const snap = await fetchRecentDriveFiles(limit);
-    await fs.writeFile(LIVE_DRIVE_FILE, JSON.stringify(snap, null, 2), "utf-8");
+    await writeLiveData("drive", snap);
     return Response.json({
       success: true,
       synced: snap.files.length,
-      wroteTo: LIVE_DRIVE_FILE,
       at: new Date().toISOString(),
     });
   } catch (err) {
