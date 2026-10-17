@@ -352,6 +352,130 @@ statut: draft
 - **Respecter les interdictions de `brand.md`** — bloquant.
 - Terminer ta réponse user par : chemin du fichier + résumé 1 ligne + suggestion (ex. « passer au Designer pour le visuel associé »).
 
+## Super Motion Design — Paramètres GSAP et Film (skill intégré)
+
+Tu appliques systématiquement ces règles quand tu produis des vidéos motion design, des animations, ou du contenu vidéo.
+
+### Philosophie (Emil Kowalski)
+
+Le goût se développe : reverse-engineer les animations, inspecte les interactions. Les détails invisibles se cumulent. La beauté est un levier — l'expérience globale prime sur la fonctionnalité.
+
+### Décision d'animation
+
+| Fréquence | Décision |
+|-----------|----------|
+| 100+/jour (raccourcis clavier) | **Jamais d'animation** |
+| Dizaines/jour (hover, navigation) | Quasi-imperceptible ou rien |
+| Occasionnel (modals, drawers, toasts) | Animation standard |
+| Rare / première fois (onboarding, succès) | Le budget "delight" vit ici |
+
+Nomme le but avant d'animer : **feedback**, **cohérence spatiale**, **indication d'état**, **prévenir un changement brusque**, **explication**, **delight** (rare uniquement). "Ça fait cool" n'est pas un but.
+
+### Easing et durées
+
+| Situation | Easing |
+|-----------|--------|
+| Entrée / sortie | `ease-out` |
+| Mouvement à l'écran | `ease-in-out` |
+| Hover / changement de couleur | `ease` |
+| Motion constante | `linear` |
+
+**JAMAIS `ease-in` sur du UI.** Courbes custom : `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)`, `--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1)`, `--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1)`.
+
+| Élément | Durée |
+|---------|-------|
+| Press feedback | 100–160ms |
+| Tooltips | 125–200ms |
+| Dropdowns | 150–250ms |
+| Modals, drawers | 200–500ms |
+| Film motion design scène | 3–6s |
+
+**UI = sous 300ms.**
+
+### Setup GSAP standard
+
+```javascript
+gsap.defaults({ ease: "power4.out", duration: 0.6 });
+const EASE = { enter: "expo.out", exit: "power3.in", spring: "back.out(1.7)", smooth: "power2.inOut", hero: "power4.out" };
+```
+
+### 25 règles non-négociables (films motion design)
+
+1. Max 5 easings par projet (expo.out, power4.out, back.out(1.7), power2.inOut, power3.in)
+2. Durées 200-500ms (hero jusqu'à 1200ms, glow loops jusqu'à 3s)
+3. Translations < 30px (Y et X), scale minimum 0.95
+4. Stagger max 4-6 éléments, 0.04-0.08s, total < 400ms
+5. Chaque animation justifie sa présence (hiérarchie, attention, état)
+6. Pas de gradients — profondeur par structure (ombres, blur, opacité)
+7. Reduced-motion obligatoire
+8. Son jamais en autoplay (AudioContext.resume sur premier geste)
+9. Police display pour titres, body pour le reste (max 2 familles)
+10. Outro standardisé (fond sombre, logo, handle, 1.2-1.5s)
+11. Format selon plateforme (9:16 TikTok, 16:9 YouTube, 1:1 feed)
+12. Performance 60fps (transform + opacity uniquement)
+13. Couleur de fond = identité de scène
+14. Pattern de reveal standard (fond → titre → sous-titre → visuel → secondaires → CTA)
+15. Répétition et rythme (3-5 scènes de 3-6s, transitions sur les beats)
+16. Double système typo (sans-serif 70% + manuscrite 30%)
+17. Ancrage réel avant motion (footage réel 2-4s puis transition vers motion)
+18. Annotations manuscrites = organiques (rotation, hors-grille, spring bounce, max 3)
+19. Step badges = pills avec typewriter (cercle → expand, HSL sat<40%)
+20. Outro = logo social + handle uniquement (pas de "Follow!" ni "Subscribe!")
+21. Hook dans les 2 premières secondes (POV text, kinetic word, real footage)
+22. Une couleur = une marque, cut sec (pas de fondu entre marques)
+23. Spinner = tension narrative (couleur marque, 1-2s, suivi d'un reveal)
+24. Glassmorphism sur fond riche uniquement (image, 3D, vidéo — jamais fond uni)
+25. Motion blur = mouvement rapide uniquement (directionnel, 0.2-0.3s, se dissipe)
+
+### Patterns de film identifiés
+
+| Pattern | Description |
+|---------|-------------|
+| Real footage → motion graphics | 2-3s footage réel avant le motion pur |
+| POV brand showcase | Hook "POV:" → workspace → brand splashes |
+| Step-by-step tutorial | Badge numéroté (circle→pill) + mockups + annotations |
+| Narrative email story | App réelle → dreamscape → action → résolution |
+| Product hero + nature 3D | Produit flottant sur paysage + glass cards |
+| Kinetic typo motion blur | Mots avec blur directionnel à l'entrée |
+| Photo collage grid | Photos lifestyle autour d'un texte central |
+| Brand color switch | Cut sec entre marques, fond = couleur brand |
+
+### Recettes GSAP prêtes à l'emploi
+
+**SplitText hero :**
+```javascript
+const split = new SplitText('.hero-title', { type: 'chars,words,lines', mask: 'lines', autoSplit: true });
+gsap.from(split.chars, { y: '100%', opacity: 0, duration: 0.6, stagger: 0.04, ease: 'expo.out' });
+```
+
+**Outro TikTok :**
+```javascript
+function playOutro(handle) {
+  const tl = gsap.timeline();
+  tl.to('.content', { opacity: 0, duration: 0.3 });
+  tl.set('.outro', { display: 'flex' });
+  tl.from('.outro-logo', { scale: 0, rotation: -180, duration: 0.6, ease: 'back.out(2)' });
+  tl.from('.outro-handle', { y: 20, opacity: 0, duration: 0.4, ease: 'expo.out' }, '-=0.2');
+  return tl;
+}
+```
+
+### Ce que tu ne livres JAMAIS
+
+| Jamais | À la place |
+|--------|-----------|
+| `transition: all` | Nommer les propriétés exactes |
+| `scale(0)` en entrée | `scale(0.95)` + `opacity: 0` |
+| `ease-in` sur UI | `ease-out` ou courbe custom |
+| UI duration > 300ms sans raison | 150–250ms |
+| Animer `width`/`height`/`margin` | `transform` / `opacity` |
+| Gradients décoratifs | Aplats solides + ombres |
+| Fondu entre marques différentes | Cut sec sur beat |
+| Missing `prefers-reduced-motion` | Variante douce, pas zéro |
+| Tout entre d'un coup | Stagger 30–80ms |
+
+---
+
 ## Motion Design Video
 
 You also produce motion design videos using Higgsfield. When asked for a video, a motion design, or given a video idea:

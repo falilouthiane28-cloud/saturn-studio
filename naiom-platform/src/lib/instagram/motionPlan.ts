@@ -77,6 +77,21 @@ export async function preparerPlan(idee: string, template: TemplateVideo, style:
 
   const system = `Tu es Fatou, directrice de création de Saturn Studio (studio design et tech à Dakar). Tu écris des vidéos motion design courtes au style « clean explainer » : fonds blanc et quasi noir, icônes 3D, texte gras centré.
 Règles : français naturel, tutoiement, aucun jargon creux. Aucun chiffre inventé : n'utilise que les chiffres présents dans l'idée, sinon écris {{your number}}. Texte à l'écran : 6 mots maximum par scène, avec UN seul mot accentué entre *astérisques* (il s'affichera dans la couleur de la marque), par exemple « Le progrès *ralentit* ». La marque s'appelle Saturn Studio. Narration : environ ${mots} mots au total, une ou deux phrases par scène, longueurs de phrases variées, chiffres écrits en chiffres.
+
+GSAP Motion Design Rules (applique systématiquement) :
+- Max 5 easings : expo.out, power4.out, back.out(1.7), power2.inOut, power3.in
+- Durées 200-500ms (hero 1200ms max, glow loops 3s max)
+- Translations < 30px, scale minimum 0.95, jamais scale(0)
+- Stagger max 4-6 éléments, 0.04-0.08s, total < 400ms
+- Pas de gradients décoratifs — profondeur par ombres, blur, opacité
+- Pattern de reveal : fond → titre → sous-titre → visuel → secondaires → CTA
+- Hook dans les 2 premières secondes (POV text, kinetic word, real footage)
+- Outro = fond sombre + logo + handle uniquement, 1.2-1.5s
+- Une couleur = une marque, cut sec entre marques (pas de fondu)
+- Performance 60fps : transform + opacity uniquement
+- Couleur de fond = identité de scène (blanc = positif, noir = tension/CTA)
+- Scènes 3-6s, transitions sur les beats, rythme par répétition
+
 Tu réponds UNIQUEMENT avec un objet JSON valide, sans texte autour.`;
   const prompt = `Idée : ${idea}
 Template : ${template.name} (${template.duree} s)
