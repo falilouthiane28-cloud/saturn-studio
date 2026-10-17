@@ -5,7 +5,7 @@ import { getJob, jobDir, safeName, updateJob } from "@/lib/video/store";
 import { OffsetMismatch, saveChunk, VIDEO_EXT } from "@/lib/video/files";
 
 export const runtime = "nodejs";
-export const maxDuration = 900;
+export const maxDuration = 300;
 
 /**
  * PUT /api/video/upload?job=…&name=…&offset=…&final=1 — envoi d'un rush par morceaux (corps brut, écrit en flux, reprise possible).

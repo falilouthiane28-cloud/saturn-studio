@@ -3,7 +3,7 @@ import { getJob, jobDir, safeName, workerAuthorized } from "@/lib/video/store";
 import { OffsetMismatch, saveChunk } from "@/lib/video/files";
 
 export const runtime = "nodejs";
-export const maxDuration = 600;
+export const maxDuration = 300;
 
 /** PUT /api/video/worker/output/<id>?name=…&offset=…&final=1 — dépôt d'un rendu par morceaux, par le poste de montage. */
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
