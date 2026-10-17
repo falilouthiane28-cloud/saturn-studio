@@ -8,7 +8,7 @@ export const runtime = "nodejs";
  * En production, Next ne sert que les fichiers de public/ présents au build ;
  * next.config.ts réécrit donc /generated-xxx/… vers cette route.
  */
-const DIRS = new Set(["generated-carousels", "generated-images", "generated-shorts", "generated-thumbnails", "content-out"]);
+const DIRS = new Set(["generated-carousels", "generated-images", "generated-shorts", "generated-thumbnails"]);
 const TYPES: Record<string, string> = {
   ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
   ".gif": "image/gif", ".mp4": "video/mp4", ".pdf": "application/pdf", ".zip": "application/zip",

@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: "/:dir(generated-carousels|generated-images|generated-shorts|generated-thumbnails|content-out)/:file*",
+        source: "/:dir(generated-carousels|generated-images|generated-shorts|generated-thumbnails)/:file*",
         destination: "/media/:dir/:file*",
       },
     ];

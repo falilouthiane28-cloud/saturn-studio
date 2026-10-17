@@ -1,14 +1,14 @@
 import { getPost, updatePost } from "@/lib/content/store";
-import { composeDirection, directionOf, isSceneDirection, type Direction } from "@/lib/content/directions";
+import { directionOf, type Direction } from "@/lib/content/directions";
 import { advanceScenes, slidesWithScenes, startScenes } from "@/lib/content/sceneRun";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 /**
- * POST /api/content/visuals { id } — met en image les slides du post.
- * Directions HTML : rendu immédiat. Scènes Orbi : un job Higgsfield par slide, lancés
- * en parallèle ; le GET assemble chaque slide dès que sa scène est prête.
+ * POST /api/content/visuals { id } — génère les visuels du post via Higgsfield.
+ * Toutes les directions passent par le pipeline scènes Higgsfield (aucun Puppeteer,
+ * aucune écriture filesystem — compatible Vercel serverless).
  */
 export async function POST(req: Request) {
   try {
@@ -18,14 +18,7 @@ export async function POST(req: Request) {
     if (!post) return Response.json({ error: "Post introuvable" }, { status: 404 });
     const slides = slidesWithScenes(post);
     if (!slides.length) return Response.json({ error: "Ce post n'a pas de slides à visualiser." }, { status: 400 });
-    // Anciens posts (modèles supprimés) : rendus dans la direction par défaut.
     const direction: Direction = directionOf(post.refId) ?? "vanguard";
-
-    if (!isSceneDirection(direction)) {
-      const images = await composeDirection(id, post.platform, slides, direction);
-      await updatePost(id, { visuals: { jobs: [], images, done: true } });
-      return Response.json({ success: true, count: images.length, direction });
-    }
     await startScenes(post, direction);
     return Response.json({ success: true, count: slides.length, direction, scenes: true });
   } catch (err) {

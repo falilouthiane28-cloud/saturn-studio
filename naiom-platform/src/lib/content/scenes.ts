@@ -1,10 +1,10 @@
 /**
  * Scènes Orbi : une image Higgsfield par slide, où Orbi est mis en scène d'après la
  * direction artistique écrite par Fatou (slide.scene). Les jobs sont lancés en parallèle ;
- * chaque scène terminée passe un contrôle qualité (vision Claude) avant d'être composée.
+ * chaque scène terminée passe un contrôle qualité (vision Claude) avant d'être validée.
+ *
+ * Toutes les images restent hébergées sur Higgsfield — aucune écriture filesystem.
  */
-import fs from "node:fs/promises";
-import path from "node:path";
 import sharp from "sharp";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText } from "ai";
@@ -12,42 +12,36 @@ import { BASE, call, imageUrlOf, type Status } from "@/lib/integrations/higgsfie
 import type { Platform, Slide } from "./generate";
 import type { Direction } from "./directions";
 
-/**
- * Modèles d'édition à référence, par ordre de préférence (HIGGSFIELD_SCENE_MODELS, séparés
- * par des virgules). Une relance passe au modèle suivant : utile quand l'un est indisponible.
- */
-// Comparatif du 28 sept. 2026 : GPT Image 2.5 (Flare puis Sunburst) garde Orbi fidèle et sans jambes ;
-// Qwen était indisponible et plantait Orbi sur des « jambes ».
 const SCENE_MODELS = (process.env.HIGGSFIELD_SCENE_MODELS ?? "marketing-studio/image/flare,marketing-studio/image/sunburst,xai/grok-imagine-image-2.0")
   .split(",").map((x) => x.trim()).filter(Boolean);
-/** L'API n'accepte pas le 4:5 : on génère en 3:4, recadré en 4:5 à la composition. */
 const ratioFor = (platform: Platform, single: boolean) => (platform === "instagram" || !single ? "3:4" : "1:1");
 
-const SCENE_DIR = path.join(process.cwd(), "public", "content-out");
-
-/** Verrou de personnage : Orbi identique à la référence, et surtout SANS jambes (il flotte). */
 export const CHARACTER = `CHARACTER (must match the reference images exactly — both show the same robot, the second one waving with one blade arm raised): "Orbi", a small cute hovering robot drone. Glossy white faceted porcelain shell; a big round head with a dark glass visor showing ONE glowing violet ring eye shaped like planet Saturn's ring; two short pointed fins on top of the head; a small rounded body under the head; two long thin curved blade-like ARMS attached at the sides of the body; a small lime-green thruster glow under the body.
 ANATOMY RULES (critical): Orbi has NO legs, NO feet, NO knees, NO shoes, NO hands with fingers. It never stands, sits on legs or walks: it always FLOATS, hovering a little above any surface, with the lime-green glow underneath. Its two long blades are ARMS, used like arms (holding, pointing, waving), never as legs. Only ONE Orbi in the image.`;
 
-/** Style propre à chaque direction à scènes (ambiance, lumière, cadrage, place pour le texte). */
 const STYLE: Record<string, string> = {
   bureau: "LOOK: premium 3D product render, soft pastel pink seamless studio background, clean white desk or furniture, soft diffused daylight, 50mm lens, shallow depth of field, subtle contact shadows. COMPOSITION: Orbi in the RIGHT half of the frame, its head below the vertical middle; the top-left half is plain empty pastel pink wall (for a title); lower-left corner uncluttered.",
   respira: "LOOK: Pixar-quality cinematic 3D render, lush real-world location, vivid saturated colors, golden-hour sunlight, volumetric light rays, lens flare and light leaks, falling leaves or particles, 35mm lens, depth of field. COMPOSITION: Orbi in the lower half of the frame, slightly left of center, never in the upper half; the upper 40% is calm (foliage, sky) for a giant title.",
   heros: "LOOK: photographic realism, dramatic low-angle hero shot with a 24mm wide lens, bright blue sky with wispy clouds, harsh summer sunlight with crisp shadows and specular highlights on the porcelain. COMPOSITION: Orbi fills the LOWER 60% of the frame, its head below the vertical middle; the upper 45% is open sky for a title.",
   vitrine: "LOOK: black-and-white monochrome still life, architectural studio lighting, deep contrast, glossy sculptural materials (marble, chrome, glass), minimal luxury gallery mood, 85mm lens. COMPOSITION: subject centered in the right half of the frame, generous negative space.",
+  vanguard: "LOOK: dark futuristic tech aesthetic, deep black background with subtle violet (#7C3AED) neon accents, geometric angular shapes, holographic HUD elements, sleek metallic surfaces, 35mm lens. COMPOSITION: Orbi centered in the lower half, floating above a reflective dark surface; upper half dark and clean for title text.",
+  orbit: "LOOK: cosmic space scene, deep navy-black sky with distant stars and nebula glow, soft violet and blue rim lights, orbital ring paths in the background, 3D render quality, 50mm lens. COMPOSITION: Orbi floating in space in the center-right of the frame; generous empty space in the upper-left for a title.",
+  signal: "LOOK: vibrant neon gradient background (violet #7C3AED to pink #C026D3 to orange #FB923C), smooth abstract color flow, clean and modern, no texture, studio lighting on Orbi with soft shadows, 50mm lens. COMPOSITION: Orbi in the lower-right quadrant; upper-left is clean gradient for title text.",
+  grille: "LOOK: editorial minimalist design, crisp white background with subtle thin grid lines, clean structured layout, typography-inspired spacing, bright even lighting, 85mm lens. COMPOSITION: Orbi in the right third of the frame; left two-thirds clean white for title text placement.",
+  atelier: "LOOK: warm artisan workshop scene, wooden desk with creative tools (pencils, brushes, color swatches), warm amber lighting, shallow depth of field, cozy craft studio mood, 35mm lens. COMPOSITION: Orbi floating above the desk in the center; workspace filling the lower half, upper portion warm and softly lit.",
+  cinema: "LOOK: dramatic cinematic lighting, dark moody atmosphere with a single strong spotlight, film noir aesthetic, volumetric light beam, high contrast, 24mm wide lens. COMPOSITION: Orbi spotlit in the center-lower frame; dramatic shadows and light rays around, upper half dark for title.",
+  brasier: "LOOK: intense warm scene with deep orange and red ambient glow, ember particles floating, dark background with fire-like volumetric lighting, dramatic contrast, 35mm lens. COMPOSITION: Orbi floating in the center with warm glow illuminating its porcelain shell; dark edges and warm center for visual focus.",
+  studio: "LOOK: professional design studio environment, clean desk with a monitor showing abstract UI, soft white and violet ambient lighting, modern minimalist interior, 50mm lens, shallow depth of field. COMPOSITION: Orbi floating near the desk in the right half; left side shows the clean studio environment, upper area clear for title.",
+  "plein-air": "LOOK: bright outdoor scene, lush green meadow or garden, clear blue sky, natural sunlight with soft lens flare, vibrant colors, 35mm lens, depth of field with bokeh. COMPOSITION: Orbi floating in the lower-center of the frame above grass; sky and greenery fill the scene, upper area open for title.",
+  conversation: "LOOK: social media / messaging aesthetic, soft pastel gradient background (light violet to white), floating chat bubble shapes in the background, clean modern style, 50mm lens. COMPOSITION: Orbi in the center-right, surrounded by subtle floating bubble shapes; clean left side for title.",
 };
 
-/**
- * Références d'Orbi envoyées au modèle. Seule, la vue de face (lames pendantes) est lue comme
- * « deux jambes » ; la pose où il salue, bras levé, montre que les lames sont des bras.
- */
 function referenceUrls(): string[] {
   const base = (process.env.PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
   if (!base) throw new Error("PUBLIC_SITE_URL absente : Higgsfield ne peut pas télécharger la référence d'Orbi.");
   return ["orbi-base.png", "orbi-wave.png"].map((f) => `${base}/brand/mascot/${f}`);
 }
 
-/** Prompt complet : personnage verrouillé + scène de Fatou + style de la direction + correctif éventuel du contrôle qualité. */
 export function scenePrompt(d: Direction, s: Slide, opts: { fallback?: boolean; fix?: string } = {}): string {
   const action = opts.fallback || !s.scene
     ? `Orbi floats in a simple, elegant setting that evokes the idea: "${s.title}".`
@@ -55,7 +49,7 @@ export function scenePrompt(d: Direction, s: Slide, opts: { fallback?: boolean; 
   return [
     CHARACTER,
     `SCENE: ${action}`,
-    STYLE[d] ?? "",
+    STYLE[d] ?? STYLE["bureau"],
     opts.fix ? `FIX FROM PREVIOUS ATTEMPT (mandatory): ${opts.fix}` : "",
     "No text, no letters, no numbers, no words, no logos, no watermark anywhere in the image.",
   ].filter(Boolean).join("\n");
@@ -75,35 +69,30 @@ export async function createSceneJob(
 
 export type SceneState = "pending" | "done" | "failed";
 
-/** État d'un job ; s'il est terminé, l'image est enregistrée et son chemin disque renvoyé. */
-export async function pollSceneJob(jobId: string, postId: string, index: number): Promise<{ state: SceneState; file?: string; reason?: string }> {
+/** État d'un job ; s'il est terminé, renvoie l'URL Higgsfield directement (pas de download). */
+export async function pollSceneJob(jobId: string): Promise<{ state: SceneState; url?: string; reason?: string }> {
   const s = await call<Status & { error?: unknown }>(`${BASE}/requests/${encodeURIComponent(jobId)}/status`);
   const st = (s.status ?? "").toLowerCase();
   if (st === "completed" || st === "succeeded") {
     const url = imageUrlOf(s);
     if (!url) return { state: "failed", reason: "image absente" };
-    // Téléchargement raté = incident réseau passager : on réessaiera au prochain passage.
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`Téléchargement de la scène impossible (${res.status}).`);
-    await fs.mkdir(SCENE_DIR, { recursive: true });
-    const file = path.join(SCENE_DIR, `${postId}-scene-${index}.png`);
-    await fs.writeFile(file, Buffer.from(await res.arrayBuffer()));
-    return { state: "done", file };
+    return { state: "done", url };
   }
   if (/fail|error|nsfw|cancel/.test(st)) return { state: "failed", reason: `${st} ${typeof s.error === "string" ? s.error : JSON.stringify(s.error ?? "")}` };
   return { state: "pending" };
 }
 
 /**
- * Contrôle qualité d'une scène (vision Claude) : Orbi doit être fidèle et sans jambes,
- * l'image sans texte parasite ni déformation. Renvoie le correctif à injecter dans le
- * prompt de la relance, ou null si la scène est validée. En cas d'indisponibilité du
- * contrôle, la scène est acceptée (on ne bloque pas la production).
+ * Contrôle qualité d'une scène (vision Claude) via URL — aucune écriture disque.
+ * Télécharge l'image en mémoire, redimensionne avec sharp, envoie à Claude Vision.
  */
-export async function checkScene(file: string, scene?: string): Promise<string | null> {
+export async function checkScene(imageUrl: string, scene?: string): Promise<string | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null;
   try {
-    const img = await sharp(file).resize({ width: 768, withoutEnlargement: true }).jpeg({ quality: 80 }).toBuffer();
+    const res = await fetch(imageUrl, { cache: "no-store" });
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    const img = await sharp(buf).resize({ width: 768, withoutEnlargement: true }).jpeg({ quality: 80 }).toBuffer();
     const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const { text } = await generateText({
       model: anthropic("claude-sonnet-5"),

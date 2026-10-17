@@ -617,8 +617,8 @@ function conversation(s: Slide, c: Ctx): string {
  * l'interface sont posées par-dessus en HTML. Sans scène (échec, crédits), un
  * fond de repli dans l'esprit de la direction est utilisé.
  * ===================================================================== */
-export const SCENE_DIRECTIONS: Direction[] = ["bureau", "respira", "heros", "vitrine"];
-export const isSceneDirection = (d: Direction) => SCENE_DIRECTIONS.includes(d);
+export const SCENE_DIRECTIONS: Direction[] = DIRECTIONS;
+export const isSceneDirection = (_d: Direction) => true;
 
 const AGENT_SLUGS = ["fireflies", "prospection", "proposition", "createur-contenu", "veille", "ecommerce"];
 const avatarCache = new Map<string, string>();
