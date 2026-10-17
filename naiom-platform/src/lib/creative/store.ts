@@ -1,27 +1,25 @@
 /**
- * Store JSON du Creative Strategist (Mia) : brand kit + créatives générées + programmation.
- * Fichier : creatives/store.json à la racine du repo.
+ * Store du Creative Strategist : brand kit + créatives générées.
+ * Persisté dans Supabase (table live_data, clé "creative_store").
  */
-import fs from "node:fs/promises";
-import path from "node:path";
-import { PATHS } from "@/lib/paths";
+import { readLiveData, writeLiveData } from "@/lib/supabase/liveStore";
 
-const STORE = path.join(PATHS.creatives, "store.json");
+const SOURCE = "creative_store";
 
 export interface BrandKit {
   name: string;
-  logoDataUrl: string | null; // data URL (petit logo)
-  palette: string[]; // hex
-  font: string; // ex. "Archivo", "Playfair Display"
-  univers: string; // mood / direction artistique (ex. "minimaliste premium, lumière douce")
-  notes: string; // interdictions, éléments obligatoires
+  logoDataUrl: string | null;
+  palette: string[];
+  font: string;
+  univers: string;
+  notes: string;
   updatedAt: string;
 }
 
 export interface Creative {
   id: string;
   idea: string;
-  format: string; // "1:1" | "9:16" | "16:9" | "4:5"
+  format: string;
   prompt: string;
   negativePrompt?: string;
   status: "pending" | "done" | "error";
@@ -50,18 +48,15 @@ const DEFAULT_KIT: BrandKit = {
 };
 
 export async function readStore(): Promise<CreativeStore> {
-  try {
-    const raw = await fs.readFile(STORE, "utf-8");
-    const j = JSON.parse(raw) as Partial<CreativeStore>;
-    return { brandKit: { ...DEFAULT_KIT, ...(j.brandKit ?? {}) }, creatives: j.creatives ?? [] };
-  } catch {
-    return { brandKit: DEFAULT_KIT, creatives: [] };
+  const result = await readLiveData<Partial<CreativeStore>>(SOURCE);
+  if (result?.data) {
+    return { brandKit: { ...DEFAULT_KIT, ...(result.data.brandKit ?? {}) }, creatives: result.data.creatives ?? [] };
   }
+  return { brandKit: DEFAULT_KIT, creatives: [] };
 }
 
 export async function writeStore(s: CreativeStore): Promise<void> {
-  await fs.mkdir(PATHS.creatives, { recursive: true });
-  await fs.writeFile(STORE, JSON.stringify(s, null, 2), "utf-8");
+  await writeLiveData(SOURCE, s);
 }
 
 export async function saveBrandKit(patch: Partial<BrandKit>): Promise<BrandKit> {

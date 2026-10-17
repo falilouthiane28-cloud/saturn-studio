@@ -1,17 +1,11 @@
 /**
- * Store JSON de l'agent veille (Nina) — les Reels Instagram récupérés.
- * Fichier : {repo}/veille/store.json.
- * Même pattern que prospection/ecommerce : verrou d'écriture + écriture
- * atomique, pour ne pas perdre de posts quand deux requêtes écrivent en
- * même temps (ex. transcription pendant un scraping).
+ * Store de l'agent veille (Nina) — les Reels Instagram récupérés.
+ * Persisté dans Supabase (table live_data, clé "veille_posts").
  */
 
-import fs from "node:fs/promises";
-import path from "node:path";
-import { REPO_ROOT } from "@/lib/paths";
+import { readLiveData, writeLiveData } from "@/lib/supabase/liveStore";
 
-export const VEILLE_DIR = path.join(REPO_ROOT, "veille");
-const STORE_FILE = path.join(VEILLE_DIR, "store.json");
+const SOURCE = "veille_posts";
 
 export interface VeillePost {
   id: string;
@@ -20,18 +14,13 @@ export interface VeillePost {
   hashtag: string;
   caption: string;
   hashtags: string[];
-  /** vues — classement principal */
   views: number;
-  /** likes — -1 signifie « masqué par Instagram » */
   likes: number;
   comments: number;
   shares: number;
-  /** (likes + commentaires + partages) / vues × 100 */
   engagementRate: number;
-  /** marché deviné d'après la langue de la légende : fr | en | autre */
   market: string;
   authorFollowers?: number;
-  /** requête qui a fait remonter ce reel */
   query: string;
   durationSec?: number;
   thumbnailUrl?: string;
@@ -40,37 +29,23 @@ export interface VeillePost {
   authorName?: string;
   music?: string;
   postedAt?: string;
-  /** script parlé, extrait par transcription */
   script?: string;
   scriptStatus: "absent" | "en-cours" | "ok" | "erreur";
   scriptError?: string;
-  /** traduction française du script (si l'original n'est pas en FR) */
   scriptFr?: string;
-  /** short illustré (schémas animés) généré à partir du script — MP4 9:16 */
   shortStatus?: "absent" | "en-cours" | "ok" | "erreur";
   shortUrl?: string;
   shortError?: string;
   scrapedAt: string;
 }
 
-interface VeilleStore {
-  posts: VeillePost[];
-}
-
 export async function readPosts(): Promise<VeillePost[]> {
-  try {
-    const raw = await fs.readFile(STORE_FILE, "utf-8");
-    return (JSON.parse(raw) as VeilleStore).posts ?? [];
-  } catch {
-    return [];
-  }
+  const result = await readLiveData<{ posts: VeillePost[] }>(SOURCE);
+  return result?.data?.posts ?? [];
 }
 
 async function writePosts(posts: VeillePost[]): Promise<void> {
-  await fs.mkdir(VEILLE_DIR, { recursive: true });
-  const tmp = `${STORE_FILE}.${process.pid}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify({ posts }, null, 2), "utf-8");
-  await fs.rename(tmp, STORE_FILE);
+  await writeLiveData(SOURCE, { posts });
 }
 
 let writeLock: Promise<unknown> = Promise.resolve();
@@ -87,7 +62,6 @@ function mutate<T>(
   return run;
 }
 
-/** Ajoute les nouveaux posts, met à jour les métriques de ceux déjà connus. */
 export async function upsertPosts(fresh: VeillePost[]): Promise<number> {
   return mutate((posts) => {
     const byCode = new Map(posts.map((p) => [p.shortCode, p]));
@@ -95,7 +69,6 @@ export async function upsertPosts(fresh: VeillePost[]): Promise<number> {
     for (const f of fresh) {
       const known = byCode.get(f.shortCode);
       if (known) {
-        // on rafraîchit les compteurs mais on garde le script déjà transcrit
         Object.assign(known, {
           views: f.views,
           likes: f.likes,

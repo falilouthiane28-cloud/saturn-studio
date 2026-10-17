@@ -1,26 +1,21 @@
 /**
- * Store JSON des posts créés par Fatou (agent contenu).
- * Fichier : content/store.json à la racine du repo.
- * Persiste les générations (on garde la session précédente) + programmation.
+ * Store des posts créés par Fatou (agent contenu).
+ * Persisté dans Supabase (table live_data, clé "content_posts").
  */
-import fs from "node:fs/promises";
-import path from "node:path";
-import { REPO_ROOT } from "@/lib/paths";
+import { readLiveData, writeLiveData } from "@/lib/supabase/liveStore";
 import type { ContentResult, Platform, Format } from "./generate";
 import type { NinaBrief } from "./nina";
 
-const DIR = path.join(REPO_ROOT, "content");
-const STORE = path.join(DIR, "store.json");
+const SOURCE = "content_posts";
 
-/** Job Higgsfield d'une scène Orbi (une par slide). */
 export interface SlideJob {
   index: number;
   jobId: string;
   tries?: number;
-  state?: "waiting" | "pending" | "done" | "failed"; // waiting = file Higgsfield pleine, à soumettre
-  at?: number; // soumission (ms), pour le délai maximal
-  qc?: number; // régénérations demandées par le contrôle qualité
-  lastFix?: string; // dernier correctif du contrôle qualité (réinjecté dans le prompt)
+  state?: "waiting" | "pending" | "done" | "failed";
+  at?: number;
+  qc?: number;
+  lastFix?: string;
   error?: "credits";
 }
 export interface ContentPost {
@@ -28,11 +23,11 @@ export interface ContentPost {
   platform: Platform;
   format: Format;
   idea: string;
-  template?: string; // nom DA (aperçu texte)
-  refId?: string; // direction Saturn choisie (da-vanguard, da-signal…)
+  template?: string;
+  refId?: string;
   result: ContentResult;
-  scenes?: string[]; // direction artistique de Fatou, une scène par slide (directions à scènes)
-  nina?: NinaBrief; // brief de Nina (veille) quand le sujet est technique
+  scenes?: string[];
+  nina?: NinaBrief;
   visuals?: { jobs: SlideJob[]; images: (string | null)[]; done: boolean; scenes?: (string | null)[]; note?: string };
   status: "draft" | "scheduled" | "posted";
   schedule?: { at: string } | null;
@@ -42,12 +37,11 @@ export interface ContentPost {
 interface Store { posts: ContentPost[] }
 
 async function read(): Promise<Store> {
-  try { return JSON.parse(await fs.readFile(STORE, "utf-8")) as Store; }
-  catch { return { posts: [] }; }
+  const result = await readLiveData<Store>(SOURCE);
+  return result?.data ?? { posts: [] };
 }
 async function write(s: Store): Promise<void> {
-  await fs.mkdir(DIR, { recursive: true });
-  await fs.writeFile(STORE, JSON.stringify(s, null, 2), "utf-8");
+  await writeLiveData(SOURCE, s);
 }
 
 export async function listPosts(): Promise<ContentPost[]> {

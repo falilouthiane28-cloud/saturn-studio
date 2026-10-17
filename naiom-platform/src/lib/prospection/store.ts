@@ -1,16 +1,11 @@
 /**
- * Store JSON de l'agent prospection (Awa) — le pipeline IAcquisition™.
- * Fichier : {repo}/prospection/store.json.
- *
- * Statuts du pipeline : detecte (Ciblé) → enrichi (Profilé) → pret (Prêt) → contacte.
+ * Store de l'agent prospection (Awa) — le pipeline IAcquisition™.
+ * Persisté dans Supabase (table live_data, clé "prospection_leads").
  */
 
-import fs from "node:fs/promises";
-import path from "node:path";
-import { REPO_ROOT } from "@/lib/paths";
+import { readLiveData, writeLiveData } from "@/lib/supabase/liveStore";
 
-export const PROSPECTION_DIR = path.join(REPO_ROOT, "prospection");
-const STORE_FILE = path.join(PROSPECTION_DIR, "store.json");
+const SOURCE = "prospection_leads";
 
 export type LeadStatus = "detecte" | "enrichi" | "pret" | "contacte";
 
@@ -27,10 +22,8 @@ export interface Lead {
   rating?: number;
   reviewsCount?: number;
   emails?: string[];
-  /** Vrai si au moins un email a un domaine avec enregistrement MX (délivrable). */
   emailVerified?: boolean;
   socials?: string[];
-  /** Résumé de ce qu'on sait (description du site, signaux) */
   insights?: string;
   status: LeadStatus;
   outreach?: {
@@ -44,28 +37,15 @@ export interface Lead {
   contactedAt?: string;
 }
 
-interface ProspectionStore {
-  leads: Lead[];
-}
-
 export async function readLeads(): Promise<Lead[]> {
-  try {
-    const raw = await fs.readFile(STORE_FILE, "utf-8");
-    return (JSON.parse(raw) as ProspectionStore).leads ?? [];
-  } catch {
-    return [];
-  }
+  const result = await readLiveData<{ leads: Lead[] }>(SOURCE);
+  return result?.data?.leads ?? [];
 }
 
 async function writeLeads(leads: Lead[]): Promise<void> {
-  await fs.mkdir(PROSPECTION_DIR, { recursive: true });
-  const tmp = `${STORE_FILE}.${process.pid}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify({ leads }, null, 2), "utf-8");
-  await fs.rename(tmp, STORE_FILE);
+  await writeLiveData(SOURCE, { leads });
 }
 
-/** Verrou d'écriture (voir ecommerce/store.ts) : mutations en série pour ne
- *  pas perdre de leads quand plusieurs requêtes écrivent en même temps. */
 let writeLock: Promise<unknown> = Promise.resolve();
 function mutate<T>(fn: (leads: Lead[]) => { leads: Lead[]; result: T } | Promise<{ leads: Lead[]; result: T }>): Promise<T> {
   const run = writeLock.then(async () => {
@@ -80,7 +60,6 @@ function mutate<T>(fn: (leads: Lead[]) => { leads: Lead[]; result: T } | Promise
 
 export async function addLeads(newLeads: Lead[]): Promise<Lead[]> {
   return mutate((leads) => {
-    // dédoublonnage par nom+ville (un même commerce peut ressortir deux fois)
     const seen = new Set(leads.map((l) => `${l.name.toLowerCase()}::${l.ville.toLowerCase()}`));
     const fresh = newLeads.filter(
       (l) => !seen.has(`${l.name.toLowerCase()}::${l.ville.toLowerCase()}`)
