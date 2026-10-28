@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "./Icon";
 import { cn } from "@/lib/utils";
+import { composeWhatsAppMessage } from "@/lib/prospection/whatsappMessage";
 
 type LeadStatus = "detecte" | "enrichi" | "pret" | "contacte";
 
@@ -29,13 +30,17 @@ interface Lead {
   reviewsCount?: number;
   emails?: string[];
   emailVerified?: boolean;
+  phones?: string[];
   socials?: string[];
   insights?: string;
   status: LeadStatus;
-  outreach?: { subject: string; email: string; linkedin: string };
+  outreach?: { subject: string; email: string; linkedin: string; whatsapp?: string };
   createdAt: string;
   enrichedAt?: string;
   contactedAt?: string;
+  contactChannel?: "email" | "whatsapp";
+  whatsappOptOut?: boolean;
+  whatsapp?: { messageId: string; sentAt: string; to: string; mode: "template" | "text"; templateName?: string };
 }
 
 const STAGES: {
@@ -90,6 +95,8 @@ export function ProspectionStudio() {
   const [busy, setBusy] = useState<Record<string, string>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sendTo, setSendTo] = useState("");
+  // null = statut WhatsApp pas encore connu, false = non connecté, true = connecté
+  const [waConnected, setWaConnected] = useState<boolean | null>(null);
   // page courante par colonne (5 cartes par page)
   const [page, setPage] = useState<Record<LeadStatus, number>>({
     detecte: 0, enrichi: 0, pret: 0, contacte: 0,
@@ -112,6 +119,13 @@ export function ProspectionStudio() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    fetch("/api/integrations/whatsapp/status")
+      .then((r) => r.json())
+      .then((d) => setWaConnected(Boolean(d.connected)))
+      .catch(() => setWaConnected(false));
+  }, []);
 
   const selected = useMemo(
     () => leads.find((l) => l.id === selectedId) ?? null,
@@ -169,7 +183,11 @@ export function ProspectionStudio() {
     }
   }
 
-  async function act(lead: Lead, action: "enrich" | "personalize" | "contact", body?: object) {
+  async function act(
+    lead: Lead,
+    action: "enrich" | "personalize" | "contact" | "contact-whatsapp",
+    body?: object
+  ) {
     setError(null);
     setBusy((b) => ({ ...b, [lead.id]: action }));
     try {
@@ -427,6 +445,7 @@ APIFY_TOKEN=apify_api_...
               busy={busy[selected.id]}
               sendTo={sendTo}
               setSendTo={setSendTo}
+              waConnected={waConnected}
               onClose={() => setSelectedId(null)}
               onAct={act}
               onRemove={removeLead}
@@ -503,18 +522,38 @@ function BulkBtn({ label, onClick }: { label: string; onClick: () => void }) {
 /* ================= Fiche détaillée ================= */
 
 function LeadDetail({
-  lead, busy, sendTo, setSendTo, onClose, onAct, onRemove,
+  lead, busy, sendTo, setSendTo, waConnected, onClose, onAct, onRemove,
 }: {
   lead: Lead;
   busy?: string;
   sendTo: string;
   setSendTo: (v: string) => void;
+  waConnected: boolean | null;
   onClose: () => void;
-  onAct: (lead: Lead, action: "enrich" | "personalize" | "contact", body?: object) => void;
+  onAct: (lead: Lead, action: "enrich" | "personalize" | "contact" | "contact-whatsapp", body?: object) => void;
   onRemove: (lead: Lead) => void;
 }) {
   const stage = STAGES.find((s) => s.key === lead.status)!;
   const help = ACTION_HELP[lead.status];
+
+  // Canal de contact choisi sur l'étape « Prêt ». Email par défaut.
+  const [channel, setChannel] = useState<"email" | "whatsapp">("email");
+  // Message WhatsApp éditable + numéro, réinitialisés à chaque changement de lead.
+  const [waMsg, setWaMsg] = useState("");
+  const [waPhone, setWaPhone] = useState("");
+  useEffect(() => {
+    const composed = lead.outreach
+      ? composeWhatsAppMessage({
+          name: lead.name,
+          ville: lead.ville,
+          insights: lead.insights,
+          outreach: { email: lead.outreach.email, whatsapp: lead.outreach.whatsapp },
+        }).text
+      : "";
+    setWaMsg(lead.outreach?.whatsapp ?? composed);
+    setWaPhone(lead.phones?.[0] ?? lead.phone ?? "");
+    setChannel("email");
+  }, [lead.id, lead.outreach, lead.phones, lead.phone, lead.name, lead.ville, lead.insights]);
 
   return (
     <aside className="althea-card overflow-hidden self-start lg:sticky lg:top-24">
@@ -639,21 +678,68 @@ function LeadDetail({
             <p className="text-[12px] leading-relaxed text-[#3A3A3A] mb-3">{help.desc}</p>
 
             {lead.status === "pret" ? (
-              <div className="space-y-2">
-                <input
-                  value={sendTo}
-                  onChange={(e) => setSendTo(e.target.value)}
-                  placeholder="destinataire@entreprise.fr"
-                  className="w-full rounded-lg border border-[#E4E1F5] bg-white px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary)]"
-                />
-                <button
-                  type="button"
-                  disabled={busy === "contact" || !sendTo.trim()}
-                  onClick={() => onAct(lead, "contact", { to: sendTo.trim() })}
-                  className="bronx-cta-solid w-full justify-center text-[13px] disabled:opacity-50"
-                >
-                  {busy === "contact" ? "Envoi…" : <><Icon name="Send" size={14} aria-hidden /> Envoyer via Gmail</>}
-                </button>
+              <div className="space-y-2.5">
+                {/* Sélecteur de canal */}
+                <div className="flex gap-1.5 rounded-lg bg-[#F1F0F7] p-1">
+                  <ChannelTab active={channel === "email"} onClick={() => setChannel("email")} icon="Mail" label="Email" />
+                  <ChannelTab active={channel === "whatsapp"} onClick={() => setChannel("whatsapp")} icon="MessageCircle" label="WhatsApp" />
+                </div>
+
+                {channel === "email" ? (
+                  <div className="space-y-2">
+                    <input
+                      value={sendTo}
+                      onChange={(e) => setSendTo(e.target.value)}
+                      placeholder="destinataire@entreprise.fr"
+                      className="w-full rounded-lg border border-[#E4E1F5] bg-white px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary)]"
+                    />
+                    <button
+                      type="button"
+                      disabled={busy === "contact" || !sendTo.trim()}
+                      onClick={() => onAct(lead, "contact", { to: sendTo.trim() })}
+                      className="bronx-cta-solid w-full justify-center text-[13px] disabled:opacity-50"
+                    >
+                      {busy === "contact" ? "Envoi…" : <><Icon name="Send" size={14} aria-hidden /> Envoyer via Gmail</>}
+                    </button>
+                  </div>
+                ) : lead.whatsappOptOut ? (
+                  <div className="rounded-lg bg-[#FFF1E8] p-3 text-[12px] text-[#B5651B]">
+                    Ce prospect a demandé à ne plus être contacté sur WhatsApp.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {waConnected === false && (
+                      <div className="rounded-lg bg-[#FFF1E8] p-2.5 text-[12px] text-[#B5651B]">
+                        WhatsApp non connecté — <a href="/settings" className="underline font-bold">configurez-le dans Connexions</a>.
+                      </div>
+                    )}
+                    <input
+                      value={waPhone}
+                      onChange={(e) => setWaPhone(e.target.value)}
+                      placeholder="+221 77 123 45 67"
+                      className="w-full rounded-lg border border-[#E4E1F5] bg-white px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary)]"
+                    />
+                    <textarea
+                      value={waMsg}
+                      onChange={(e) => setWaMsg(e.target.value)}
+                      rows={5}
+                      maxLength={600}
+                      placeholder="Message WhatsApp court…"
+                      className="w-full rounded-lg border border-[#E4E1F5] bg-white px-3 py-2 text-[12.5px] leading-relaxed outline-none focus:border-[var(--color-primary)] resize-none"
+                    />
+                    <div className="text-[11px] text-[#8A8A8A] leading-snug">
+                      {waMsg.length}/600 · Premier contact à froid → envoyé via un <b>template approuvé</b> (ce texte sert d&apos;aperçu). Le texte libre n&apos;est permis que si le prospect a répondu sous 24 h.
+                    </div>
+                    <button
+                      type="button"
+                      disabled={busy === "contact-whatsapp" || !waPhone.trim() || !waMsg.trim() || waConnected === false}
+                      onClick={() => onAct(lead, "contact-whatsapp", { to: waPhone.trim(), message: waMsg.trim(), mode: "template" })}
+                      className="bronx-cta-solid w-full justify-center text-[13px] disabled:opacity-50"
+                    >
+                      {busy === "contact-whatsapp" ? "Envoi…" : <><Icon name="MessageCircle" size={14} aria-hidden /> Envoyer via WhatsApp</>}
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button
@@ -670,10 +756,13 @@ function LeadDetail({
 
         {lead.status === "contacte" && (
           <div className="rounded-xl bg-[#DFF6EA] p-3.5 text-center">
-            <div className="text-[13px] font-black text-[#188A5C]">✓ Prospect contacté</div>
+            <div className="text-[13px] font-black text-[#188A5C] inline-flex items-center justify-center gap-1.5">
+              <Icon name={lead.contactChannel === "whatsapp" ? "MessageCircle" : "Mail"} size={13} aria-hidden />
+              Prospect contacté{lead.contactChannel === "whatsapp" ? " (WhatsApp)" : lead.contactChannel === "email" ? " (email)" : ""}
+            </div>
             {lead.contactedAt && (
               <div className="text-[11px] text-[#5A8B72] mt-0.5">
-                Email envoyé le {new Date(lead.contactedAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                {lead.contactChannel === "whatsapp" ? "Message envoyé le" : "Email envoyé le"} {new Date(lead.contactedAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
               </div>
             )}
           </div>
@@ -688,6 +777,30 @@ function LeadDetail({
         </button>
       </div>
     </aside>
+  );
+}
+
+/** Onglet de choix du canal de contact (Email / WhatsApp). */
+function ChannelTab({
+  active, onClick, icon, label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: string;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-bold transition-colors",
+        active ? "bg-white text-[var(--color-primary)] shadow-sm" : "text-[#8A8A8A] hover:text-[#3A3A3A]"
+      )}
+    >
+      <Icon name={icon} size={13} aria-hidden />{label}
+    </button>
   );
 }
 

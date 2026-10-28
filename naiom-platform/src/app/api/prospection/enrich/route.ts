@@ -1,11 +1,14 @@
 import { readLeads, updateLead } from "@/lib/prospection/store";
 import { verifyEmails } from "@/lib/prospection/verify";
+import { normalizePhone } from "@/lib/prospection/phone";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 const SOCIAL_RE = /https?:\/\/(?:www\.)?(?:linkedin\.com|instagram\.com|facebook\.com)\/[^\s"'<>)]+/g;
+// Liens tel: — source la plus fiable pour un numéro sur une page web.
+const TEL_RE = /(?:tel:|href=["']tel:)([+\d][\d\s().-]{6,})/gi;
 
 /**
  * POST /api/prospection/enrich — ÉTAPE 2 · ENRICHISSEMENT (Ciblé → Profilé)
@@ -30,6 +33,17 @@ export async function POST(req: Request) {
     // récupère la page d'accueil (10 s max)
     const emails = new Set(lead.emails ?? []);
     const socials = new Set(lead.socials ?? []);
+    // Téléphones : on repart de ceux déjà connus (champ `phone` + liste).
+    const phones = new Set<string>();
+    for (const p of [lead.phone, ...(lead.phones ?? [])]) {
+      if (p) {
+        try {
+          phones.add(normalizePhone(p).e164);
+        } catch {
+          /* numéro brut non normalisable : ignoré */
+        }
+      }
+    }
     let description = "";
     try {
       const ctrl = new AbortController();
@@ -45,6 +59,13 @@ export async function POST(req: Request) {
         if (!/\.(png|jpg|jpeg|svg|webp|gif|css|js)$/i.test(m) && !m.includes("sentry")) emails.add(m.toLowerCase());
       }
       for (const m of html.match(SOCIAL_RE) ?? []) socials.add(m);
+      for (const m of html.matchAll(TEL_RE)) {
+        try {
+          phones.add(normalizePhone(m[1]).e164);
+        } catch {
+          /* faux positif (horaires, prix…) : ignoré */
+        }
+      }
       const metaDesc = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1]
         ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i)?.[1];
       const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1];
@@ -68,6 +89,7 @@ export async function POST(req: Request) {
       enrichedAt: new Date().toISOString(),
       emailVerified,
       emails: emailList,
+      phones: [...phones].slice(0, 5),
       socials: [...socials].slice(0, 5),
       insights,
     });

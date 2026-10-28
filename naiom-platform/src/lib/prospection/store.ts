@@ -23,6 +23,8 @@ export interface Lead {
   reviewsCount?: number;
   emails?: string[];
   emailVerified?: boolean;
+  /** Numéros de téléphone trouvés à l'enrichissement (en plus de `phone`). */
+  phones?: string[];
   socials?: string[];
   insights?: string;
   status: LeadStatus;
@@ -31,10 +33,24 @@ export interface Lead {
     email: string;
     linkedin: string;
     generatedAt: string;
+    /** Version courte adaptée à WhatsApp (éditable avant envoi). */
+    whatsapp?: string;
   };
   createdAt: string;
   enrichedAt?: string;
   contactedAt?: string;
+  /** Canal utilisé pour le contact (le lead reste en statut "contacte"). */
+  contactChannel?: "email" | "whatsapp";
+  /** Le lead a demandé à ne plus être contacté sur WhatsApp (STOP). */
+  whatsappOptOut?: boolean;
+  /** Trace du dernier envoi WhatsApp (jamais le contenu, jamais de secret). */
+  whatsapp?: {
+    messageId: string;
+    sentAt: string;
+    to: string;
+    mode: "template" | "text";
+    templateName?: string;
+  };
 }
 
 export async function readLeads(): Promise<Lead[]> {

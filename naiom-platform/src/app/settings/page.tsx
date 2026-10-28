@@ -6,6 +6,7 @@ import { SyncButton } from "@/components/SyncButton";
 import { getGoogleStatus, isGoogleConfigured } from "@/lib/integrations/google";
 import { getLinkedInStatus, isLinkedInConfigured } from "@/lib/integrations/linkedin";
 import { getInstagramStatus, isInstagramConfigured } from "@/lib/integrations/instagramPublish";
+import { getWhatsAppStatus, isWhatsAppConfigured } from "@/lib/integrations/whatsapp";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { AppNav } from "@/components/landing/AppNav";
@@ -22,7 +23,8 @@ interface Integration {
     | "cv"
     | "instagram"
     | "linkedin"
-    | "tiktok";
+    | "tiktok"
+    | "whatsapp";
   title: string;
   /** Agents qui consomment cette connexion — affiché en clair sur la carte. */
   agent: string;
@@ -66,6 +68,7 @@ async function getIntegrations(): Promise<Integration[]> {
     getLinkedInStatus(),
     getInstagramStatus(),
   ]);
+  const waStatus = getWhatsAppStatus();
 
   return [
     {
@@ -225,6 +228,25 @@ async function getIntegrations(): Promise<Integration[]> {
         : "Fatou et Emma rédigent le post ; il n'est publié qu'après votre clic « Approuver » dans le chat. La connexion dure 60 jours.",
     },
     {
+      id: "whatsapp",
+      title: "WhatsApp (Cloud API)",
+      agent: "Awa (prospection) — prise de contact",
+      icon: "MessageCircle",
+      envVar: "WHATSAPP_ACCESS_TOKEN + WHATSAPP_PHONE_NUMBER_ID",
+      configured: isWhatsAppConfigured() && waStatus.connected,
+      email: waStatus.phoneNumberId ? `n° ${waStatus.phoneNumberId}` : undefined,
+      setupSteps: [
+        "Sur developers.facebook.com : créez une app, ajoutez le produit « WhatsApp »",
+        "Récupérez le Phone Number ID et le Business Account ID (onglet API Setup)",
+        "Générez un jeton d'accès permanent (System User token) avec la permission whatsapp_business_messaging",
+        "Créez et faites approuver un template de prise de contact (voir DEPLOY.md pour un modèle FR)",
+        "Dans .env.local : WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_BUSINESS_ACCOUNT_ID, WHATSAPP_DEFAULT_TEMPLATE",
+      ],
+      notes: waStatus.dryRun
+        ? "Mode dry-run actif (WHATSAPP_DRY_RUN) : les envois sont simulés, aucun message réel n'est envoyé."
+        : "Awa rédige un message court ; il n'est envoyé qu'après votre clic « Envoyer via WhatsApp » dans le pipeline. Prise de contact à froid = template approuvé (conformité Meta). Aucun secret n'est exposé au navigateur.",
+    },
+    {
       id: "tiktok",
       title: "TikTok",
       agent: "Nina (veille) · Emma (vidéos produit)",
@@ -364,16 +386,17 @@ function IntegrationCard({ integration: i }: { integration: Integration }) {
       })
     : null;
 
+  const connectedNoSync = i.id === "google" || i.id === "whatsapp";
   const statusLabel = i.configured
     ? i.live === true
       ? "Connecté · données live"
-      : i.id === "google"
+      : connectedNoSync
       ? "Connecté"
       : "Configuré · jamais synchronisé"
     : "Non configuré";
 
   const statusColor = i.configured
-    ? i.live === true || i.id === "google"
+    ? i.live === true || connectedNoSync
       ? "emerald"
       : "amber"
     : "muted";

@@ -132,6 +132,47 @@ cd naiom-platform && npm ci && npm run build
 pm2 reload saturn-studio
 ```
 
+## WhatsApp Cloud API (canal de prospection d'Awa)
+
+Awa peut envoyer un message WhatsApp personnalisé à un lead, à côté de l'email.
+Prise de contact à froid = **template approuvé** (règle Meta hors fenêtre 24 h) ;
+texte libre uniquement si le prospect a répondu dans les 24 h.
+
+### 1. Côté Meta (developers.facebook.com)
+1. Crée une app → ajoute le produit **WhatsApp**.
+2. Onglet *API Setup* : note le **Phone Number ID** et le **WhatsApp Business Account ID**.
+3. Génère un **jeton permanent** (System User) avec la permission `whatsapp_business_messaging`.
+4. *WhatsApp Manager → Message Templates* : crée un template de catégorie **MARKETING** ou
+   **UTILITY** et fais-le approuver. Modèle FR suggéré (corps, 2 variables) :
+   > Bonjour, ici Fallou de Saturn Studio. En regardant {{1}}, j'ai une idée concrète pour
+   > {{2}}. Seriez-vous ouvert à un court échange cette semaine ?
+
+   `{{1}}` = nom de l'entreprise, `{{2}}` = bénéfice court (remplis automatiquement depuis la fiche).
+
+### 2. Variables d'environnement (`.env.local`)
+```
+WHATSAPP_ACCESS_TOKEN=...            # jeton System User permanent
+WHATSAPP_PHONE_NUMBER_ID=...         # ID du numéro expéditeur
+WHATSAPP_BUSINESS_ACCOUNT_ID=...     # WABA id
+WHATSAPP_API_VERSION=v21.0           # optionnel (défaut v21.0)
+WHATSAPP_DEFAULT_TEMPLATE=nom_du_template   # requis pour le 1er contact
+WHATSAPP_TEMPLATE_LANG=fr            # optionnel (défaut fr)
+WHATSAPP_RATE_PER_MIN=10             # optionnel : garde de débit
+WHATSAPP_DRY_RUN=false               # true = simule, aucun appel à Meta
+```
+Non configuré → l'endpoint répond **412** et l'UI affiche « WhatsApp non connecté ». Les
+secrets ne traversent jamais la frontière serveur → client (ni le bundle, ni les journaux ;
+les numéros sont masqués `+22177****67`).
+
+### 3. Mode dry-run (test sans Meta)
+```
+WHATSAPP_DRY_RUN=true node --test naiom-platform/scripts/test-whatsapp.ts
+```
+Vérifie la normalisation E.164, le composer (≤600 car., 1 CTA, ≤1 emoji), la table d'erreurs
+Meta et un envoi simulé (messageId `dryrun-…`). Puis test réel : connecte WhatsApp, passe un
+lead en « Prêt », onglet **WhatsApp** dans la fiche, vérifie le numéro et le message, clique
+**Envoyer via WhatsApp** (teste d'abord sur ton propre numéro).
+
 ## Notes importantes
 - **Données persistées sur disque** : `src/data/google-tokens.json`,
   `live-*.json`, et les dossiers de livrables vivent sur le serveur (hors git).
