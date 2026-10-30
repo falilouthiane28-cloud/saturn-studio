@@ -329,7 +329,11 @@ export async function POST(req: Request) {
         success: false,
         toolCalls: 0,
       }).catch(() => {});
-      return err instanceof Error ? err.message : "Erreur inconnue";
+      const msg = err instanceof Error ? err.message : "Erreur inconnue";
+      if (msg.includes("x-api-key") || msg.includes("authentication_error")) {
+        return "Clé API Anthropic invalide ou expirée — vérifiez ANTHROPIC_API_KEY dans .env.local puis redémarrez.";
+      }
+      return msg;
     },
   });
 }

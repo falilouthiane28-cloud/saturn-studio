@@ -61,9 +61,13 @@ Réponds UNIQUEMENT en JSON valide :
     return Response.json({ success: true, lead: updated });
   } catch (err) {
     console.error("[prospection/personalize]", err);
-    return Response.json(
-      { error: err instanceof Error ? err.message : "Erreur inconnue" },
-      { status: 500 }
-    );
+    const msg = err instanceof Error ? err.message : "Erreur inconnue";
+    if (msg.includes("x-api-key") || msg.includes("authentication_error") || msg.includes("401")) {
+      return Response.json(
+        { error: "Clé API Anthropic invalide ou expirée — vérifiez ANTHROPIC_API_KEY dans .env.local puis redémarrez." },
+        { status: 412 }
+      );
+    }
+    return Response.json({ error: msg }, { status: 500 });
   }
 }
