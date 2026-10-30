@@ -1,5 +1,13 @@
 # Journal d'avancement — Saturn Studio
 
+## Canal WhatsApp pour Awa (28 oct. 2026) ✅
+- ✅ Nouveau canal de prise de contact **WhatsApp Cloud API** (Meta Graph), à côté de l'email, sur l'étape « Prêt » du pipeline. Prise de contact à froid = **template approuvé** (conformité Meta) ; texte libre seulement dans la fenêtre 24 h (pas de repli silencieux).
+- ✅ Isolé dans de nouveaux fichiers : `lib/prospection/phone.ts` (E.164, défaut SN/+221), `lib/integrations/whatsapp.ts` (client Meta, timeout+retry, mapping d'erreurs FR, `WHATSAPP_DRY_RUN`), `lib/prospection/whatsappMessage.ts` (composer ≤600 c.), `api/prospection/contact-whatsapp`, `api/integrations/whatsapp/status`.
+- ✅ Gardes : opt-out (409), doublon <24 h sauf `force` (409), débit `WHATSAPP_RATE_PER_MIN` (429), numéros masqués en log. Secrets jamais exposés au client.
+- ✅ Édits additifs : `store.ts` (champs optionnels `phones`, `contactChannel`, `whatsappOptOut`, `whatsapp`, `outreach.whatsapp`), `enrich` (extraction tél.), UI `ProspectionStudio` (sélecteur Email/WhatsApp + éditeur + badge), carte Connexions. **Flux email `contact/route.ts` inchangé.**
+- ✅ QA : tests dry-run 7/7 (`node --test scripts/test-whatsapp.ts`), `tsc` propre, `npm run build` OK. Commit `a119625`.
+- 🔜 Côté utilisateur : app Meta + template FR approuvé + vars `WHATSAPP_*` dans `.env.local` serveur (voir `DEPLOY.md`). Pas de webhook entrant (STOP/livraison non reçus).
+
 ## 📍 Où on en est (30 sept. 2026)
 - **En ligne** : https://209-74-71-111.sslip.io (VPS Spaceship, Docker, Caddy HTTPS, page /login).
 - **Fait** : 6 agents avec connecteurs ; **Léa renommée Fatou** ; 14 modèles visuels avec la mascotte **Orbi** (scènes IA Higgsfield) ; téléchargement PDF + ZIP des vraies images ; **Nina** appelée sur les posts techniques ; **montage vidéo étape 1** (rendu sur le PC) ; **pack Instagram** branché sur Fatou (brouillon seulement, 47 tests).

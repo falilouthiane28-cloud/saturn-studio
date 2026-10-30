@@ -71,5 +71,11 @@ Règles et contexte persistants à respecter avant toute intervention.
 - Remotion : `Video` de `@remotion/media` (OffthreadVideo échouait) ; le ffmpeg fourni n'a pas les filtres select/fps.
 - `proxy.ts` exclut `api/video/upload` et `api/video/worker/` (authentifiés autrement : session / jeton).
 
+## WhatsApp (prospection d'Awa)
+- Canal additif à côté de l'email ; **ne jamais modifier le contrat de `api/prospection/contact`** (email figé).
+- Prise de contact à froid = **template approuvé Meta** obligatoire ; texte libre seulement si réponse <24 h. **Jamais de repli silencieux template→texte.**
+- Envoi uniquement sur clic explicite (human-in-the-loop). Respecter opt-out, anti-doublon 24 h, garde de débit.
+- Secrets `WHATSAPP_*` : env serveur seulement, jamais au client ni en log (numéros masqués). Tester avec `WHATSAPP_DRY_RUN=true`.
+
 ## Chef d'équipe
 Fallou (`fireflies`), déclaré dans `agentsUI.ts`.
